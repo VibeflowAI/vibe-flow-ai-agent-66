@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,6 +29,16 @@ export const Navbar = () => {
         <div className="flex items-center space-x-4">
           {user ? (
             <>
+              <Link to="/dashboard">
+                <Button variant="ghost" className="text-vibe-primary hover:text-vibe-dark">
+                  Dashboard
+                </Button>
+              </Link>
+              <Link to="/chat">
+                <Button variant="ghost" className="text-vibe-primary hover:text-vibe-dark">
+                  Chat
+                </Button>
+              </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full">

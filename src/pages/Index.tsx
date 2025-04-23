@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -48,7 +47,7 @@ const Index = () => {
                   </Button>
                 </Link>
                 <Link to="/signin">
-                  <Button size="lg" variant="outline" className="w-full sm:w-auto border-white text-white hover:bg-white/10">
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto bg-white/20 backdrop-blur-sm border-white text-white hover:bg-white hover:text-vibe-primary">
                     Sign In
                   </Button>
                 </Link>
