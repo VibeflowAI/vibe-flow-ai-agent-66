@@ -1,30 +1,28 @@
 
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { useAuth } from './AuthContext';
+import React, { createContext, useState, useContext, useCallback, ReactNode } from 'react';
 import { toast } from '@/hooks/use-toast';
+import { useAuth, User } from './AuthContext';
 
 // Types
+export type MoodType = 'happy' | 'calm' | 'tired' | 'stressed' | 'sad';
+export type EnergyLevel = 'low' | 'medium' | 'high';
+
 export type MoodEntry = {
   id: string;
+  timestamp: number;
   mood: MoodType;
   energy: EnergyLevel;
   note?: string;
-  timestamp: string;
 };
-
-export type MoodType = 'happy' | 'calm' | 'tired' | 'stressed' | 'sad';
-
-export type EnergyLevel = 'low' | 'medium' | 'high';
 
 export type Recommendation = {
   id: string;
-  category: 'food' | 'activity' | 'mindfulness';
   title: string;
   description: string;
+  category: 'food' | 'activity' | 'mindfulness';
   imageUrl?: string;
-  moodTarget: MoodType;
-  energyTarget: EnergyLevel;
-  timestamp: string;
+  moodTypes: MoodType[];
+  energyLevels: EnergyLevel[];
 };
 
 type MoodContextType = {
@@ -33,121 +31,72 @@ type MoodContextType = {
   recommendations: Recommendation[];
   isLoading: boolean;
   logMood: (mood: MoodType, energy: EnergyLevel, note?: string) => Promise<void>;
-  getRecommendations: () => Promise<void>;
-  moodDescriptions: Record<MoodType, string>;
+  getRecommendations: () => void;
   moodEmojis: Record<MoodType, string>;
+  moodDescriptions: Record<MoodType, string>;
   energyDescriptions: Record<EnergyLevel, string>;
-};
-
-// Sample data
-const SAMPLE_RECOMMENDATIONS: Recommendation[] = [
-  {
-    id: '1',
-    category: 'food',
-    title: 'Green Smoothie Bowl',
-    description: 'A nutritious smoothie bowl with spinach, banana, and chia seeds to boost your energy.',
-    imageUrl: 'https://images.unsplash.com/photo-1623428187969-5da2dcea5ebf?w=500&auto=format&fit=crop&q=60',
-    moodTarget: 'tired',
-    energyTarget: 'low',
-    timestamp: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    category: 'activity',
-    title: 'Quick Yoga Session',
-    description: '15-minute gentle yoga flow to reduce stress and improve mindfulness.',
-    imageUrl: 'https://images.unsplash.com/photo-1599901860904-17e6ed7083a0?w=500&auto=format&fit=crop&q=60',
-    moodTarget: 'stressed',
-    energyTarget: 'medium',
-    timestamp: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    category: 'mindfulness',
-    title: 'Guided Meditation',
-    description: '10-minute guided meditation to calm your mind and reduce anxiety.',
-    imageUrl: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=500&auto=format&fit=crop&q=60',
-    moodTarget: 'stressed',
-    energyTarget: 'high',
-    timestamp: new Date().toISOString(),
-  },
-  {
-    id: '4',
-    category: 'food',
-    title: 'Dark Chocolate',
-    description: 'A small piece of dark chocolate can help boost your mood with antioxidants and small caffeine content.',
-    imageUrl: 'https://images.unsplash.com/photo-1548907040-4d42bea34801?w=500&auto=format&fit=crop&q=60',
-    moodTarget: 'sad',
-    energyTarget: 'low',
-    timestamp: new Date().toISOString(),
-  },
-  {
-    id: '5',
-    category: 'activity',
-    title: 'Dance Break',
-    description: '5-minute dance to your favorite upbeat songs to elevate your mood and energy.',
-    imageUrl: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=500&auto=format&fit=crop&q=60',
-    moodTarget: 'sad',
-    energyTarget: 'medium',
-    timestamp: new Date().toISOString(),
-  },
-  {
-    id: '6',
-    category: 'mindfulness',
-    title: 'Gratitude Journaling',
-    description: 'Write down 3 things you're grateful for to shift perspective and improve mood.',
-    imageUrl: 'https://images.unsplash.com/photo-1517842645767-c639042777db?w=500&auto=format&fit=crop&q=60',
-    moodTarget: 'sad',
-    energyTarget: 'low',
-    timestamp: new Date().toISOString(),
-  },
-  {
-    id: '7',
-    category: 'food',
-    title: 'Herbal Tea',
-    description: 'Chamomile or lavender tea can help you relax and prepare for sleep.',
-    imageUrl: 'https://images.unsplash.com/photo-1563911892437-54c777ba9227?w=500&auto=format&fit=crop&q=60',
-    moodTarget: 'calm',
-    energyTarget: 'low',
-    timestamp: new Date().toISOString(),
-  },
-  {
-    id: '8',
-    category: 'activity',
-    title: 'High-Intensity Interval Training',
-    description: '20-minute HIIT workout to boost energy and endorphins.',
-    imageUrl: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=500&auto=format&fit=crop&q=60',
-    moodTarget: 'happy',
-    energyTarget: 'high',
-    timestamp: new Date().toISOString(),
-  },
-];
-
-// Helper data
-const MOOD_DESCRIPTIONS = {
-  happy: 'Feeling joy, contentment, or excitement',
-  calm: 'Feeling peaceful, relaxed, or at ease',
-  tired: 'Feeling fatigued, low energy, or sleepy',
-  stressed: 'Feeling anxious, overwhelmed, or tense',
-  sad: 'Feeling down, discouraged, or blue'
-};
-
-const MOOD_EMOJIS = {
-  happy: '😊',
-  calm: '😌',
-  tired: '😴',
-  stressed: '😰',
-  sad: '😢'
-};
-
-const ENERGY_DESCRIPTIONS = {
-  low: 'Minimal energy, prefer rest',
-  medium: 'Moderate energy for light activity',
-  high: 'Energized and ready for challenge'
 };
 
 // Create context
 export const MoodContext = createContext<MoodContextType | undefined>(undefined);
+
+// Mock recommendations data
+const MOCK_RECOMMENDATIONS: Recommendation[] = [
+  {
+    id: '1',
+    title: 'Morning Smoothie Bowl',
+    description: 'Start your day with a nutritious smoothie bowl topped with fresh fruits and granola.',
+    category: 'food',
+    imageUrl: 'https://images.unsplash.com/photo-1494597564530-871f2b93ac55?auto=format&fit=crop&q=80&w=2013&ixlib=rb-4.0.3',
+    moodTypes: ['tired', 'sad'],
+    energyLevels: ['low', 'medium'],
+  },
+  {
+    id: '2',
+    title: 'Gentle Yoga Session',
+    description: 'A 15-minute gentle yoga session to help you relax and recharge.',
+    category: 'activity',
+    imageUrl: 'https://images.unsplash.com/photo-1575052814086-f385e2e2ad1b?auto=format&fit=crop&q=80&w=2070&ixlib=rb-4.0.3',
+    moodTypes: ['stressed', 'tired'],
+    energyLevels: ['low', 'medium'],
+  },
+  {
+    id: '3',
+    title: 'Guided Meditation',
+    description: 'A 10-minute guided meditation to help clear your mind and reduce stress.',
+    category: 'mindfulness',
+    imageUrl: 'https://images.unsplash.com/photo-1474418397713-2f1761efc8d4?auto=format&fit=crop&q=80&w=2036&ixlib=rb-4.0.3',
+    moodTypes: ['stressed', 'sad'],
+    energyLevels: ['low', 'medium', 'high'],
+  },
+  {
+    id: '4',
+    title: 'High-Energy Workout',
+    description: 'A quick high-intensity workout to boost your energy and mood.',
+    category: 'activity',
+    imageUrl: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&q=80&w=2070&ixlib=rb-4.0.3',
+    moodTypes: ['happy', 'calm'],
+    energyLevels: ['medium', 'high'],
+  },
+  {
+    id: '5',
+    title: 'Veggie-Packed Meal',
+    description: 'A colorful, nutrient-dense meal filled with seasonal vegetables.',
+    category: 'food',
+    imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=2070&ixlib=rb-4.0.3',
+    moodTypes: ['happy', 'calm', 'tired'],
+    energyLevels: ['medium', 'high'],
+  },
+  {
+    id: '6',
+    title: 'Gratitude Journaling',
+    description: 'Take a few minutes to write down things you're grateful for to shift your perspective.',
+    category: 'mindfulness',
+    imageUrl: 'https://images.unsplash.com/photo-1506784365847-bbad939e9335?auto=format&fit=crop&q=80&w=2068&ixlib=rb-4.0.3',
+    moodTypes: ['sad', 'stressed'],
+    energyLevels: ['low', 'medium'],
+  },
+];
 
 // Provider component
 export const MoodProvider = ({ children }: { children: ReactNode }) => {
@@ -156,116 +105,117 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
   const [moodHistory, setMoodHistory] = useState<MoodEntry[]>([]);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  
-  // Load mood data from localStorage when user changes
-  useEffect(() => {
+
+  // Helper objects for UI
+  const moodEmojis = {
+    happy: '😊',
+    calm: '😌',
+    tired: '😴',
+    stressed: '😓',
+    sad: '😞'
+  };
+
+  const moodDescriptions = {
+    happy: 'Feeling positive and optimistic',
+    calm: 'Feeling peaceful and centered',
+    tired: 'Feeling low on energy',
+    stressed: 'Feeling tense and overwhelmed',
+    sad: 'Feeling down or blue'
+  };
+
+  const energyDescriptions = {
+    low: 'Minimal energy available',
+    medium: 'Moderate energy levels',
+    high: 'Full of energy and ready to go'
+  };
+
+  // Load mood history from localStorage when user changes
+  React.useEffect(() => {
     if (user) {
-      // Load mood history from localStorage
-      const storedMoodHistory = localStorage.getItem(`vibeflow_mood_history_${user.id}`);
-      if (storedMoodHistory) {
-        const parsedHistory = JSON.parse(storedMoodHistory) as MoodEntry[];
+      const savedHistory = localStorage.getItem(`vibeflow_mood_${user.id}`);
+      if (savedHistory) {
+        const parsedHistory = JSON.parse(savedHistory);
         setMoodHistory(parsedHistory);
-        
-        // Set current mood as the most recent entry if it's from today
-        const todayEntries = parsedHistory.filter(entry => {
-          const entryDate = new Date(entry.timestamp).toDateString();
-          const todayDate = new Date().toDateString();
-          return entryDate === todayDate;
-        });
-        
-        if (todayEntries.length > 0) {
-          setCurrentMood(todayEntries[0]);
-        }
+        setCurrentMood(parsedHistory[0] || null);
       }
     } else {
-      // Clear data when user logs out
-      setCurrentMood(null);
       setMoodHistory([]);
-      setRecommendations([]);
+      setCurrentMood(null);
     }
   }, [user]);
 
   // Log a new mood entry
-  const logMood = async (mood: MoodType, energy: EnergyLevel, note?: string) => {
+  const logMood = useCallback(async (mood: MoodType, energy: EnergyLevel, note?: string) => {
     if (!user) return Promise.reject(new Error('User not authenticated'));
     
     setIsLoading(true);
+    
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
+      // Create new mood entry
       const newMoodEntry: MoodEntry = {
         id: Date.now().toString(),
+        timestamp: Date.now(),
         mood,
         energy,
-        note,
-        timestamp: new Date().toISOString()
+        note
       };
       
-      // Update current mood
-      setCurrentMood(newMoodEntry);
-      
-      // Update mood history
+      // Update state
       const updatedHistory = [newMoodEntry, ...moodHistory];
+      setCurrentMood(newMoodEntry);
       setMoodHistory(updatedHistory);
       
       // Save to localStorage
-      localStorage.setItem(
-        `vibeflow_mood_history_${user.id}`,
-        JSON.stringify(updatedHistory)
-      );
-      
-      // Generate recommendations based on new mood
-      await getRecommendations();
+      localStorage.setItem(`vibeflow_mood_${user.id}`, JSON.stringify(updatedHistory));
       
       toast({
-        title: 'Mood logged!',
-        description: `Your ${mood} mood has been recorded.`
+        title: 'Mood logged',
+        description: `Your ${mood} mood has been recorded.`,
       });
+      
+      // Get recommendations based on the new mood
+      getRecommendationsForMood(newMoodEntry);
+      
+      return Promise.resolve();
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Error logging mood',
-        description: error instanceof Error ? error.message : 'Failed to log mood'
+        title: 'Failed to log mood',
+        description: error instanceof Error ? error.message : 'An error occurred',
       });
+      return Promise.reject(error);
     } finally {
       setIsLoading(false);
     }
+  }, [moodHistory, user]);
+
+  // Get recommendations based on current mood and energy level
+  const getRecommendationsForMood = (moodEntry: MoodEntry) => {
+    setIsLoading(true);
+    
+    // Simulate API delay
+    setTimeout(() => {
+      const filteredRecommendations = MOCK_RECOMMENDATIONS.filter(rec => 
+        rec.moodTypes.includes(moodEntry.mood) && 
+        rec.energyLevels.includes(moodEntry.energy)
+      );
+      
+      // If no recommendations match exactly, return some defaults
+      const recommendationsToShow = filteredRecommendations.length > 0 
+        ? filteredRecommendations 
+        : MOCK_RECOMMENDATIONS.slice(0, 3);
+        
+      setRecommendations(recommendationsToShow);
+      setIsLoading(false);
+    }, 1000);
   };
 
-  // Get personalized recommendations based on current mood
-  const getRecommendations = async () => {
-    if (!user || !currentMood) return Promise.resolve();
-    
-    setIsLoading(true);
-    try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Filter recommendations based on current mood and energy
-      const filteredRecommendations = SAMPLE_RECOMMENDATIONS.filter(rec => 
-        rec.moodTarget === currentMood.mood || 
-        rec.energyTarget === currentMood.energy
-      );
-      
-      // If no direct matches, return general recommendations
-      const newRecommendations = filteredRecommendations.length > 0
-        ? filteredRecommendations
-        : SAMPLE_RECOMMENDATIONS.slice(0, 3);
-      
-      setRecommendations(newRecommendations);
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error getting recommendations',
-        description: error instanceof Error 
-          ? error.message 
-          : 'Failed to get recommendations'
-      });
-    } finally {
-      setIsLoading(false);
+  // Get recommendations (to be called from outside)
+  const getRecommendations = useCallback(() => {
+    if (currentMood) {
+      getRecommendationsForMood(currentMood);
     }
-  };
+  }, [currentMood]);
 
   const value = {
     currentMood,
@@ -274,9 +224,9 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
     isLoading,
     logMood,
     getRecommendations,
-    moodDescriptions: MOOD_DESCRIPTIONS,
-    moodEmojis: MOOD_EMOJIS,
-    energyDescriptions: ENERGY_DESCRIPTIONS
+    moodEmojis,
+    moodDescriptions,
+    energyDescriptions
   };
 
   return <MoodContext.Provider value={value}>{children}</MoodContext.Provider>;
