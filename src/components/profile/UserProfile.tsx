@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useForm } from 'react-hook-form';
+import { toast } from '@/hooks/use-toast';
 
 export const UserProfile = () => {
   const { user, updateProfile } = useAuth();
@@ -67,18 +68,27 @@ export const UserProfile = () => {
         preferences
       });
       
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully.",
+      });
+      
       setIsEditing(false);
     } catch (error) {
-      console.error('Failed to update profile:', error);
+      toast({
+        variant: "destructive",
+        title: "Failed to update profile",
+        description: error instanceof Error ? error.message : "An error occurred"
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader className="flex flex-col items-center text-center">
-        <Avatar className="h-24 w-24">
+    <Card className="w-full shadow-md">
+      <CardHeader className="flex flex-col items-center text-center bg-gradient-to-r from-vibe-primary/10 to-vibe-primary/5 pb-6">
+        <Avatar className="h-24 w-24 border-4 border-white shadow-sm">
           <AvatarImage src={user.photoURL || ''} alt={user.displayName} />
           <AvatarFallback className="bg-vibe-primary text-white text-xl">
             {user.displayName.charAt(0)}
@@ -88,11 +98,10 @@ export const UserProfile = () => {
         <p className="text-gray-500">{user.email}</p>
       </CardHeader>
       
-      <CardContent>
+      <CardContent className="pt-6">
         {isEditing ? (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-              {/* Display Name */}
               <FormField
                 control={form.control}
                 name="displayName"
@@ -106,7 +115,6 @@ export const UserProfile = () => {
                 )}
               />
               
-              {/* Activity Level */}
               <FormField
                 control={form.control}
                 name="activityLevel"
@@ -132,10 +140,9 @@ export const UserProfile = () => {
                 )}
               />
               
-              {/* Dietary Restrictions */}
               <FormItem>
                 <FormLabel>Dietary Preferences</FormLabel>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2 mt-2">
                   {dietaryOptions.map((option) => (
                     <FormField
                       key={option}
@@ -171,7 +178,6 @@ export const UserProfile = () => {
                 </div>
               </FormItem>
               
-              {/* Sleep Goals */}
               <FormField
                 control={form.control}
                 name="sleepGoals"
@@ -195,7 +201,6 @@ export const UserProfile = () => {
                 )}
               />
               
-              {/* Notifications */}
               <FormField
                 control={form.control}
                 name="notificationsEnabled"
@@ -240,15 +245,15 @@ export const UserProfile = () => {
         ) : (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-medium">Profile Information</h3>
-              <div className="mt-4 grid grid-cols-1 gap-4">
+              <h3 className="text-lg font-medium mb-4">Profile Information</h3>
+              <div className="grid grid-cols-1 gap-4">
                 <div className="flex justify-between py-2 border-b">
                   <span className="text-gray-500">Activity Level</span>
-                  <span className="capitalize">{user.preferences?.activityLevel || 'Not set'}</span>
+                  <span className="capitalize font-medium">{user.preferences?.activityLevel || 'Not set'}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b">
                   <span className="text-gray-500">Dietary Preferences</span>
-                  <span>
+                  <span className="font-medium">
                     {user.preferences?.dietaryRestrictions?.length
                       ? user.preferences.dietaryRestrictions.map(pref => pref.charAt(0).toUpperCase() + pref.slice(1)).join(', ')
                       : 'None specified'}
@@ -256,11 +261,11 @@ export const UserProfile = () => {
                 </div>
                 <div className="flex justify-between py-2 border-b">
                   <span className="text-gray-500">Sleep Goal</span>
-                  <span>{user.preferences?.sleepGoals || 'Not set'}</span>
+                  <span className="font-medium">{user.preferences?.sleepGoals || 'Not set'}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b">
                   <span className="text-gray-500">Notifications</span>
-                  <span>{user.preferences?.notificationsEnabled ? 'Enabled' : 'Disabled'}</span>
+                  <span className="font-medium">{user.preferences?.notificationsEnabled ? 'Enabled' : 'Disabled'}</span>
                 </div>
               </div>
             </div>
