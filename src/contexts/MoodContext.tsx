@@ -90,7 +90,7 @@ const MOCK_RECOMMENDATIONS: Recommendation[] = [
   {
     id: '6',
     title: 'Gratitude Journaling',
-    description: 'Take a few minutes to write down things you're grateful for to shift your perspective.',
+    description: "Take a few minutes to write down things you're grateful for to shift your perspective.",
     category: 'mindfulness',
     imageUrl: 'https://images.unsplash.com/photo-1506784365847-bbad939e9335?auto=format&fit=crop&q=80&w=2068&ixlib=rb-4.0.3',
     moodTypes: ['sad', 'stressed'],
