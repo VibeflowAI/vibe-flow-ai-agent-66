@@ -1,16 +1,31 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { useMood } from '@/contexts/MoodContext';
-import { MessageSquare, Send, Bot } from 'lucide-react';
+import { MessageSquare, Send, Bot, Volume2, VolumeX } from 'lucide-react';
 import { useVoiceChat } from '@/hooks/useVoiceChat';
 
 const Chat = () => {
-  const { messages, inputText, setInputText, handleSendMessage, isProcessing } = useVoiceChat();
+  const { messages, inputText, setInputText, handleSendMessage, isProcessing, isPlaying, stopAudio, audioRef } = useVoiceChat();
   const { moodEmojis } = useMood();
+
+  useEffect(() => {
+    // Create an audio element once the component mounts
+    const audioElement = new Audio();
+    audioRef.current = audioElement;
+
+    // Clean up on unmount
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +83,20 @@ const Chat = () => {
                     }`}
                   >
                     {msg.text}
+                    {!msg.isUser && index === messages.length - 1 && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="mt-2 h-6 w-6 p-0" 
+                        onClick={() => isPlaying ? stopAudio() : null}
+                      >
+                        {isPlaying ? (
+                          <VolumeX className="h-4 w-4 text-gray-500" />
+                        ) : (
+                          <Volume2 className="h-4 w-4 text-gray-500" />
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))
