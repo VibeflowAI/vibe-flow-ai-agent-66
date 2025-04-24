@@ -1,6 +1,6 @@
-
 import { useState, useRef } from 'react';
 import { useMood } from '@/contexts/MoodContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface Message {
   text: string;
@@ -18,6 +18,7 @@ export const useVoiceChat = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { currentMood, moodEmojis } = useMood();
+  const { toast } = useToast();
 
   const stopAudio = () => {
     if (audioRef.current) {
@@ -78,31 +79,50 @@ export const useVoiceChat = () => {
 
     const userMessage = { text, isUser: true };
     setMessages(prev => [...prev, userMessage]);
-
     setIsProcessing(true);
+
     try {
-      // Generate response based on the user's message and mood
-      const responseText = `I understand you're interested in activities or food. Based on your current mood ${
-        currentMood ? `(${currentMood.mood} - ${moodEmojis[currentMood.mood]})` : ''
-      }, I can suggest some options. Would you like specific recommendations?`;
-      
+      // Call Supabase Edge Function to get agent response
+      const response = await fetch('/api/edge/mood-agent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: text,
+          currentMood: currentMood?.mood,
+          moodEmoji: currentMood ? moodEmojis[currentMood.mood] : null
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get response from agent');
+      }
+
+      const data = await response.json();
       const botResponse = {
-        text: responseText,
+        text: data.response,
         isUser: false
       };
       
       setMessages(prev => [...prev, botResponse]);
       
-      // Generate and play audio response
-      const audioUrl = await generateSpeech(responseText);
-      playAudio(audioUrl);
+      // Generate and play audio response if needed
+      if (audioRef.current) {
+        const audioUrl = await generateSpeech(data.response);
+        playAudio(audioUrl);
+      }
     } catch (error) {
       console.error('Error processing message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to get a response. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsProcessing(false);
+      setInputText('');
     }
-    
-    setInputText('');
   };
 
   return {

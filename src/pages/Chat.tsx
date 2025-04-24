@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { useMood } from '@/contexts/MoodContext';
-import { MessageSquare, Send, Bot, Volume2, VolumeX } from 'lucide-react';
+import { Bot, Send, Volume2, VolumeX } from 'lucide-react';
 import { useVoiceChat } from '@/hooks/useVoiceChat';
 
 const Chat = () => {
@@ -38,8 +38,10 @@ const Chat = () => {
         <div className="p-4 border-b flex items-center gap-2 bg-vibe-primary/5">
           <Bot className="w-6 h-6 text-vibe-primary" />
           <div>
-            <h1 className="text-xl font-semibold">VibeFlow Assistant</h1>
-            <p className="text-sm text-gray-600">I can help with activities, food, and wellness suggestions</p>
+            <h1 className="text-xl font-semibold">VibeFlow Agent</h1>
+            <p className="text-sm text-gray-600">
+              Your personal wellness companion powered by AI
+            </p>
           </div>
         </div>
         
@@ -48,24 +50,24 @@ const Chat = () => {
             {messages.length === 0 ? (
               <div className="text-center text-gray-500 mt-8">
                 <Bot className="w-12 h-12 mx-auto mb-4 text-vibe-primary opacity-50" />
-                <p className="font-medium mb-2">Welcome to VibeFlow Assistant!</p>
+                <p className="font-medium mb-2">Welcome to VibeFlow Agent!</p>
                 <p className="text-sm mb-4">I can help you with:</p>
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-center justify-center gap-2">
                     <span className="w-1.5 h-1.5 bg-vibe-primary rounded-full"></span>
-                    Activity recommendations
+                    Personalized meal suggestions
                   </li>
                   <li className="flex items-center justify-center gap-2">
                     <span className="w-1.5 h-1.5 bg-vibe-primary rounded-full"></span>
-                    Food suggestions
+                    Exercise recommendations
                   </li>
                   <li className="flex items-center justify-center gap-2">
                     <span className="w-1.5 h-1.5 bg-vibe-primary rounded-full"></span>
-                    Wellness tips
+                    Mood-based activities
                   </li>
                   <li className="flex items-center justify-center gap-2">
                     <span className="w-1.5 h-1.5 bg-vibe-primary rounded-full"></span>
-                    Mood improvement strategies
+                    Mental wellness tips
                   </li>
                 </ul>
               </div>
@@ -106,7 +108,7 @@ const Chat = () => {
                 <div className="bg-gray-100 rounded-lg rounded-bl-none p-3 max-w-[80%]">
                   <div className="flex gap-2 items-center text-sm text-gray-500">
                     <Bot className="w-4 h-4 animate-pulse" />
-                    Thinking...
+                    Thinking of the best recommendation for you...
                   </div>
                 </div>
               </div>
