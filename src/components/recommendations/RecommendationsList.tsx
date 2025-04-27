@@ -1,15 +1,40 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useMood } from '@/contexts/MoodContext';
 import { RecommendationCard } from './RecommendationCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Filter, ArrowUpDown, LayoutGrid, LayoutList } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export const RecommendationsList = () => {
   const { recommendations, isLoading } = useMood();
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortBy, setSortBy] = useState<'default' | 'rating' | 'alphabetical'>('default');
   
   const foodRecommendations = recommendations.filter(rec => rec.category === 'food');
   const activityRecommendations = recommendations.filter(rec => rec.category === 'activity');
   const mindfulnessRecommendations = recommendations.filter(rec => rec.category === 'mindfulness');
+
+  const sortRecommendations = (recs: any[]) => {
+    if (sortBy === 'rating') {
+      // Sort by rating (this is a mock implementation, replace with actual rating logic)
+      return [...recs].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    } else if (sortBy === 'alphabetical') {
+      return [...recs].sort((a, b) => a.title.localeCompare(b.title));
+    }
+    return recs;
+  };
+
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
 
   if (isLoading) {
     return (
@@ -33,59 +58,169 @@ export const RecommendationsList = () => {
   }
 
   return (
-    <div className="py-6">
-      <h2 className="text-2xl font-bold mb-6 text-center">Personalized Recommendations</h2>
+    <div className="py-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4 md:mb-0">Your Recommendations</h2>
+        
+        <div className="flex flex-wrap gap-3 w-full md:w-auto">
+          <div className="flex rounded-md overflow-hidden border border-gray-200">
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`px-3 ${viewMode === 'grid' ? 'bg-vibe-primary text-white' : 'text-gray-600'}`}
+              onClick={() => setViewMode('grid')}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`px-3 ${viewMode === 'list' ? 'bg-vibe-primary text-white' : 'text-gray-600'}`}
+              onClick={() => setViewMode('list')}
+            >
+              <LayoutList className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <div className="dropdown relative">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1 border-gray-200 text-gray-700"
+            >
+              <ArrowUpDown className="h-4 w-4" />
+              <span>Sort: {sortBy === 'default' ? 'Recommended' : sortBy === 'rating' ? 'Highest Rated' : 'A-Z'}</span>
+            </Button>
+            <div className="dropdown-menu absolute hidden right-0 mt-1 w-40 bg-white rounded-md overflow-hidden shadow-lg border border-gray-200 z-10">
+              <button 
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${sortBy === 'default' ? 'bg-vibe-primary/10 text-vibe-primary' : 'text-gray-700'}`}
+                onClick={() => setSortBy('default')}
+              >
+                Recommended
+              </button>
+              <button 
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${sortBy === 'rating' ? 'bg-vibe-primary/10 text-vibe-primary' : 'text-gray-700'}`}
+                onClick={() => setSortBy('rating')}
+              >
+                Highest Rated
+              </button>
+              <button 
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${sortBy === 'alphabetical' ? 'bg-vibe-primary/10 text-vibe-primary' : 'text-gray-700'}`}
+                onClick={() => setSortBy('alphabetical')}
+              >
+                Alphabetical (A-Z)
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
       
       <Tabs defaultValue="all" className="w-full">
-        <TabsList className="grid grid-cols-4 mb-8">
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="food">Food</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
-          <TabsTrigger value="mindfulness">Mindfulness</TabsTrigger>
+        <TabsList className="grid grid-cols-4 mb-8 p-1 bg-vibe-primary/5 rounded-xl">
+          <TabsTrigger 
+            value="all"
+            className="data-[state=active]:bg-vibe-primary data-[state=active]:text-white rounded-lg"
+          >
+            All
+          </TabsTrigger>
+          <TabsTrigger 
+            value="food"
+            className="data-[state=active]:bg-vibe-primary data-[state=active]:text-white rounded-lg"
+          >
+            Food
+          </TabsTrigger>
+          <TabsTrigger 
+            value="activity"
+            className="data-[state=active]:bg-vibe-primary data-[state=active]:text-white rounded-lg"
+          >
+            Activity
+          </TabsTrigger>
+          <TabsTrigger 
+            value="mindfulness"
+            className="data-[state=active]:bg-vibe-primary data-[state=active]:text-white rounded-lg"
+          >
+            Mindfulness
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="all">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {recommendations.map(recommendation => (
+          <motion.div 
+            className={
+              viewMode === 'grid' 
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                : "space-y-4"
+            }
+            variants={container}
+            initial="hidden"
+            animate="show"
+          >
+            {sortRecommendations(recommendations).map(recommendation => (
               <RecommendationCard key={recommendation.id} recommendation={recommendation} />
             ))}
-          </div>
+          </motion.div>
         </TabsContent>
         
         <TabsContent value="food">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <motion.div 
+            className={
+              viewMode === 'grid' 
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                : "space-y-4"
+            }
+            variants={container}
+            initial="hidden"
+            animate="show"
+          >
             {foodRecommendations.length > 0 ? (
-              foodRecommendations.map(recommendation => (
+              sortRecommendations(foodRecommendations).map(recommendation => (
                 <RecommendationCard key={recommendation.id} recommendation={recommendation} />
               ))
             ) : (
               <p className="col-span-full text-center text-gray-500 py-10">No food recommendations available.</p>
             )}
-          </div>
+          </motion.div>
         </TabsContent>
         
         <TabsContent value="activity">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <motion.div 
+            className={
+              viewMode === 'grid' 
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                : "space-y-4"
+            }
+            variants={container}
+            initial="hidden"
+            animate="show"
+          >
             {activityRecommendations.length > 0 ? (
-              activityRecommendations.map(recommendation => (
+              sortRecommendations(activityRecommendations).map(recommendation => (
                 <RecommendationCard key={recommendation.id} recommendation={recommendation} />
               ))
             ) : (
               <p className="col-span-full text-center text-gray-500 py-10">No activity recommendations available.</p>
             )}
-          </div>
+          </motion.div>
         </TabsContent>
         
         <TabsContent value="mindfulness">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <motion.div 
+            className={
+              viewMode === 'grid' 
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                : "space-y-4"
+            }
+            variants={container}
+            initial="hidden"
+            animate="show"
+          >
             {mindfulnessRecommendations.length > 0 ? (
-              mindfulnessRecommendations.map(recommendation => (
+              sortRecommendations(mindfulnessRecommendations).map(recommendation => (
                 <RecommendationCard key={recommendation.id} recommendation={recommendation} />
               ))
             ) : (
               <p className="col-span-full text-center text-gray-500 py-10">No mindfulness recommendations available.</p>
             )}
-          </div>
+          </motion.div>
         </TabsContent>
       </Tabs>
     </div>

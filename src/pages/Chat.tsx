@@ -1,11 +1,11 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { useMood } from '@/contexts/MoodContext';
-import { Bot, Send, Volume2, VolumeX } from 'lucide-react';
+import { Bot, Send, Volume2, VolumeX, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
@@ -14,6 +14,7 @@ type Message = {
   text: string;
   isUser: boolean;
   timestamp: Date;
+  alternativeResponses?: string[];
 };
 
 const Chat = () => {
@@ -21,9 +22,11 @@ const Chat = () => {
   const [inputText, setInputText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [selectedResponseIndex, setSelectedResponseIndex] = useState<number | null>(null);
   const { moodEmojis, currentMood } = useMood();
   const { user } = useAuth();
-  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     // Create an audio element once the component mounts
@@ -53,6 +56,11 @@ const Chat = () => {
     
     loadMessages();
   }, [user]);
+
+  useEffect(() => {
+    // Scroll to bottom when messages update
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
   
   const saveMessages = (updatedMessages: Message[]) => {
     if (user) {
@@ -66,6 +74,20 @@ const Chat = () => {
       audioRef.current.currentTime = 0;
       setIsPlaying(false);
     }
+  };
+
+  const generateAlternativeResponses = (baseResponse: string): string[] => {
+    const alternativeResponses = [
+      baseResponse.replace(
+        "I recommend", 
+        "Based on your mood patterns, I suggest"
+      ),
+      baseResponse.replace(
+        "I recommend", 
+        "You might benefit from"
+      ),
+    ];
+    return alternativeResponses.filter(r => r !== baseResponse);
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -107,17 +129,22 @@ const Chat = () => {
 
       const data = await response.json();
       
+      const baseResponse = data.response || "I'm sorry, I couldn't process your request.";
+      const alternativeResponses = generateAlternativeResponses(baseResponse);
+      
       // Add AI response to chat
       const botMessage = {
         id: Date.now().toString(),
-        text: data.response || "I'm sorry, I couldn't process your request.",
+        text: baseResponse,
         isUser: false,
         timestamp: new Date(),
+        alternativeResponses: alternativeResponses
       };
       
       const finalMessages = [...updatedMessages, botMessage];
       setMessages(finalMessages);
       saveMessages(finalMessages);
+      setSelectedResponseIndex(null);
       
     } catch (error) {
       console.error('Error processing message:', error);
@@ -131,10 +158,112 @@ const Chat = () => {
     }
   };
 
+  const selectAlternativeResponse = (messageId: string, index: number) => {
+    setMessages(prevMessages => 
+      prevMessages.map(msg => {
+        if (msg.id === messageId && msg.alternativeResponses && msg.alternativeResponses[index]) {
+          const alternativeResponses = [
+            msg.text, 
+            ...(msg.alternativeResponses.filter((_: string, i: number) => i !== index))
+          ];
+          return {
+            ...msg,
+            text: msg.alternativeResponses[index],
+            alternativeResponses: alternativeResponses,
+          };
+        }
+        return msg;
+      })
+    );
+
+    // Also update in storage
+    if (user) {
+      const updatedMessages = messages.map(msg => {
+        if (msg.id === messageId && msg.alternativeResponses && msg.alternativeResponses[index]) {
+          const alternativeResponses = [
+            msg.text, 
+            ...(msg.alternativeResponses.filter((_: string, i: number) => i !== index))
+          ];
+          return {
+            ...msg, 
+            text: msg.alternativeResponses[index],
+            alternativeResponses: alternativeResponses,
+          };
+        }
+        return msg;
+      });
+      saveMessages(updatedMessages);
+    }
+  };
+
+  const regenerateResponse = async (messageId: string, prompt: string) => {
+    setIsProcessing(true);
+
+    try {
+      const response = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: prompt,
+          currentMood: currentMood?.mood,
+          moodEmoji: currentMood ? moodEmojis[currentMood.mood] : null,
+          regenerate: true
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to regenerate response');
+      }
+
+      const data = await response.json();
+      
+      const baseResponse = data.response || "I'm sorry, I couldn't process your request.";
+      const alternativeResponses = generateAlternativeResponses(baseResponse);
+      
+      setMessages(prevMessages => 
+        prevMessages.map(msg => {
+          if (msg.id === messageId) {
+            return {
+              ...msg,
+              text: baseResponse,
+              alternativeResponses: alternativeResponses,
+            };
+          }
+          return msg;
+        })
+      );
+      
+      // Also update in storage
+      const updatedMessages = messages.map(msg => {
+        if (msg.id === messageId) {
+          return {
+            ...msg, 
+            text: baseResponse,
+            alternativeResponses: alternativeResponses,
+          };
+        }
+        return msg;
+      });
+      saveMessages(updatedMessages);
+      
+    } catch (error) {
+      console.error('Error regenerating response:', error);
+      toast({
+        title: "Error",
+        description: "Failed to regenerate response. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <Card className="h-[80vh] flex flex-col">
-        <div className="p-4 border-b flex items-center gap-2 bg-vibe-primary/5">
+      <Card className="h-[80vh] flex flex-col shadow-lg border-vibe-primary/20">
+        <div className="p-4 border-b flex items-center gap-2 bg-gradient-to-r from-vibe-primary/10 to-vibe-light/10">
           <Bot className="w-6 h-6 text-vibe-primary" />
           <div>
             <h1 className="text-xl font-semibold">VibeFlow AI Assistant</h1>
@@ -172,36 +301,74 @@ const Chat = () => {
               </div>
             ) : (
               messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${msg.isUser ? 'justify-end' : 'justify-start'}`}
-                >
+                <div key={msg.id}>
                   <div
-                    className={`max-w-[80%] p-3 rounded-lg ${
-                      msg.isUser
-                        ? 'bg-vibe-primary text-white rounded-br-none'
-                        : 'bg-gray-100 rounded-bl-none'
-                    }`}
+                    className={`flex ${msg.isUser ? 'justify-end' : 'justify-start'}`}
                   >
-                    {msg.text}
-                    {!msg.isUser && (
-                      <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-6 w-6 p-0" 
-                          onClick={() => isPlaying ? stopAudio() : null}
-                        >
-                          {isPlaying ? (
-                            <VolumeX className="h-4 w-4" />
-                          ) : (
-                            <Volume2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <span>{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                      </div>
-                    )}
+                    <div
+                      className={`max-w-[80%] p-3 rounded-lg ${
+                        msg.isUser
+                          ? 'bg-vibe-primary text-white rounded-br-none'
+                          : 'bg-gray-100 rounded-bl-none'
+                      }`}
+                    >
+                      {msg.text}
+                      {!msg.isUser && (
+                        <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-6 w-6 p-0" 
+                              onClick={() => isPlaying ? stopAudio() : null}
+                            >
+                              {isPlaying ? (
+                                <VolumeX className="h-4 w-4" />
+                              ) : (
+                                <Volume2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={() => {
+                                // Find the user message that prompted this response
+                                const msgIndex = messages.findIndex(m => m.id === msg.id);
+                                const userPrompt = msgIndex > 0 ? messages[msgIndex-1].text : '';
+                                regenerateResponse(msg.id, userPrompt);
+                              }}
+                              disabled={isProcessing}
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <span>{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
+
+                  {!msg.isUser && msg.alternativeResponses && msg.alternativeResponses.length > 0 && (
+                    <div className="ml-4 mt-1 mb-4">
+                      <p className="text-xs text-gray-500 ml-1 mb-1">Alternative responses:</p>
+                      <div className="flex flex-col gap-1">
+                        {msg.alternativeResponses.map((alternative, index) => (
+                          <Button 
+                            key={index} 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-left justify-start h-auto py-1 px-2 text-xs border-gray-200 hover:bg-vibe-primary/5"
+                            onClick={() => selectAlternativeResponse(msg.id, index)}
+                          >
+                            {alternative.length > 100 ? 
+                              alternative.substring(0, 100) + '...' : 
+                              alternative}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))
             )}
@@ -215,6 +382,7 @@ const Chat = () => {
                 </div>
               </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
         </ScrollArea>
 
