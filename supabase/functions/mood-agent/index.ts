@@ -1,10 +1,21 @@
 
 import { serve } from 'https://deno.fresh.dev/std@1.0.0/http/server.ts';
 
+interface UserContext {
+  mood?: string;
+  energy?: string;
+  healthGoals?: string[];
+  sleepHours?: string;
+  activityLevel?: string;
+  conditions?: string[];
+  dietaryRestrictions?: string[];
+}
+
 interface RequestBody {
   message: string;
   currentMood?: string;
   moodEmoji?: string;
+  userContext?: UserContext;
 }
 
 serve(async (req) => {
@@ -21,7 +32,7 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { message, currentMood, moodEmoji } = await req.json() as RequestBody;
+    const { message, currentMood, moodEmoji, userContext = {} } = await req.json() as RequestBody;
 
     // Validate input
     if (!message) {
@@ -37,12 +48,16 @@ serve(async (req) => {
       throw new Error('Google ADK API key not configured');
     }
 
-    // Prepare context for the agent
-    const context = {
-      userMessage: message,
-      mood: currentMood || 'neutral',
-      moodEmoji: moodEmoji || '😐'
-    };
+    // Extract user context for personalization
+    const {
+      mood = currentMood || 'neutral',
+      energy = 'medium',
+      healthGoals = [],
+      sleepHours = '7',
+      activityLevel = 'moderate',
+      conditions = [],
+      dietaryRestrictions = []
+    } = userContext;
 
     // Make request to Google ADK API
     const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
@@ -56,16 +71,22 @@ serve(async (req) => {
           parts: [{
             text: `
               As a wellness recommendation agent, consider the following context:
-              User's message: ${context.userMessage}
-              Current mood: ${context.mood}
-              Mood emoji: ${context.moodEmoji}
+              User's message: ${message}
+              Current mood: ${mood}
+              Mood emoji: ${moodEmoji || '😐'}
+              Energy level: ${energy}
+              Sleep hours: ${sleepHours}
+              Activity level: ${activityLevel}
+              Health goals: ${healthGoals.join(', ')}
+              Health conditions: ${conditions.join(', ')}
+              Dietary restrictions: ${dietaryRestrictions.join(', ')}
               
-              Provide a short, empathetic response with a specific recommendation for either:
-              - A meal suggestion
-              - An exercise activity
-              - A mental wellness activity
+              Based on this comprehensive user profile, provide a personalized response with specific wellness recommendations.
+              Make it empathetic, actionable, and tailored to their unique situation.
+              Vary your response style to avoid sounding repetitive. If they're asking about specific health concerns, acknowledge their conditions.
+              Include a specific recommendation for either food, exercise, or mental wellness based on their current mood and health goals.
               
-              Keep the response under 100 words and make it conversational.
+              Keep it conversational and natural. Don't sound like you're following a template.
             `
           }]
         }],

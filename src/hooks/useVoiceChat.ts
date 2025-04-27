@@ -1,10 +1,13 @@
 import { useState, useRef } from 'react';
 import { useMood } from '@/contexts/MoodContext';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Message {
   text: string;
   isUser: boolean;
+  timestamp: Date;
+  alternativeResponses?: string[];
 }
 
 // ElevenLabs API key - In production, this should be in an environment variable
@@ -18,6 +21,7 @@ export const useVoiceChat = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { currentMood, moodEmojis } = useMood();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const stopAudio = () => {
@@ -77,8 +81,108 @@ export const useVoiceChat = () => {
   const handleSendMessage = async (text: string) => {
     if (!text.trim()) return;
 
-    const userMessage = { text, isUser: true };
+    const userMessage = { 
+      text, 
+      isUser: true,
+      timestamp: new Date()
+    };
     setMessages(prev => [...prev, userMessage]);
+    setIsProcessing(true);
+    
+    try {
+      const userHealthProfile = user?.healthProfile || {};
+      const userPreferences = user?.preferences || {};
+      
+      // Prepare user context for AI
+      const userContext = {
+        mood: currentMood?.mood || 'unknown',
+        energy: currentMood?.energy || 'medium',
+        healthGoals: userHealthProfile.healthGoals || [],
+        sleepHours: userHealthProfile.sleepHours || '7',
+        activityLevel: userHealthProfile.activityLevel || 'moderate',
+        conditions: userHealthProfile.conditions || [],
+        dietaryRestrictions: userPreferences.dietaryRestrictions || []
+      };
+      
+      // Call API with user context
+      const response = await fetch('/api/edge/mood-agent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: text,
+          currentMood: currentMood?.mood,
+          moodEmoji: currentMood ? moodEmojis[currentMood.mood] : null,
+          userContext: userContext
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get response from agent');
+      }
+
+      const data = await response.json();
+      
+      // Generate 2 alternative responses with slight variations
+      const mainResponse = data.response;
+      const alternativeResponses = [
+        mainResponse.replace(/I recommend/i, "Based on your profile, I suggest"),
+        mainResponse.replace(/I recommend/i, "You might consider"),
+        mainResponse.replace(/try/i, "consider trying")
+      ].filter(r => r !== mainResponse).slice(0, 2);
+      
+      const botMessage = {
+        text: mainResponse,
+        isUser: false,
+        timestamp: new Date(),
+        alternativeResponses: alternativeResponses
+      };
+      
+      setMessages(prev => [...prev, botMessage]);
+      
+      // Generate and play audio response if needed
+      if (audioRef.current) {
+        try {
+          const audioUrl = await generateSpeech(data.response);
+          playAudio(audioUrl);
+        } catch (error) {
+          console.error('Error generating speech:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error processing message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to get a response. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+      setInputText('');
+    }
+  };
+
+  const selectAlternativeResponse = (messageId: string, index: number) => {
+    setMessages(prevMessages => 
+      prevMessages.map(msg => {
+        if (msg.id === messageId && msg.alternativeResponses && msg.alternativeResponses[index]) {
+          const alternativeResponses = [
+            msg.text, 
+            ...(msg.alternativeResponses.filter((_: string, i: number) => i !== index))
+          ];
+          return {
+            ...msg,
+            text: msg.alternativeResponses[index],
+            alternativeResponses: alternativeResponses,
+          };
+        }
+        return msg;
+      })
+    );
+  };
+
+  const regenerateResponse = async (messageId: string, prompt: string) => {
     setIsProcessing(true);
 
     try {
@@ -89,7 +193,7 @@ export const useVoiceChat = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: text,
+          message: prompt,
           currentMood: currentMood?.mood,
           moodEmoji: currentMood ? moodEmojis[currentMood.mood] : null
         })
@@ -102,10 +206,18 @@ export const useVoiceChat = () => {
       const data = await response.json();
       const botResponse = {
         text: data.response,
-        isUser: false
+        isUser: false,
+        timestamp: new Date()
       };
       
-      setMessages(prev => [...prev, botResponse]);
+      setMessages(prev => {
+        return prev.map(message => {
+          if (message.id === messageId) {
+            return botResponse;
+          }
+          return message;
+        });
+      });
       
       // Generate and play audio response if needed
       if (audioRef.current) {
@@ -121,7 +233,6 @@ export const useVoiceChat = () => {
       });
     } finally {
       setIsProcessing(false);
-      setInputText('');
     }
   };
 

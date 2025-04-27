@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { MoodTracker } from '@/components/mood/MoodTracker';
 import { RecommendationsList } from '@/components/recommendations/RecommendationsList';
@@ -5,11 +6,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMood } from '@/contexts/MoodContext';
 import { Button } from '@/components/ui/button';
 import { ThumbsUp, ThumbsDown, MessageSquare, ArrowRight, History, Activity, Calendar } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -161,7 +161,11 @@ const Dashboard = () => {
                       ))}
 
                       {moodHistory.length > 3 && (
-                        <Button variant="ghost" className="w-full text-vibe-primary hover:text-vibe-dark hover:bg-vibe-primary/5 mt-2">
+                        <Button 
+                          variant="ghost" 
+                          className="w-full text-vibe-primary hover:text-vibe-dark hover:bg-vibe-primary/5 mt-2"
+                          onClick={() => navigate('/stats')}
+                        >
                           View All <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
                       )}

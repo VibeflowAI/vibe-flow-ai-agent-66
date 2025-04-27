@@ -1,44 +1,57 @@
+
 {
   "responses": [
     {
       "type": "tired",
-      "response": "Based on your health profile showing regular sleep of ${sleepHours} hours and ${activityLevel} activity level, your tiredness might be due to recent changes in your routine. I recommend: 1) A 10-minute gentle stretching session focusing on your neck and shoulders 2) A protein-rich snack like Greek yogurt with berries 3) Taking a short 15-minute walk outside if possible. Would you like me to elaborate on any of these suggestions?"
+      "response": "I notice you're feeling tired. Given your sleep patterns of ${sleepHours} hours, this might be affecting your energy levels. I'd suggest a 10-minute gentle yoga stretch to activate your body without exhaustion, followed by a protein-rich snack. Would a quick routine with just 5 simple poses help you right now?"
     },
     {
       "type": "stressed",
-      "response": "Looking at your health goals that include '${healthGoals}', I understand managing stress is important. Here's a personalized plan: 1) Try the 4-7-8 breathing technique - inhale for 4, hold for 7, exhale for 8 counts 2) Given your ${activityLevel} activity level, a quick 10-minute yoga session could help 3) Consider a calming tea ritual. Which of these would you like to try first?"
+      "response": "With stress being a key factor right now and considering your health goals include '${healthGoals}', let me suggest a quick 3-minute breathing technique: breathe in for 4 seconds, hold for 2, exhale for 6. This activates your parasympathetic nervous system. Would you like me to walk you through a guided session?"
     },
     {
       "type": "sad",
-      "response": "I notice from your profile that you enjoy ${activityPreferences}. When feeling down, engaging in familiar activities can help. Consider: 1) A mood-boosting playlist during a short walk 2) Reaching out to your support network 3) Trying a creative activity you enjoy. Would you like specific suggestions for any of these?"
+      "response": "I'm sorry you're feeling down today. Looking at your activity preferences, physical movement might help shift your mood. Even a 5-minute walk with your favorite upbeat music can release endorphins. Is there a particular playlist that usually lifts your spirits?"
     },
     {
       "type": "happy",
-      "response": "Wonderful to see you're feeling good! Given your health goals of ${healthGoals}, this is an ideal time to: 1) Challenge yourself with a new workout routine 2) Meal prep some healthy options 3) Set new wellness goals. What would you like to focus on while your motivation is high?"
+      "response": "Glad to hear you're in good spirits! This positive energy makes it an excellent time to focus on your goal of '${healthGoals}'. Perhaps channel this momentum into meal planning or trying that new workout you've been curious about? What aspect of your wellness journey would you like to work on today?"
     },
     {
       "type": "calm",
-      "response": "Your current calm state aligns well with your health profile. To maintain this balance, consider: 1) Journaling about what's working well 2) Planning healthy meals for the week 3) Setting aside time for regular ${activityPreferences}. Would you like to explore any of these further?"
+      "response": "Your calm state is perfect for reflection and planning. Given your health profile showing ${activityLevel} activity level, this might be an ideal time for setting intentions for the week. Have you considered using this mental clarity for planning healthy meals or scheduling your wellness activities?"
     },
     {
       "type": "low_energy",
-      "response": "According to your health profile, you typically maintain a ${activityLevel} activity level. For low energy periods, try: 1) A quick nutrition boost with a balanced snack 2) Light stretching or gentle movement 3) A 5-minute meditation to reset. Which would you like more details about?"
+      "response": "For your current low energy state, I've got some quick fixes based on your ${activityLevel} baseline. Try alternating between 20 seconds of gentle movement and 10 seconds of rest for 3 minutes total. This can boost circulation without depleting your reserves. Would you like other gentle energy-boosting techniques?"
     },
     {
       "type": "high_energy",
-      "response": "With your ${activityLevel} baseline and current high energy, you might enjoy: 1) Trying a new workout challenge 2) Tackling a pending project 3) Meal prepping healthy options for the week. How would you like to channel this energy?"
+      "response": "With your high energy today and ${activityLevel} activity level, this is the perfect time for a challenge! How about trying an interval workout: 30 seconds of high intensity followed by 15 seconds rest, repeated 8 times? This only takes 6 minutes but offers tremendous benefits for your cardiovascular health."
     },
     {
       "type": "vegetarian",
-      "response": "Considering your vegetarian dietary preferences and your health goals around increasing protein intake, I'd recommend trying a quinoa-based bowl with black beans, roasted vegetables, and avocado. This provides a complete protein source while supporting your overall nutrition needs."
+      "response": "Since you follow a vegetarian diet, let me suggest a protein-packed meal: a quinoa bowl with roasted vegetables, edamame, avocado, and pumpkin seeds. This combination provides complete proteins, healthy fats, and fiber - supporting your energy levels throughout the day. Would you like more vegetarian meal ideas?"
     },
     {
       "type": "sleep",
-      "response": "I notice from your health profile that improving sleep is one of your goals. Given your typical 7-hour sleep pattern, I'd suggest establishing a 20-minute wind-down routine before bed. Try including some gentle stretching and perhaps reading one of those fiction books from your interests section rather than screen time."
+      "response": "I see improving sleep is one of your goals. With your current pattern of ${sleepHours} hours, implementing a 15-minute wind-down routine could significantly improve your sleep quality. Try dimming lights, drinking chamomile tea, and doing gentle stretches. Would you like a specific bedtime stretching routine?"
     },
     {
       "type": "default",
-      "response": "Based on your health profile showing ${healthGoals} as priorities, let's focus on what matters most to you. Would you like: 1) Personalized wellness tips 2) Activity suggestions 3) Nutrition advice? Let me know which area you'd like to explore."
+      "response": "Looking at your wellness profile with goals focused on ${healthGoals}, let's think about what would best support you right now. Would you prefer some quick movement ideas, nutrition suggestions, or mental wellness practices? I can tailor recommendations to your current needs."
+    },
+    {
+      "type": "tired_alt",
+      "response": "Your current tiredness might be related to your sleep quality, not just quantity. With your typical ${sleepHours} hours, let's focus on sleep hygiene tonight. Try setting your room temperature to 65-68°F, avoid screens an hour before bed, and consider a magnesium supplement if approved by your doctor. How's your caffeine intake been today?"
+    },
+    {
+      "type": "stressed_alt",
+      "response": "For your stress levels, I'd recommend a quick sensory grounding exercise: identify 5 things you see, 4 things you can touch, 3 things you hear, 2 things you smell, and 1 thing you taste. This pulls you into the present moment and interrupts stress patterns. Given your ${activityLevel} activity level, would a short walk be possible right now?"
+    },
+    {
+      "type": "sad_alt",
+      "response": "During low mood periods, small nutritional changes can have surprising effects. Given your profile, try incorporating foods rich in omega-3s and vitamin D - perhaps a small serving of walnuts or fortified plant milk if that aligns with your dietary preferences. Would you like to talk more about mood-supportive foods?"
     }
   ]
 }
