@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,6 +16,29 @@ import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import Chat from "./pages/Chat";
+
+// Mock API handlers for development
+const setupMockApi = () => {
+  // Only in development mode and if fetch isn't mocked already
+  if (typeof window.fetch === 'function') {
+    const originalFetch = window.fetch;
+    
+    window.fetch = async (url, options) => {
+      if (typeof url === 'string' && url.includes('/api/gemini')) {
+        console.log('Intercepting Gemini API request');
+        // Simulate delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return originalFetch('/api/gemini.json');
+      }
+      
+      // Pass through all other requests
+      return originalFetch(url, options);
+    };
+  }
+};
+
+// Setup mock API handlers
+setupMockApi();
 
 const queryClient = new QueryClient();
 

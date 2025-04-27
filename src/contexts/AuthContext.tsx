@@ -1,6 +1,7 @@
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { toast } from '@/hooks/use-toast';
+import { HealthSurveyData } from '@/components/auth/HealthSurvey';
 
 // Types
 export type User = {
@@ -9,6 +10,7 @@ export type User = {
   displayName: string;
   photoURL?: string;
   preferences?: UserPreferences;
+  healthProfile?: HealthProfile;
 };
 
 export type UserPreferences = {
@@ -18,13 +20,25 @@ export type UserPreferences = {
   notificationsEnabled?: boolean;
 };
 
+export type HealthProfile = {
+  height?: string;
+  weight?: string;
+  bloodType?: string;
+  conditions: string[];
+  sleepHours: string;
+  activityLevel: string;
+  healthGoals: string[];
+  lastUpdated: number;
+};
+
 type AuthContextType = {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, displayName: string) => Promise<void>;
+  signUp: (email: string, password: string, displayName: string, healthData?: HealthSurveyData) => Promise<void>;
   signOut: () => void;
   updateProfile: (data: Partial<User>) => Promise<void>;
+  updateHealthProfile: (data: HealthSurveyData) => Promise<void>;
 };
 
 // Mock data for demo purposes
@@ -40,6 +54,16 @@ const MOCK_USERS = [
       activityLevel: 'moderate' as const,
       sleepGoals: '8 hours',
       notificationsEnabled: true,
+    },
+    healthProfile: {
+      height: '175',
+      weight: '70',
+      bloodType: 'O+',
+      conditions: ['None'],
+      sleepHours: '7-8',
+      activityLevel: 'moderate',
+      healthGoals: ['Reduce Stress', 'Improve Sleep'],
+      lastUpdated: Date.now(),
     },
   },
 ];
@@ -94,7 +118,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const signUp = async (email: string, password: string, displayName: string) => {
+  const signUp = async (email: string, password: string, displayName: string, healthData?: HealthSurveyData) => {
     setLoading(true);
     try {
       // Simulate API request delay
@@ -104,6 +128,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (MOCK_USERS.some((u) => u.email === email)) {
         throw new Error('Email already in use');
       }
+
+      // Process health data if available
+      const healthProfile: HealthProfile | undefined = healthData ? {
+        ...healthData,
+        lastUpdated: Date.now(),
+      } : undefined;
       
       // Create new user
       const newUser = {
@@ -117,6 +147,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           sleepGoals: '8 hours',
           notificationsEnabled: true,
         },
+        healthProfile,
       };
       
       // In a real app, we would save to database here
@@ -175,6 +206,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateHealthProfile = async (healthData: HealthSurveyData) => {
+    try {
+      if (!user) throw new Error('No authenticated user');
+
+      const healthProfile: HealthProfile = {
+        ...healthData,
+        lastUpdated: Date.now(),
+      };
+      
+      const updatedUser = { 
+        ...user, 
+        healthProfile 
+      };
+      
+      setUser(updatedUser);
+      localStorage.setItem('vibeflow_user', JSON.stringify(updatedUser));
+      
+      toast({
+        title: 'Health profile updated',
+        description: 'Your health information has been updated successfully.',
+      });
+      return Promise.resolve();
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Update failed',
+        description: error instanceof Error ? error.message : 'Failed to update health profile',
+      });
+      return Promise.reject(error);
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -182,6 +245,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     signUp,
     signOut,
     updateProfile,
+    updateHealthProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
