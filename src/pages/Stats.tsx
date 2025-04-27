@@ -71,8 +71,8 @@ const Stats = () => {
               <CardContent className="h-[300px]">
                 <ChartContainer
                   config={{
-                    energy: { theme: { light: "#9b87f5" } },
-                    mood: { theme: { light: "#7E69AB" } }
+                    energy: { theme: { light: "#9b87f5", dark: "#7E69AB" } },
+                    mood: { theme: { light: "#7E69AB", dark: "#9b87f5" } }
                   }}
                 >
                   <LineChart data={moodData}>
@@ -96,7 +96,7 @@ const Stats = () => {
               <CardContent className="h-[300px]">
                 <ChartContainer
                   config={{
-                    count: { theme: { light: "#6E59A5" } }
+                    count: { theme: { light: "#6E59A5", dark: "#9b87f5" } }
                   }}
                 >
                   <BarChart data={moodFreqData}>
