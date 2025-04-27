@@ -21,9 +21,9 @@ export type UserPreferences = {
 };
 
 export type HealthProfile = {
-  height?: string;
-  weight?: string;
-  bloodType?: string;
+  height: string;
+  weight: string;
+  bloodType: string;
   conditions: string[];
   sleepHours: string;
   activityLevel: string;
@@ -99,6 +99,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error('Invalid email or password');
       }
       
+      // Use a type to extract only the User properties
       const { password: _, ...userWithoutPassword } = foundUser;
       setUser(userWithoutPassword);
       localStorage.setItem('vibeflow_user', JSON.stringify(userWithoutPassword));
@@ -130,10 +131,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // Process health data if available
-      const healthProfile: HealthProfile | undefined = healthData ? {
-        ...healthData,
+      const healthProfile: HealthProfile = healthData ? {
+        height: healthData.height || '',
+        weight: healthData.weight || '',
+        bloodType: healthData.bloodType || '',
+        conditions: healthData.conditions || [],
+        sleepHours: healthData.sleepHours || '',
+        activityLevel: healthData.activityLevel || 'moderate',
+        healthGoals: healthData.healthGoals || [],
         lastUpdated: Date.now(),
-      } : undefined;
+      } : {
+        height: '',
+        weight: '',
+        bloodType: '',
+        conditions: [],
+        sleepHours: '',
+        activityLevel: 'moderate',
+        healthGoals: [],
+        lastUpdated: Date.now()
+      };
       
       // Create new user
       const newUser = {
@@ -211,7 +227,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!user) throw new Error('No authenticated user');
 
       const healthProfile: HealthProfile = {
-        ...healthData,
+        height: healthData.height || '',
+        weight: healthData.weight || '',
+        bloodType: healthData.bloodType || '',
+        conditions: healthData.conditions || [],
+        sleepHours: healthData.sleepHours || '',
+        activityLevel: healthData.activityLevel || 'moderate',
+        healthGoals: healthData.healthGoals || [],
         lastUpdated: Date.now(),
       };
       

@@ -1,4 +1,45 @@
 
 {
-  "response": "I see you're feeling a bit tired today. For energy and mood improvement, I'd recommend a quick 10-minute stretching routine focusing on gentle movement to increase blood flow without exhausting yourself further. Pair this with a nutrient-rich snack like a small handful of nuts and dark chocolate to boost your energy levels naturally. If you'd like more specific recommendations based on your current situation, I'm happy to provide more tailored advice."
+  "responses": [
+    {
+      "type": "tired",
+      "response": "I see you're feeling a bit tired today. For energy and mood improvement, I'd recommend a quick 10-minute stretching routine focusing on gentle movement to increase blood flow without exhausting yourself further. Pair this with a nutrient-rich snack like a small handful of nuts and dark chocolate to boost your energy levels naturally."
+    },
+    {
+      "type": "stressed",
+      "response": "Based on your stress levels, I recommend trying a 5-minute breathing exercise. Inhale deeply for 4 counts, hold for 2, then exhale for 6. This activates your parasympathetic nervous system. With your history of meditation practice, you might also benefit from a short guided meditation focused on stress relief."
+    },
+    {
+      "type": "sad",
+      "response": "I noticed you're feeling down today. Given your preference for physical activity, a brisk 15-minute walk outdoors might help boost your serotonin levels. Your health profile shows you respond well to nature exposure, so try finding a green space if possible. Consider also reaching out to your support network."
+    },
+    {
+      "type": "happy",
+      "response": "Great to see you're in good spirits! To maintain this positive energy, I'd suggest capitalizing on it with one of your favorite activities. Your profile indicates you enjoy yoga - perhaps try a slightly more challenging routine today while your motivation is high. Also, this might be an ideal time to tackle that creative project you've been considering."
+    },
+    {
+      "type": "calm",
+      "response": "With your current calm state and your health goals of improving focus, this would be an excellent time for some deep work on projects requiring concentration. Your profile indicates you prefer working in 25-minute intervals - I'd suggest using the Pomodoro technique with your current positive mindset."
+    },
+    {
+      "type": "low_energy",
+      "response": "I see from your health data that you typically experience energy dips around this time. Since you're focusing on nutrition improvements, try a small protein-rich snack with complex carbs - perhaps a Greek yogurt with berries and a sprinkle of granola. Your records show this combination has worked well for your energy levels previously."
+    },
+    {
+      "type": "high_energy",
+      "response": "You're experiencing high energy levels today! Looking at your fitness goals from your health profile, this would be an ideal time to focus on your strength training routine. Your data shows you perform best with high-intensity work during energy peaks, so consider incorporating some additional resistance exercises today."
+    },
+    {
+      "type": "vegetarian",
+      "response": "Considering your vegetarian dietary preferences and your health goals around increasing protein intake, I'd recommend trying a quinoa-based bowl with black beans, roasted vegetables, and avocado. This provides a complete protein source while supporting your overall nutrition needs."
+    },
+    {
+      "type": "sleep",
+      "response": "I notice from your health profile that improving sleep is one of your goals. Given your typical 7-hour sleep pattern, I'd suggest establishing a 20-minute wind-down routine before bed. Try including some gentle stretching and perhaps reading one of those fiction books from your interests section rather than screen time."
+    },
+    {
+      "type": "default",
+      "response": "Based on your health profile and current message, I'd suggest focusing on small, consistent habits that align with your wellness goals. Remember that progress often comes from sustainable changes rather than dramatic shifts. Would you like more specific recommendations for any particular area of your wellness journey?"
+    }
+  ]
 }

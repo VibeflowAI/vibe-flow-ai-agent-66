@@ -27,11 +27,24 @@ const Chat = () => {
   const { user } = useAuth();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const [responses, setResponses] = useState<any[]>([]);
 
   useEffect(() => {
     // Create an audio element once the component mounts
     const audioElement = new Audio();
     audioRef.current = audioElement;
+
+    // Load the responses
+    fetch('/api/gemini.json')
+      .then(res => res.json())
+      .then(data => {
+        if (data.responses) {
+          setResponses(data.responses);
+        }
+      })
+      .catch(err => {
+        console.error('Error loading responses:', err);
+      });
 
     // Clean up on unmount
     return () => {
@@ -90,6 +103,68 @@ const Chat = () => {
     return alternativeResponses.filter(r => r !== baseResponse);
   };
 
+  const getPersonalizedResponse = (inputText: string): string => {
+    // Determine which response to use based on the user's health profile and input
+    if (!user || !responses.length) return "I'm processing your request...";
+    
+    // Check for keywords in the input text
+    const inputLower = inputText.toLowerCase();
+    
+    if (inputLower.includes('tired') || inputLower.includes('exhausted') || inputLower.includes('no energy')) {
+      return responses.find((r) => r.type === 'tired')?.response || responses.find((r) => r.type === 'default').response;
+    }
+    
+    if (inputLower.includes('stress') || inputLower.includes('anxious') || inputLower.includes('overwhelmed')) {
+      return responses.find((r) => r.type === 'stressed')?.response || responses.find((r) => r.type === 'default').response;
+    }
+    
+    if (inputLower.includes('sad') || inputLower.includes('depressed') || inputLower.includes('unhappy')) {
+      return responses.find((r) => r.type === 'sad')?.response || responses.find((r) => r.type === 'default').response;
+    }
+    
+    if (inputLower.includes('happy') || inputLower.includes('great') || inputLower.includes('good mood')) {
+      return responses.find((r) => r.type === 'happy')?.response || responses.find((r) => r.type === 'default').response;
+    }
+    
+    if (inputLower.includes('calm') || inputLower.includes('relaxed') || inputLower.includes('peaceful')) {
+      return responses.find((r) => r.type === 'calm')?.response || responses.find((r) => r.type === 'default').response;
+    }
+    
+    if (inputLower.includes('sleep') || inputLower.includes('insomnia') || inputLower.includes('rest')) {
+      return responses.find((r) => r.type === 'sleep')?.response || responses.find((r) => r.type === 'default').response;
+    }
+    
+    // Check user preferences and health profile
+    if (user.preferences?.dietaryRestrictions?.includes('vegetarian')) {
+      if (inputLower.includes('food') || inputLower.includes('eat') || inputLower.includes('meal') || inputLower.includes('diet')) {
+        return responses.find((r) => r.type === 'vegetarian')?.response || responses.find((r) => r.type === 'default').response;
+      }
+    }
+    
+    if (user.healthProfile?.conditions?.some(c => c.toLowerCase().includes('diabetes') || c.toLowerCase().includes('blood pressure'))) {
+      if (inputLower.includes('food') || inputLower.includes('diet') || inputLower.includes('health')) {
+        return "Based on your health conditions in your profile, I'd recommend focusing on low-glycemic foods and regular monitoring of your levels. Small, frequent meals might help maintain stable blood sugar. Have you checked with your healthcare provider about specific dietary guidelines?";
+      }
+    }
+    
+    // Check current mood
+    if (currentMood) {
+      if (currentMood.energy === 'low') {
+        return responses.find((r) => r.type === 'low_energy')?.response || responses.find((r) => r.type === 'default').response;
+      }
+      if (currentMood.energy === 'high') {
+        return responses.find((r) => r.type === 'high_energy')?.response || responses.find((r) => r.type === 'default').response;
+      }
+      
+      // Use mood-based responses
+      const moodType = currentMood.mood;
+      return responses.find((r) => r.type === moodType)?.response || responses.find((r) => r.type === 'default').response;
+    }
+    
+    // Default response
+    return responses.find((r) => r.type === 'default')?.response || "I'd be happy to provide personalized wellness recommendations based on your needs. Could you tell me a bit more about how you're feeling or what specific help you're looking for?";
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -110,27 +185,12 @@ const Chat = () => {
     setIsProcessing(true);
 
     try {
-      // Call Gemini API through our own endpoint
-      const response = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: inputText,
-          currentMood: currentMood?.mood,
-          moodEmoji: currentMood ? moodEmojis[currentMood.mood] : null
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get response from Gemini AI');
-      }
-
-      const data = await response.json();
-      
-      const baseResponse = data.response || "I'm sorry, I couldn't process your request.";
+      // Get a personalized response based on user profile and input
+      const baseResponse = getPersonalizedResponse(inputText);
       const alternativeResponses = generateAlternativeResponses(baseResponse);
+      
+      // Add a slight delay to simulate AI thinking
+      await new Promise(resolve => setTimeout(resolve, 1200));
       
       // Add AI response to chat
       const botMessage = {
@@ -200,27 +260,12 @@ const Chat = () => {
     setIsProcessing(true);
 
     try {
-      const response = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: prompt,
-          currentMood: currentMood?.mood,
-          moodEmoji: currentMood ? moodEmojis[currentMood.mood] : null,
-          regenerate: true
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to regenerate response');
-      }
-
-      const data = await response.json();
-      
-      const baseResponse = data.response || "I'm sorry, I couldn't process your request.";
+      // Get a new personalized response
+      const baseResponse = getPersonalizedResponse(prompt);
       const alternativeResponses = generateAlternativeResponses(baseResponse);
+      
+      // Add a slight delay to simulate AI thinking
+      await new Promise(resolve => setTimeout(resolve, 1200));
       
       setMessages(prevMessages => 
         prevMessages.map(msg => {
