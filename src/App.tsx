@@ -202,6 +202,7 @@ const App = () => (
               <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
               <Route path="/chat" element={<Layout><Chat /></Layout>} />
               <Route path="/profile" element={<Layout><Profile /></Layout>} />
+              <Route path="/stats" element={<Layout><Stats /></Layout>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

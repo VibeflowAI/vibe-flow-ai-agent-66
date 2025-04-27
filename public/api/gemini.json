@@ -1,33 +1,32 @@
-
 {
   "responses": [
     {
       "type": "tired",
-      "response": "I see you're feeling a bit tired today. For energy and mood improvement, I'd recommend a quick 10-minute stretching routine focusing on gentle movement to increase blood flow without exhausting yourself further. Pair this with a nutrient-rich snack like a small handful of nuts and dark chocolate to boost your energy levels naturally."
+      "response": "Based on your health profile showing regular sleep of ${sleepHours} hours and ${activityLevel} activity level, your tiredness might be due to recent changes in your routine. I recommend: 1) A 10-minute gentle stretching session focusing on your neck and shoulders 2) A protein-rich snack like Greek yogurt with berries 3) Taking a short 15-minute walk outside if possible. Would you like me to elaborate on any of these suggestions?"
     },
     {
       "type": "stressed",
-      "response": "Based on your stress levels, I recommend trying a 5-minute breathing exercise. Inhale deeply for 4 counts, hold for 2, then exhale for 6. This activates your parasympathetic nervous system. With your history of meditation practice, you might also benefit from a short guided meditation focused on stress relief."
+      "response": "Looking at your health goals that include '${healthGoals}', I understand managing stress is important. Here's a personalized plan: 1) Try the 4-7-8 breathing technique - inhale for 4, hold for 7, exhale for 8 counts 2) Given your ${activityLevel} activity level, a quick 10-minute yoga session could help 3) Consider a calming tea ritual. Which of these would you like to try first?"
     },
     {
       "type": "sad",
-      "response": "I noticed you're feeling down today. Given your preference for physical activity, a brisk 15-minute walk outdoors might help boost your serotonin levels. Your health profile shows you respond well to nature exposure, so try finding a green space if possible. Consider also reaching out to your support network."
+      "response": "I notice from your profile that you enjoy ${activityPreferences}. When feeling down, engaging in familiar activities can help. Consider: 1) A mood-boosting playlist during a short walk 2) Reaching out to your support network 3) Trying a creative activity you enjoy. Would you like specific suggestions for any of these?"
     },
     {
       "type": "happy",
-      "response": "Great to see you're in good spirits! To maintain this positive energy, I'd suggest capitalizing on it with one of your favorite activities. Your profile indicates you enjoy yoga - perhaps try a slightly more challenging routine today while your motivation is high. Also, this might be an ideal time to tackle that creative project you've been considering."
+      "response": "Wonderful to see you're feeling good! Given your health goals of ${healthGoals}, this is an ideal time to: 1) Challenge yourself with a new workout routine 2) Meal prep some healthy options 3) Set new wellness goals. What would you like to focus on while your motivation is high?"
     },
     {
       "type": "calm",
-      "response": "With your current calm state and your health goals of improving focus, this would be an excellent time for some deep work on projects requiring concentration. Your profile indicates you prefer working in 25-minute intervals - I'd suggest using the Pomodoro technique with your current positive mindset."
+      "response": "Your current calm state aligns well with your health profile. To maintain this balance, consider: 1) Journaling about what's working well 2) Planning healthy meals for the week 3) Setting aside time for regular ${activityPreferences}. Would you like to explore any of these further?"
     },
     {
       "type": "low_energy",
-      "response": "I see from your health data that you typically experience energy dips around this time. Since you're focusing on nutrition improvements, try a small protein-rich snack with complex carbs - perhaps a Greek yogurt with berries and a sprinkle of granola. Your records show this combination has worked well for your energy levels previously."
+      "response": "According to your health profile, you typically maintain a ${activityLevel} activity level. For low energy periods, try: 1) A quick nutrition boost with a balanced snack 2) Light stretching or gentle movement 3) A 5-minute meditation to reset. Which would you like more details about?"
     },
     {
       "type": "high_energy",
-      "response": "You're experiencing high energy levels today! Looking at your fitness goals from your health profile, this would be an ideal time to focus on your strength training routine. Your data shows you perform best with high-intensity work during energy peaks, so consider incorporating some additional resistance exercises today."
+      "response": "With your ${activityLevel} baseline and current high energy, you might enjoy: 1) Trying a new workout challenge 2) Tackling a pending project 3) Meal prepping healthy options for the week. How would you like to channel this energy?"
     },
     {
       "type": "vegetarian",
@@ -39,7 +38,7 @@
     },
     {
       "type": "default",
-      "response": "Based on your health profile and current message, I'd suggest focusing on small, consistent habits that align with your wellness goals. Remember that progress often comes from sustainable changes rather than dramatic shifts. Would you like more specific recommendations for any particular area of your wellness journey?"
+      "response": "Based on your health profile showing ${healthGoals} as priorities, let's focus on what matters most to you. Would you like: 1) Personalized wellness tips 2) Activity suggestions 3) Nutrition advice? Let me know which area you'd like to explore."
     }
   ]
 }

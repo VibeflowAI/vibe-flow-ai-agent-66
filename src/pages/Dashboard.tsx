@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { MoodTracker } from '@/components/mood/MoodTracker';
 import { RecommendationsList } from '@/components/recommendations/RecommendationsList';
@@ -10,10 +9,12 @@ import { Link } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const { currentMood, getRecommendations, moodHistory, moodEmojis } = useMood();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (currentMood) {
@@ -212,7 +213,7 @@ const Dashboard = () => {
                     </div>
                     
                     <div className="pt-2">
-                      <Button variant="outline" className="w-full text-vibe-primary hover:text-vibe-dark border-vibe-primary/20 hover:bg-vibe-primary/5">
+                      <Button variant="outline" className="w-full text-vibe-primary hover:text-vibe-dark border-vibe-primary/20 hover:bg-vibe-primary/5" onClick={() => navigate('/stats')}>
                         <Calendar className="mr-2 h-4 w-4" />
                         View Detailed Stats
                       </Button>
