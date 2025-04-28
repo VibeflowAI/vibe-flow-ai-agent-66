@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -33,6 +34,22 @@ const setupMockApi = () => {
           return originalFetch('/api/gemini.json');
         }
         
+        // Mock Edge Function API requests for mood-agent
+        if (url.includes('/api/edge/mood-agent')) {
+          console.log('Intercepting mood-agent API request');
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          const requestData = options?.body ? JSON.parse(String(options.body)) : {};
+          
+          // Generate a response based on the user's message and context
+          return new Response(JSON.stringify({
+            response: `Based on your current mood of ${requestData.currentMood || 'neutral'} and your message, I'd suggest focusing on self-care activities that boost your energy. A short walk outside or a quick stretching session might help. How does that sound?`
+          }), { 
+            status: 200, 
+            headers: { 'Content-Type': 'application/json' } 
+          });
+        }
+        
         // Mock Supabase API requests
         if (url.includes('/auth/') || url.includes('/rest/')) {
           console.log('Intercepting Supabase API request to:', url);
@@ -59,7 +76,7 @@ const setupMockApi = () => {
               email: 'user@example.com',
               displayName: 'Demo User',
               preferences: {
-                dietaryRestrictions: [],
+                dietaryRestrictions: ['vegetarian'],
                 activityLevel: 'moderate',
                 sleepGoals: '8 hours',
                 notificationsEnabled: true
@@ -68,7 +85,7 @@ const setupMockApi = () => {
                 height: '175cm',
                 weight: '70kg',
                 bloodType: 'O+',
-                conditions: [],
+                conditions: ['occasional insomnia'],
                 sleepHours: '7',
                 activityLevel: 'moderate',
                 healthGoals: ['reduce stress', 'improve sleep'],

@@ -16,6 +16,18 @@ interface Message {
 const ELEVENLABS_API_KEY = 'sk_ac5a8f880ba45f9f6e18b1621e1ae55fb9c8841babe5613e';
 const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; // Sarah's voice ID
 
+// Define types for user profile data
+interface HealthProfile {
+  healthGoals?: string[];
+  sleepHours?: string;
+  activityLevel?: string;
+  conditions?: string[];
+}
+
+interface UserPreferences {
+  dietaryRestrictions?: string[];
+}
+
 export const useVoiceChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
@@ -93,10 +105,11 @@ export const useVoiceChat = () => {
     setIsProcessing(true);
     
     try {
-      const userHealthProfile = user?.healthProfile || {};
-      const userPreferences = user?.preferences || {};
+      // Safely access user health profile and preferences with default empty objects
+      const userHealthProfile = user?.healthProfile as HealthProfile || {};
+      const userPreferences = user?.preferences as UserPreferences || {};
       
-      // Prepare user context for AI
+      // Prepare user context for AI with safe property access
       const userContext = {
         mood: currentMood?.mood || 'unknown',
         energy: currentMood?.energy || 'medium',
