@@ -1,9 +1,11 @@
+
 import { useState, useRef } from 'react';
 import { useMood } from '@/contexts/MoodContext';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface Message {
+  id: string;
   text: string;
   isUser: boolean;
   timestamp: Date;
@@ -82,6 +84,7 @@ export const useVoiceChat = () => {
     if (!text.trim()) return;
 
     const userMessage = { 
+      id: Date.now().toString(),
       text, 
       isUser: true,
       timestamp: new Date()
@@ -133,6 +136,7 @@ export const useVoiceChat = () => {
       ].filter(r => r !== mainResponse).slice(0, 2);
       
       const botMessage = {
+        id: Date.now().toString(),
         text: mainResponse,
         isUser: false,
         timestamp: new Date(),
@@ -205,6 +209,7 @@ export const useVoiceChat = () => {
 
       const data = await response.json();
       const botResponse = {
+        id: Date.now().toString(),
         text: data.response,
         isUser: false,
         timestamp: new Date()
