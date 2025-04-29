@@ -57,7 +57,7 @@ const Chat = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="gemini">Google Gemini</SelectItem>
-                <SelectItem value="openai">OpenAI GPT</SelectItem>
+                <SelectItem value="openai">OpenRouter GPT</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -89,7 +89,7 @@ const Chat = () => {
                   </li>
                 </ul>
                 <div className="mt-4 text-sm">
-                  <p>Currently using: <span className="font-medium">{aiProvider === 'gemini' ? 'Google Gemini AI' : 'OpenAI GPT'}</span></p>
+                  <p>Currently using: <span className="font-medium">{aiProvider === 'gemini' ? 'Google Gemini AI' : 'OpenRouter GPT'}</span></p>
                   <p className="mt-1">Change the AI model using the selector above</p>
                 </div>
               </div>
@@ -178,7 +178,7 @@ const Chat = () => {
                 <div className="bg-gray-100 rounded-lg rounded-bl-none p-3 max-w-[80%]">
                   <div className="flex gap-2 items-center text-sm text-gray-500">
                     <Bot className="w-4 h-4 animate-pulse" />
-                    Thinking using {aiProvider === 'gemini' ? 'Google Gemini' : 'OpenAI GPT'}...
+                    Thinking using {aiProvider === 'gemini' ? 'Google Gemini' : 'OpenRouter GPT'}...
                   </div>
                 </div>
               </div>

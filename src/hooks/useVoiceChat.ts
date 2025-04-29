@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { useMood } from '@/contexts/MoodContext';
 import { useToast } from '@/hooks/use-toast';
@@ -29,7 +28,7 @@ interface UserPreferences {
 const ELEVENLABS_API_KEY = 'sk_ac5a8f880ba45f9f6e18b1621e1ae55fb9c8841babe5613e';
 const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; // Sarah's voice ID
 const GEMINI_API_KEY = 'AIzaSyCgRoUv7_0AhFDsNW03AxFFu94lzVxCKns';
-// For OpenAI, we'll get this from API calls rather than hardcoding
+const OPENROUTER_API_KEY = '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';
 
 export const useVoiceChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -154,18 +153,17 @@ export const useVoiceChat = () => {
 
   const processWithOpenAI = async (prompt: string): Promise<string> => {
     try {
-      // In a production app, you would use a server-side API or a secure method to handle API keys
-      // This is a simplified example for demonstration
-      const OPENAI_API_KEY = ''; // This should be provided securely, not hardcoded
-      
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      // Using OpenRouter.ai API for accessing various AI models including GPT
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${OPENAI_API_KEY}`, // This should come from a secure source
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': window.location.origin,
+          'X-Title': 'VibeFlow AI Assistant'
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'openai/gpt-4o-mini',
           messages: [
             {
               role: 'system',
