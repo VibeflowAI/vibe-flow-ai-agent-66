@@ -1,5 +1,7 @@
 
 import { serve } from 'https://deno.fresh.dev/std@1.0.0/http/server.ts';
+import { OpenAI } from 'https://esm.sh/openai@4.32.0';
+import { GoogleGenerativeAI } from 'https://esm.sh/@google/generative-ai@0.2.0';
 
 interface UserContext {
   mood?: string;
@@ -67,13 +69,71 @@ serve(async (req) => {
       Dietary restrictions: ${dietaryRestrictions.join(', ') || 'none reported'}
     `;
 
-    // For now, just return a placeholder response to test if the function works
-    // This helps us avoid the Deno.makeTempFile error from the previous implementation
-    const sampleResponse = `Hi there! I see you're feeling ${mood}. Based on your message "${message}", I'd suggest focusing on your wellness today. Remember to stay hydrated, take short breaks, and maybe try a quick stretching session to boost your energy.`;
+    let aiResponse;
+
+    // Process with the selected AI provider
+    if (aiProvider === 'gemini') {
+      try {
+        const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY') || '');
+        const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+        
+        const prompt = `
+          You are VibeFlow AI, a friendly wellness assistant. 
+          You are helpful, empathetic, and focused on providing practical wellness advice.
+          
+          User context:
+          ${userProfile}
+          
+          Please provide a thoughtful, personalized response addressing the user's message.
+          Keep your response concise (under 150 words) and focused on wellness, mental health,
+          or lifestyle improvements based on their current mood and context.
+          
+          Your response should be encouraging and provide actionable suggestions.
+        `;
+        
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+        aiResponse = text;
+      } catch (error) {
+        console.error('Gemini API Error:', error);
+        throw new Error('Failed to get response from Gemini: ' + error.message);
+      }
+    } else {
+      // Use OpenAI as fallback
+      try {
+        const openai = new OpenAI({
+          apiKey: Deno.env.get('OPENAI_API_KEY') || '',
+        });
+        
+        const completion = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: `You are VibeFlow AI, a friendly wellness assistant. You are helpful, empathetic, 
+                        and focused on providing practical wellness advice. Keep responses concise 
+                        (under 150 words) and focused on wellness, mental health, or lifestyle improvements.`
+            },
+            {
+              role: 'user',
+              content: `Based on this user context, provide a thoughtful, personalized response:
+                      ${userProfile}`
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 300,
+        });
+        
+        aiResponse = completion.choices[0].message.content;
+      } catch (error) {
+        console.error('OpenAI API Error:', error);
+        throw new Error('Failed to get response from OpenAI: ' + error.message);
+      }
+    }
 
     // Return the response
     return new Response(
-      JSON.stringify({ response: sampleResponse }),
+      JSON.stringify({ response: aiResponse || "I'm sorry, I couldn't process your request right now. Please try again later." }),
       { 
         headers: { 
           'Content-Type': 'application/json',

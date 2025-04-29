@@ -1,3 +1,4 @@
+
 import { useState, useRef } from 'react';
 import { useMood } from '@/contexts/MoodContext';
 import { useToast } from '@/hooks/use-toast';
@@ -147,18 +148,14 @@ export const useVoiceChat = () => {
         dietaryRestrictions: userPreferences.dietaryRestrictions || []
       };
       
-      console.log('Sending message to API with context:', { text, userContext, aiProvider });
+      console.log('Sending message to AI:', { text, userContext, aiProvider });
       
-      // Get the session directly without async/await wrapping
-      const session = supabase.auth.getSession();
-      
-      // Call Edge Function with user context and AI provider choice - without authentication for now
+      // Call Edge Function with user context and AI provider choice
       const response = await fetch('https://unparnunixbhxizmfvmc.supabase.co/functions/v1/mood-agent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Remove the authorization header for now since it's causing issues
-          // 'Authorization': `Bearer ${session ? session.data.session?.access_token : ''}`,
+          // Don't send auth token - it was causing issues
         },
         body: JSON.stringify({
           message: text,
@@ -170,10 +167,15 @@ export const useVoiceChat = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to get response from agent: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Failed to get response from agent: ${response.status}${errorData.details ? ' - ' + errorData.details : ''}`);
       }
 
       const data = await response.json();
+      
+      if (!data.response) {
+        throw new Error("Received empty response from the AI");
+      }
       
       // Generate 2 alternative responses with slight variations
       const mainResponse = data.response;
@@ -214,6 +216,14 @@ export const useVoiceChat = () => {
         description: `Failed to get a response. ${error.message}`,
         variant: "destructive"
       });
+      
+      // Add error message to chat
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        text: "I'm sorry, I couldn't process your request at the moment. Please try again later.",
+        isUser: false,
+        timestamp: new Date()
+      }]);
     } finally {
       setIsProcessing(false);
     }
@@ -262,7 +272,7 @@ export const useVoiceChat = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.auth.getSession() ? (await supabase.auth.getSession()).data.session?.access_token : ''}`
+          // Don't send auth token - it was causing issues
         },
         body: JSON.stringify({
           message: prompt,
@@ -274,10 +284,15 @@ export const useVoiceChat = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get response from agent');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Failed to get response from agent: ${response.status}${errorData.details ? ' - ' + errorData.details : ''}`);
       }
 
       const data = await response.json();
+      
+      if (!data.response) {
+        throw new Error("Received empty response from the AI");
+      }
       
       // Generate alternative responses
       const mainResponse = data.response;
