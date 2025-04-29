@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,7 +57,7 @@ const Chat = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="gemini">Google Gemini</SelectItem>
-                <SelectItem value="openai">OpenRouter GPT</SelectItem>
+                <SelectItem value="openai">OpenRouter GPT-4o</SelectItem>
               </SelectContent>
             </Select>
           </div>

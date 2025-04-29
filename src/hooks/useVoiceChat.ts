@@ -1,3 +1,4 @@
+
 import { useState, useRef } from 'react';
 import { useMood } from '@/contexts/MoodContext';
 import { useToast } from '@/hooks/use-toast';
@@ -153,7 +154,7 @@ export const useVoiceChat = () => {
 
   const processWithOpenAI = async (prompt: string): Promise<string> => {
     try {
-      // Using OpenRouter.ai API for accessing various AI models including GPT
+      // Using OpenRouter.ai API with the format you provided
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -163,7 +164,7 @@ export const useVoiceChat = () => {
           'X-Title': 'VibeFlow AI Assistant'
         },
         body: JSON.stringify({
-          model: 'openai/gpt-4o-mini',
+          model: 'openai/gpt-4o',
           messages: [
             {
               role: 'system',
