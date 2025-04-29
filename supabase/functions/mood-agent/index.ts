@@ -1,5 +1,6 @@
 
-import { serve } from 'https://deno.fresh.dev/std@1.0.0/http/server.ts';
+// Replace the incorrect import with the correct Deno standard library URL
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
 interface UserContext {
   mood?: string;
