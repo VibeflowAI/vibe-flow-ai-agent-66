@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader } from 'lucide-react';
 
 type AuthFormProps = {
   type: 'signin' | 'signup';
@@ -16,6 +17,7 @@ export const AuthForm = ({ type, onSuccess }: AuthFormProps) => {
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -39,20 +41,22 @@ export const AuthForm = ({ type, onSuccess }: AuthFormProps) => {
     
     if (!validate()) return;
 
+    setIsSubmitting(true);
+
     try {
       if (type === 'signin') {
         await signIn(email, password);
-        if (onSuccess) onSuccess();
       } else {
         await signUp(email, password, displayName);
-        // For signup, we'll automatically sign in after successful registration
-        if (email && password) {
-          await signIn(email, password);
-          if (onSuccess) onSuccess();
-        }
+      }
+      
+      if (onSuccess) {
+        onSuccess();
       }
     } catch (error) {
       console.error('Authentication error:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -82,6 +86,7 @@ export const AuthForm = ({ type, onSuccess }: AuthFormProps) => {
                 onChange={(e) => setDisplayName(e.target.value)}
                 className={errors.displayName ? 'border-red-500' : ''}
                 placeholder="Your name"
+                disabled={isSubmitting}
               />
               {errors.displayName && (
                 <p className="text-sm text-red-500">{errors.displayName}</p>
@@ -100,6 +105,7 @@ export const AuthForm = ({ type, onSuccess }: AuthFormProps) => {
               onChange={(e) => setEmail(e.target.value)}
               className={errors.email ? 'border-red-500' : ''}
               placeholder="your.email@example.com"
+              disabled={isSubmitting}
             />
             {errors.email && (
               <p className="text-sm text-red-500">{errors.email}</p>
@@ -117,6 +123,7 @@ export const AuthForm = ({ type, onSuccess }: AuthFormProps) => {
               onChange={(e) => setPassword(e.target.value)}
               className={errors.password ? 'border-red-500' : ''}
               placeholder={type === 'signup' ? 'Create a password' : 'Your password'}
+              disabled={isSubmitting}
             />
             {errors.password && (
               <p className="text-sm text-red-500">{errors.password}</p>
@@ -134,9 +141,16 @@ export const AuthForm = ({ type, onSuccess }: AuthFormProps) => {
           <Button
             type="submit"
             className="w-full bg-vibe-primary hover:bg-vibe-dark"
-            disabled={loading}
+            disabled={isSubmitting}
           >
-            {loading ? 'Processing...' : type === 'signin' ? 'Sign In' : 'Sign Up'}
+            {isSubmitting ? (
+              <>
+                <Loader className="mr-2 h-4 w-4 animate-spin" />
+                {type === 'signin' ? 'Signing in...' : 'Creating account...'}
+              </>
+            ) : (
+              type === 'signin' ? 'Sign In' : 'Sign Up'
+            )}
           </Button>
         </form>
       </CardContent>

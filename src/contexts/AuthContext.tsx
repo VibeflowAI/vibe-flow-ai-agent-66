@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { toast } from '@/hooks/use-toast';
@@ -54,7 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up the Supabase auth state listener first
+    // IMPORTANT: Setup auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         console.log('Auth state changed:', event);
@@ -74,30 +73,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(null);
         }
         
+        // Set loading to false AFTER updating the user state
         setLoading(false);
       }
     );
 
-    // Check for existing session
+    // THEN check for existing session
     const checkSession = async () => {
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      
-      if (currentSession && currentSession.user) {
-        console.log('Existing session found:', currentSession.user.email);
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
         
-        // Convert Supabase user to our User type
-        const convertedUser: User = {
-          id: currentSession.user.id,
-          email: currentSession.user.email || '',
-          displayName: currentSession.user.user_metadata.displayName || currentSession.user.email?.split('@')[0] || 'User',
-          photoURL: currentSession.user.user_metadata.photoURL,
-        };
+        if (currentSession && currentSession.user) {
+          console.log('Existing session found:', currentSession.user.email);
+          
+          // Convert Supabase user to our User type
+          const convertedUser: User = {
+            id: currentSession.user.id,
+            email: currentSession.user.email || '',
+            displayName: currentSession.user.user_metadata.displayName || currentSession.user.email?.split('@')[0] || 'User',
+            photoURL: currentSession.user.user_metadata.photoURL,
+          };
+          
+          setUser(convertedUser);
+          setSession(currentSession);
+        }
         
-        setUser(convertedUser);
-        setSession(currentSession);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error checking session:', error);
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
     
     checkSession();
@@ -162,13 +167,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (error) throw error;
       
       if (data.user) {
+        // After successful signup, immediately sign in with the credentials
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        
+        if (signInError) throw signInError;
+        
         toast({
           title: 'Account created!',
           description: `Welcome to VibeFlow, ${displayName}!`,
         });
         
-        // We're not automatically logged in at this point
-        // The session will be established through onAuthStateChange
         return Promise.resolve();
       }
     } catch (error) {
@@ -190,12 +201,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    
-    toast({
-      title: 'Signed out',
-      description: 'You have been signed out successfully.',
-    });
+    try {
+      await supabase.auth.signOut();
+      
+      toast({
+        title: 'Signed out',
+        description: 'You have been signed out successfully.',
+      });
+    } catch (error) {
+      console.error('Sign out error:', error);
+      
+      toast({
+        variant: 'destructive',
+        title: 'Sign out failed',
+        description: 'There was an error signing you out. Please try again.',
+      });
+    }
   };
 
   const updateProfile = async (data: Partial<User>) => {
