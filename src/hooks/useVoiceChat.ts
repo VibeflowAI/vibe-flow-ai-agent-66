@@ -120,6 +120,8 @@ export const useVoiceChat = () => {
         dietaryRestrictions: userPreferences.dietaryRestrictions || []
       };
       
+      console.log('Sending message to API with context:', { text, userContext });
+      
       // Call API with user context
       const response = await fetch('/api/edge/mood-agent', {
         method: 'POST',
@@ -212,7 +214,11 @@ export const useVoiceChat = () => {
         body: JSON.stringify({
           message: prompt,
           currentMood: currentMood?.mood,
-          moodEmoji: currentMood ? moodEmojis[currentMood.mood] : null
+          moodEmoji: currentMood ? moodEmojis[currentMood.mood] : null,
+          userContext: {
+            mood: currentMood?.mood || 'unknown',
+            energy: currentMood?.energy || 'medium',
+          }
         })
       });
 
@@ -262,6 +268,8 @@ export const useVoiceChat = () => {
     isProcessing,
     isPlaying,
     stopAudio,
-    audioRef
+    audioRef,
+    selectAlternativeResponse,
+    regenerateResponse
   };
 };

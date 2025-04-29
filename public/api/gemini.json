@@ -52,6 +52,26 @@
     {
       "type": "sad_alt",
       "response": "During low mood periods, small nutritional changes can have surprising effects. Given your profile, try incorporating foods rich in omega-3s and vitamin D - perhaps a small serving of walnuts or fortified plant milk if that aligns with your dietary preferences. Would you like to talk more about mood-supportive foods?"
+    },
+    {
+      "type": "conditions_diabetes",
+      "response": "With your health conditions in mind, I'd suggest monitoring how different foods affect your energy levels. Low glycemic foods like leafy greens, beans, and whole grains can help maintain more stable blood sugar. Have you noticed any patterns between what you eat and how you feel afterward?"
+    },
+    {
+      "type": "conditions_insomnia",
+      "response": "Given your occasional insomnia, let's focus on creating optimal sleep conditions. Beyond the usual advice of avoiding caffeine and screens, have you tried using white noise, keeping your room at 65-68°F, or a weighted blanket? Many find these helpful for improving sleep quality."
+    },
+    {
+      "type": "exercise_beginner",
+      "response": "For someone at your activity level who's looking to increase movement, consistency is more important than intensity. Try a daily 10-minute walk or gentle stretching routine. Would you like me to suggest a simple routine that you can do at home without any equipment?"
+    },
+    {
+      "type": "exercise_intermediate",
+      "response": "With your moderate activity level, you might benefit from adding some variety to prevent plateaus. Consider incorporating interval training once a week - alternating between high intensity (like jumping jacks or burpees) for 30 seconds and rest for 30 seconds, repeated 8-10 times."
+    },
+    {
+      "type": "nutrition_general",
+      "response": "A good approach to nutrition is focusing on adding rather than restricting. Try adding one extra serving of vegetables to your day, or ensuring each meal has a source of protein. Small, sustainable changes often lead to the biggest long-term benefits. What meal would be easiest for you to modify first?"
     }
   ]
 }
