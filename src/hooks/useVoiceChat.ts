@@ -33,6 +33,7 @@ export const useVoiceChat = () => {
   const [inputText, setInputText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [aiProvider, setAiProvider] = useState<'gemini' | 'openai'>('gemini');
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { currentMood, moodEmojis } = useMood();
   const { user } = useAuth();
@@ -120,9 +121,9 @@ export const useVoiceChat = () => {
         dietaryRestrictions: userPreferences.dietaryRestrictions || []
       };
       
-      console.log('Sending message to API with context:', { text, userContext });
+      console.log('Sending message to API with context:', { text, userContext, aiProvider });
       
-      // Call API with user context
+      // Call API with user context and AI provider choice
       const response = await fetch('/api/edge/mood-agent', {
         method: 'POST',
         headers: {
@@ -132,7 +133,8 @@ export const useVoiceChat = () => {
           message: text,
           currentMood: currentMood?.mood,
           moodEmoji: currentMood ? moodEmojis[currentMood.mood] : null,
-          userContext: userContext
+          userContext: userContext,
+          aiProvider: aiProvider
         })
       });
 
@@ -230,7 +232,8 @@ export const useVoiceChat = () => {
           message: prompt,
           currentMood: currentMood?.mood,
           moodEmoji: currentMood ? moodEmojis[currentMood.mood] : null,
-          userContext: userContext
+          userContext: userContext,
+          aiProvider: aiProvider
         })
       });
 
@@ -294,6 +297,8 @@ export const useVoiceChat = () => {
     stopAudio,
     audioRef,
     selectAlternativeResponse,
-    regenerateResponse
+    regenerateResponse,
+    aiProvider,
+    setAiProvider
   };
 };

@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -8,301 +8,35 @@ import { useMood } from '@/contexts/MoodContext';
 import { Bot, Send, Volume2, VolumeX, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-
-type Message = {
-  id: string;
-  text: string;
-  isUser: boolean;
-  timestamp: Date;
-  alternativeResponses?: string[];
-};
+import { useVoiceChat } from '@/hooks/useVoiceChat';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const Chat = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputText, setInputText] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [selectedResponseIndex, setSelectedResponseIndex] = useState<number | null>(null);
-  const { moodEmojis, currentMood } = useMood();
-  const { user } = useAuth();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const {
+    messages,
+    inputText,
+    setInputText,
+    handleSendMessage,
+    isProcessing,
+    isPlaying,
+    stopAudio,
+    audioRef,
+    selectAlternativeResponse,
+    regenerateResponse,
+    aiProvider,
+    setAiProvider
+  } = useVoiceChat();
+  
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const [responses, setResponses] = useState<any[]>([]);
-
-  useEffect(() => {
-    // Create an audio element once the component mounts
-    const audioElement = new Audio();
-    audioRef.current = audioElement;
-
-    // Load the responses
-    fetch('/api/gemini.json')
-      .then(res => res.json())
-      .then(data => {
-        if (data.responses) {
-          setResponses(data.responses);
-        }
-      })
-      .catch(err => {
-        console.error('Error loading responses:', err);
-      });
-
-    // Clean up on unmount
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
-        audioRef.current = null;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    // Load past messages when component mounts
-    const loadMessages = () => {
-      if (user) {
-        const savedMessages = localStorage.getItem(`vibeflow_chat_${user.id}`);
-        if (savedMessages) {
-          setMessages(JSON.parse(savedMessages));
-        }
-      }
-    };
-    
-    loadMessages();
-  }, [user]);
 
   useEffect(() => {
     // Scroll to bottom when messages update
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-  
-  const saveMessages = (updatedMessages: Message[]) => {
-    if (user) {
-      localStorage.setItem(`vibeflow_chat_${user.id}`, JSON.stringify(updatedMessages));
-    }
-  };
 
-  const stopAudio = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      setIsPlaying(false);
-    }
-  };
-
-  const generateAlternativeResponses = (baseResponse: string): string[] => {
-    const alternativeResponses = [
-      baseResponse.replace(
-        "I recommend", 
-        "Based on your mood patterns, I suggest"
-      ),
-      baseResponse.replace(
-        "I recommend", 
-        "You might benefit from"
-      ),
-    ];
-    return alternativeResponses.filter(r => r !== baseResponse);
-  };
-
-  const getPersonalizedResponse = (inputText: string): string => {
-    // Determine which response to use based on the user's health profile and input
-    if (!user || !responses.length) return "I'm processing your request...";
-    
-    // Check for keywords in the input text
-    const inputLower = inputText.toLowerCase();
-    
-    if (inputLower.includes('tired') || inputLower.includes('exhausted') || inputLower.includes('no energy')) {
-      return responses.find((r) => r.type === 'tired')?.response || responses.find((r) => r.type === 'default').response;
-    }
-    
-    if (inputLower.includes('stress') || inputLower.includes('anxious') || inputLower.includes('overwhelmed')) {
-      return responses.find((r) => r.type === 'stressed')?.response || responses.find((r) => r.type === 'default').response;
-    }
-    
-    if (inputLower.includes('sad') || inputLower.includes('depressed') || inputLower.includes('unhappy')) {
-      return responses.find((r) => r.type === 'sad')?.response || responses.find((r) => r.type === 'default').response;
-    }
-    
-    if (inputLower.includes('happy') || inputLower.includes('great') || inputLower.includes('good mood')) {
-      return responses.find((r) => r.type === 'happy')?.response || responses.find((r) => r.type === 'default').response;
-    }
-    
-    if (inputLower.includes('calm') || inputLower.includes('relaxed') || inputLower.includes('peaceful')) {
-      return responses.find((r) => r.type === 'calm')?.response || responses.find((r) => r.type === 'default').response;
-    }
-    
-    if (inputLower.includes('sleep') || inputLower.includes('insomnia') || inputLower.includes('rest')) {
-      return responses.find((r) => r.type === 'sleep')?.response || responses.find((r) => r.type === 'default').response;
-    }
-    
-    // Check user preferences and health profile
-    if (user.preferences?.dietaryRestrictions?.includes('vegetarian')) {
-      if (inputLower.includes('food') || inputLower.includes('eat') || inputLower.includes('meal') || inputLower.includes('diet')) {
-        return responses.find((r) => r.type === 'vegetarian')?.response || responses.find((r) => r.type === 'default').response;
-      }
-    }
-    
-    if (user.healthProfile?.conditions?.some(c => c.toLowerCase().includes('diabetes') || c.toLowerCase().includes('blood pressure'))) {
-      if (inputLower.includes('food') || inputLower.includes('diet') || inputLower.includes('health')) {
-        return "Based on your health conditions in your profile, I'd recommend focusing on low-glycemic foods and regular monitoring of your levels. Small, frequent meals might help maintain stable blood sugar. Have you checked with your healthcare provider about specific dietary guidelines?";
-      }
-    }
-    
-    // Check current mood
-    if (currentMood) {
-      if (currentMood.energy === 'low') {
-        return responses.find((r) => r.type === 'low_energy')?.response || responses.find((r) => r.type === 'default').response;
-      }
-      if (currentMood.energy === 'high') {
-        return responses.find((r) => r.type === 'high_energy')?.response || responses.find((r) => r.type === 'default').response;
-      }
-      
-      // Use mood-based responses
-      const moodType = currentMood.mood;
-      return responses.find((r) => r.type === moodType)?.response || responses.find((r) => r.type === 'default').response;
-    }
-    
-    // Default response
-    return responses.find((r) => r.type === 'default')?.response || "I'd be happy to provide personalized wellness recommendations based on your needs. Could you tell me a bit more about how you're feeling or what specific help you're looking for?";
-  };
-
-  const handleSendMessage = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!inputText.trim()) return;
-    
-    // Add user message to chat
-    const userMessage = {
-      id: Date.now().toString(),
-      text: inputText,
-      isUser: true,
-      timestamp: new Date(),
-    };
-    
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
-    saveMessages(updatedMessages);
-    setInputText('');
-    setIsProcessing(true);
-
-    try {
-      // Get a personalized response based on user profile and input
-      const baseResponse = getPersonalizedResponse(inputText);
-      const alternativeResponses = generateAlternativeResponses(baseResponse);
-      
-      // Add a slight delay to simulate AI thinking
-      await new Promise(resolve => setTimeout(resolve, 1200));
-      
-      // Add AI response to chat
-      const botMessage = {
-        id: Date.now().toString(),
-        text: baseResponse,
-        isUser: false,
-        timestamp: new Date(),
-        alternativeResponses: alternativeResponses
-      };
-      
-      const finalMessages = [...updatedMessages, botMessage];
-      setMessages(finalMessages);
-      saveMessages(finalMessages);
-      setSelectedResponseIndex(null);
-      
-    } catch (error) {
-      console.error('Error processing message:', error);
-      toast({
-        title: "Error",
-        description: "Failed to get a response. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const selectAlternativeResponse = (messageId: string, index: number) => {
-    setMessages(prevMessages => 
-      prevMessages.map(msg => {
-        if (msg.id === messageId && msg.alternativeResponses && msg.alternativeResponses[index]) {
-          const alternativeResponses = [
-            msg.text, 
-            ...(msg.alternativeResponses.filter((_: string, i: number) => i !== index))
-          ];
-          return {
-            ...msg,
-            text: msg.alternativeResponses[index],
-            alternativeResponses: alternativeResponses,
-          };
-        }
-        return msg;
-      })
-    );
-
-    // Also update in storage
-    if (user) {
-      const updatedMessages = messages.map(msg => {
-        if (msg.id === messageId && msg.alternativeResponses && msg.alternativeResponses[index]) {
-          const alternativeResponses = [
-            msg.text, 
-            ...(msg.alternativeResponses.filter((_: string, i: number) => i !== index))
-          ];
-          return {
-            ...msg, 
-            text: msg.alternativeResponses[index],
-            alternativeResponses: alternativeResponses,
-          };
-        }
-        return msg;
-      });
-      saveMessages(updatedMessages);
-    }
-  };
-
-  const regenerateResponse = async (messageId: string, prompt: string) => {
-    setIsProcessing(true);
-
-    try {
-      // Get a new personalized response
-      const baseResponse = getPersonalizedResponse(prompt);
-      const alternativeResponses = generateAlternativeResponses(baseResponse);
-      
-      // Add a slight delay to simulate AI thinking
-      await new Promise(resolve => setTimeout(resolve, 1200));
-      
-      setMessages(prevMessages => 
-        prevMessages.map(msg => {
-          if (msg.id === messageId) {
-            return {
-              ...msg,
-              text: baseResponse,
-              alternativeResponses: alternativeResponses,
-            };
-          }
-          return msg;
-        })
-      );
-      
-      // Also update in storage
-      const updatedMessages = messages.map(msg => {
-        if (msg.id === messageId) {
-          return {
-            ...msg, 
-            text: baseResponse,
-            alternativeResponses: alternativeResponses,
-          };
-        }
-        return msg;
-      });
-      saveMessages(updatedMessages);
-      
-    } catch (error) {
-      console.error('Error regenerating response:', error);
-      toast({
-        title: "Error",
-        description: "Failed to regenerate response. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
-    }
+    handleSendMessage(inputText);
   };
 
   return (
@@ -310,11 +44,22 @@ const Chat = () => {
       <Card className="h-[80vh] flex flex-col shadow-lg border-vibe-primary/20">
         <div className="p-4 border-b flex items-center gap-2 bg-gradient-to-r from-vibe-primary/10 to-vibe-light/10">
           <Bot className="w-6 h-6 text-vibe-primary" />
-          <div>
+          <div className="flex-1">
             <h1 className="text-xl font-semibold">VibeFlow AI Assistant</h1>
             <p className="text-sm text-gray-600">
-              Your personal wellness companion powered by Gemini AI
+              Your personal wellness companion powered by AI
             </p>
+          </div>
+          <div className="w-48">
+            <Select value={aiProvider} onValueChange={(value) => setAiProvider(value as 'gemini' | 'openai')}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select AI Model" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="gemini">Google Gemini</SelectItem>
+                <SelectItem value="openai">OpenAI GPT</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
         
@@ -343,6 +88,10 @@ const Chat = () => {
                     Sleep improvement tips
                   </li>
                 </ul>
+                <div className="mt-4 text-sm">
+                  <p>Currently using: <span className="font-medium">{aiProvider === 'gemini' ? 'Google Gemini AI' : 'OpenAI GPT'}</span></p>
+                  <p className="mt-1">Change the AI model using the selector above</p>
+                </div>
               </div>
             ) : (
               messages.map((msg) => (
@@ -422,7 +171,7 @@ const Chat = () => {
                 <div className="bg-gray-100 rounded-lg rounded-bl-none p-3 max-w-[80%]">
                   <div className="flex gap-2 items-center text-sm text-gray-500">
                     <Bot className="w-4 h-4 animate-pulse" />
-                    Thinking...
+                    Thinking using {aiProvider === 'gemini' ? 'Google Gemini' : 'OpenAI GPT'}...
                   </div>
                 </div>
               </div>
@@ -431,7 +180,9 @@ const Chat = () => {
           </div>
         </ScrollArea>
 
-        <form onSubmit={handleSendMessage} className="p-4 border-t bg-white">
+        <audio ref={audioRef} className="hidden" />
+
+        <form onSubmit={handleSubmit} className="p-4 border-t bg-white">
           <div className="flex gap-2">
             <Input
               value={inputText}

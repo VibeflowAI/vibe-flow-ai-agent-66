@@ -16,6 +16,7 @@ interface RequestBody {
   currentMood?: string;
   moodEmoji?: string;
   userContext?: UserContext;
+  aiProvider?: 'gemini' | 'openai';  // Added option to choose AI provider
 }
 
 serve(async (req) => {
@@ -32,7 +33,7 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { message, currentMood, moodEmoji, userContext = {} } = await req.json() as RequestBody;
+    const { message, currentMood, moodEmoji, userContext = {}, aiProvider = 'gemini' } = await req.json() as RequestBody;
 
     // Validate input
     if (!message) {
@@ -40,89 +41,6 @@ serve(async (req) => {
         JSON.stringify({ error: 'Message is required' }), 
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
-    }
-
-    // Initialize Google ADK client
-    const googleADKApiKey = Deno.env.get('GOOGLE_ADK_API_KEY');
-    if (!googleADKApiKey) {
-      console.log('Google ADK API key not configured, using fallback responses');
-      
-      // Fallback to local responses if API key not available
-      try {
-        // Fetch predefined responses from Gemini JSON
-        const resp = await fetch(new URL('../../gemini.json', import.meta.url).href);
-        const { responses } = await resp.json();
-        
-        if (!responses || responses.length === 0) {
-          throw new Error('No fallback responses available');
-        }
-        
-        // Extract user context for personalization
-        const {
-          mood = currentMood || 'neutral',
-          energy = 'medium',
-          healthGoals = [],
-          sleepHours = '7',
-          activityLevel = 'moderate',
-          conditions = [],
-          dietaryRestrictions = []
-        } = userContext;
-        
-        // Find appropriate response based on context and message
-        let responseType = 'default';
-        const messageLower = message.toLowerCase();
-        
-        if (messageLower.includes('tired') || messageLower.includes('exhausted')) {
-          responseType = 'tired';
-        } else if (messageLower.includes('stress') || messageLower.includes('anxiety')) {
-          responseType = 'stressed';
-        } else if (messageLower.includes('sad') || messageLower.includes('unhappy')) {
-          responseType = 'sad';
-        } else if (messageLower.includes('happy') || messageLower.includes('good')) {
-          responseType = 'happy';
-        } else if (messageLower.includes('calm') || messageLower.includes('relaxed')) {
-          responseType = 'calm';
-        } else if (messageLower.includes('sleep')) {
-          responseType = 'sleep';
-        } else if (energy === 'low') {
-          responseType = 'low_energy';
-        } else if (energy === 'high') {
-          responseType = 'high_energy';
-        }
-        
-        if (dietaryRestrictions?.includes('vegetarian') && 
-            (messageLower.includes('food') || messageLower.includes('eat') || messageLower.includes('meal'))) {
-          responseType = 'vegetarian';
-        }
-        
-        if (conditions?.includes('diabetes') || conditions?.includes('blood sugar')) {
-          responseType = 'conditions_diabetes';
-        }
-        
-        if (conditions?.includes('insomnia') && messageLower.includes('sleep')) {
-          responseType = 'conditions_insomnia';
-        }
-        
-        // Find the matching response or use default
-        let response = responses.find(r => r.type === responseType)?.response;
-        if (!response) {
-          response = responses.find(r => r.type === 'default')?.response;
-        }
-        
-        // Personalize the response by replacing placeholders
-        response = response
-          .replace(/\${sleepHours}/g, sleepHours || '7')
-          .replace(/\${activityLevel}/g, activityLevel || 'moderate')
-          .replace(/\${healthGoals}/g, healthGoals?.join(', ') || 'improve wellness');
-        
-        return new Response(
-          JSON.stringify({ response }),
-          { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } }
-        );
-      } catch (error) {
-        console.error('Error in fallback response:', error);
-        throw new Error('Failed to generate a fallback response');
-      }
     }
 
     // Extract user context for personalization
@@ -136,64 +54,25 @@ serve(async (req) => {
       dietaryRestrictions = []
     } = userContext;
 
-    // Make request to Google ADK API
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': googleADKApiKey
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `
-              As a wellness recommendation agent, consider the following context:
-              User's message: ${message}
-              Current mood: ${mood}
-              Mood emoji: ${moodEmoji || '😐'}
-              Energy level: ${energy}
-              Sleep hours: ${sleepHours}
-              Activity level: ${activityLevel}
-              Health goals: ${healthGoals.join(', ') || 'general wellness'}
-              Health conditions: ${conditions.join(', ') || 'none reported'}
-              Dietary restrictions: ${dietaryRestrictions.join(', ') || 'none reported'}
-              
-              Based on this comprehensive user profile, provide a personalized response with specific wellness recommendations.
-              Make it empathetic, actionable, and tailored to their unique situation.
-              Vary your response style to avoid sounding repetitive. If they're asking about specific health concerns, acknowledge their conditions.
-              Include a specific recommendation for either food, exercise, or mental wellness based on their current mood and health goals.
-              
-              Keep it conversational and natural. Don't sound like you're following a template.
-            `
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 1024,
-        }
-      })
-    });
+    // Create user profile text
+    const userProfile = `
+      User's message: ${message}
+      Current mood: ${mood}
+      Mood emoji: ${moodEmoji || '😐'}
+      Energy level: ${energy}
+      Sleep hours: ${sleepHours}
+      Activity level: ${activityLevel}
+      Health goals: ${healthGoals.join(', ') || 'general wellness'}
+      Health conditions: ${conditions.join(', ') || 'none reported'}
+      Dietary restrictions: ${dietaryRestrictions.join(', ') || 'none reported'}
+    `;
 
-    if (!response.ok) {
-      throw new Error(`Google ADK API error: ${response.status}`);
+    // Choose AI provider based on request
+    if (aiProvider === 'openai') {
+      return await handleOpenAIRequest(message, userProfile);
+    } else {
+      return await handleGeminiRequest(message, userProfile);
     }
-
-    const data = await response.json();
-    const agentResponse = data.candidates[0].content.parts[0].text;
-
-    // Return the response
-    return new Response(
-      JSON.stringify({ response: agentResponse }),
-      { 
-        headers: { 
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        } 
-      }
-    );
-
   } catch (error) {
     console.error('Error:', error);
     return new Response(
@@ -208,3 +87,127 @@ serve(async (req) => {
     );
   }
 });
+
+// Handle request using Google Gemini API
+async function handleGeminiRequest(message: string, userProfile: string) {
+  const googleADKApiKey = Deno.env.get('GOOGLE_ADK_API_KEY');
+  
+  if (!googleADKApiKey) {
+    console.log('Google ADK API key not configured');
+    throw new Error('Missing Google Gemini API key');
+  }
+
+  // Make request to Google Gemini API
+  const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': googleADKApiKey
+    },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{
+          text: `
+            As a wellness recommendation agent, consider the following context:
+            ${userProfile}
+            
+            Based on this comprehensive user profile, provide a personalized response with specific wellness recommendations.
+            Make it empathetic, actionable, and tailored to their unique situation.
+            Vary your response style to avoid sounding repetitive. If they're asking about specific health concerns, acknowledge their conditions.
+            Include a specific recommendation for either food, exercise, or mental wellness based on their current mood and health goals.
+            
+            Keep it conversational and natural. Don't sound like you're following a template.
+          `
+        }]
+      }],
+      generationConfig: {
+        temperature: 0.7,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: 1024,
+      }
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Google Gemini API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const agentResponse = data.candidates[0].content.parts[0].text;
+
+  // Return the response
+  return new Response(
+    JSON.stringify({ response: agentResponse }),
+    { 
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      } 
+    }
+  );
+}
+
+// Handle request using OpenAI API
+async function handleOpenAIRequest(message: string, userProfile: string) {
+  const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+  
+  if (!openAIApiKey) {
+    console.log('OpenAI API key not configured');
+    throw new Error('Missing OpenAI API key');
+  }
+
+  // Make request to OpenAI API
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${openAIApiKey}`
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `
+            You are a wellness recommendation agent. Provide personalized responses 
+            with specific wellness recommendations based on the user's profile.
+            Be empathetic, actionable, and tailor your responses to their unique situation.
+            Vary your response style and always include a specific recommendation for food,
+            exercise, or mental wellness based on their current mood and health goals.
+            Keep it conversational and natural.
+          `
+        },
+        {
+          role: "user",
+          content: `
+            Here's the user's profile:
+            ${userProfile}
+
+            Please provide a personalized response based on this information.
+          `
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 1024
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`OpenAI API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const agentResponse = data.choices[0].message.content;
+
+  // Return the response
+  return new Response(
+    JSON.stringify({ response: agentResponse }),
+    { 
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      } 
+    }
+  );
+}
