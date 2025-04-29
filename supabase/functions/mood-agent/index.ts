@@ -1,5 +1,6 @@
 
-import { serve } from 'https://deno.fresh.dev/std@1.0.0/http/server.ts';
+// Import from official Deno standard library instead of deno.fresh.dev
+import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { OpenAI } from 'https://esm.sh/openai@4.32.0';
 import { GoogleGenerativeAI } from 'https://esm.sh/@google/generative-ai@0.2.0';
 
