@@ -8,6 +8,7 @@ const SignUp = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // If user is already authenticated, redirect to dashboard immediately
   if (user) {
     return <Navigate to="/dashboard" />;
   }

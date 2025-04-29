@@ -42,10 +42,15 @@ export const AuthForm = ({ type, onSuccess }: AuthFormProps) => {
     try {
       if (type === 'signin') {
         await signIn(email, password);
+        if (onSuccess) onSuccess();
       } else {
         await signUp(email, password, displayName);
+        // For signup, we'll automatically sign in after successful registration
+        if (email && password) {
+          await signIn(email, password);
+          if (onSuccess) onSuccess();
+        }
       }
-      if (onSuccess) onSuccess();
     } catch (error) {
       console.error('Authentication error:', error);
     }

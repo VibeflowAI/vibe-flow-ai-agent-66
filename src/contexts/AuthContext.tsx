@@ -41,33 +41,6 @@ type AuthContextType = {
   updateHealthProfile: (data: HealthSurveyData) => Promise<void>;
 };
 
-// Mock data for demo purposes (will be replaced by Supabase data)
-const MOCK_USERS = [
-  {
-    id: '1',
-    email: 'demo@example.com',
-    password: 'password',
-    displayName: 'Demo User',
-    photoURL: 'https://api.dicebear.com/6.x/avataaars/svg?seed=Felix',
-    preferences: {
-      dietaryRestrictions: ['vegetarian'],
-      activityLevel: 'moderate' as const,
-      sleepGoals: '8 hours',
-      notificationsEnabled: true,
-    },
-    healthProfile: {
-      height: '175',
-      weight: '70',
-      bloodType: 'O+',
-      conditions: ['None'],
-      sleepHours: '7-8',
-      activityLevel: 'moderate',
-      healthGoals: ['Reduce Stress', 'Improve Sleep'],
-      lastUpdated: Date.now(),
-    },
-  },
-];
-
 // Create context
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -161,7 +134,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         password,
         options: {
           data: metadata,
-          emailRedirectTo: window.location.origin + '/dashboard'
         }
       });
       
