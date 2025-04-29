@@ -12,10 +12,6 @@ interface Message {
   alternativeResponses?: string[];
 }
 
-// ElevenLabs API key - In production, this should be in an environment variable
-const ELEVENLABS_API_KEY = 'sk_ac5a8f880ba45f9f6e18b1621e1ae55fb9c8841babe5613e';
-const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; // Sarah's voice ID
-
 // Define types for user profile data
 interface HealthProfile {
   healthGoals?: string[];
@@ -27,6 +23,10 @@ interface HealthProfile {
 interface UserPreferences {
   dietaryRestrictions?: string[];
 }
+
+// ElevenLabs API key - In production, this should be in an environment variable
+const ELEVENLABS_API_KEY = 'sk_ac5a8f880ba45f9f6e18b1621e1ae55fb9c8841babe5613e';
+const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; // Sarah's voice ID
 
 export const useVoiceChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -106,8 +106,8 @@ export const useVoiceChat = () => {
     
     try {
       // Safely access user health profile and preferences with default empty objects
-      const userHealthProfile = user?.healthProfile as HealthProfile || {};
-      const userPreferences = user?.preferences as UserPreferences || {};
+      const userHealthProfile = (user?.healthProfile as HealthProfile) || {};
+      const userPreferences = (user?.preferences as UserPreferences) || {};
       
       // Prepare user context for AI with safe property access
       const userContext = {
@@ -205,6 +205,21 @@ export const useVoiceChat = () => {
     setIsProcessing(true);
 
     try {
+      // Safely access user health profile and preferences with default empty objects
+      const userHealthProfile = (user?.healthProfile as HealthProfile) || {};
+      const userPreferences = (user?.preferences as UserPreferences) || {};
+      
+      // Prepare user context for AI with safe property access
+      const userContext = {
+        mood: currentMood?.mood || 'unknown',
+        energy: currentMood?.energy || 'medium',
+        healthGoals: userHealthProfile.healthGoals || [],
+        sleepHours: userHealthProfile.sleepHours || '7',
+        activityLevel: userHealthProfile.activityLevel || 'moderate',
+        conditions: userHealthProfile.conditions || [],
+        dietaryRestrictions: userPreferences.dietaryRestrictions || []
+      };
+
       // Call Supabase Edge Function to get agent response
       const response = await fetch('/api/edge/mood-agent', {
         method: 'POST',
@@ -215,10 +230,7 @@ export const useVoiceChat = () => {
           message: prompt,
           currentMood: currentMood?.mood,
           moodEmoji: currentMood ? moodEmojis[currentMood.mood] : null,
-          userContext: {
-            mood: currentMood?.mood || 'unknown',
-            energy: currentMood?.energy || 'medium',
-          }
+          userContext: userContext
         })
       });
 
@@ -227,17 +239,25 @@ export const useVoiceChat = () => {
       }
 
       const data = await response.json();
-      const botResponse = {
-        id: Date.now().toString(),
-        text: data.response,
-        isUser: false,
-        timestamp: new Date()
-      };
+      
+      // Generate alternative responses
+      const mainResponse = data.response;
+      const alternativeResponses = [
+        mainResponse.replace(/I recommend/i, "Based on your profile, I suggest"),
+        mainResponse.replace(/I recommend/i, "You might consider"),
+        mainResponse.replace(/try/i, "consider trying")
+      ].filter(r => r !== mainResponse).slice(0, 2);
       
       setMessages(prev => {
         return prev.map(message => {
           if (message.id === messageId) {
-            return botResponse;
+            return {
+              id: Date.now().toString(),
+              text: data.response,
+              isUser: false,
+              timestamp: new Date(),
+              alternativeResponses: alternativeResponses
+            };
           }
           return message;
         });
@@ -245,8 +265,12 @@ export const useVoiceChat = () => {
       
       // Generate and play audio response if needed
       if (audioRef.current) {
-        const audioUrl = await generateSpeech(data.response);
-        playAudio(audioUrl);
+        try {
+          const audioUrl = await generateSpeech(data.response);
+          playAudio(audioUrl);
+        } catch (error) {
+          console.error('Error generating speech:', error);
+        }
       }
     } catch (error) {
       console.error('Error processing message:', error);

@@ -72,6 +72,18 @@
     {
       "type": "nutrition_general",
       "response": "A good approach to nutrition is focusing on adding rather than restricting. Try adding one extra serving of vegetables to your day, or ensuring each meal has a source of protein. Small, sustainable changes often lead to the biggest long-term benefits. What meal would be easiest for you to modify first?"
+    },
+    {
+      "type": "mental_wellness",
+      "response": "For mental wellness, the 3-3-3 rule can be helpful when feeling overwhelmed: name 3 things you see, 3 sounds you hear, and move 3 parts of your body. This simple grounding technique can bring you back to the present moment. Would you like to try some other quick mental wellness exercises?"
+    },
+    {
+      "type": "hydration",
+      "response": "Hydration is often overlooked but crucial for energy levels and overall wellness. Given your activity level of ${activityLevel}, aim for at least 8-10 glasses of water daily. Try adding slices of cucumber, lemon, or berries to make water more appealing if you struggle to drink enough."
+    },
+    {
+      "type": "morning_routine",
+      "response": "A nourishing morning routine can set the tone for your entire day. Consider starting with a moment of gratitude, hydration with lemon water, and a few minutes of gentle movement. Based on your sleep habits of ${sleepHours} hours, what time would be realistic for you to incorporate these practices?"
     }
   ]
 }

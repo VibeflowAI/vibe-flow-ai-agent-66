@@ -48,23 +48,72 @@ serve(async (req) => {
       console.log('Google ADK API key not configured, using fallback responses');
       
       // Fallback to local responses if API key not available
-      // Fetch predefined responses from Gemini JSON file
       try {
-        // In production, we'd call the Gemini API here
-        // For now, generate a response based on user context
-        const { mood, energy, healthGoals, sleepHours, activityLevel, conditions, dietaryRestrictions } = userContext;
+        // Fetch predefined responses from Gemini JSON
+        const resp = await fetch(new URL('../../gemini.json', import.meta.url).href);
+        const { responses } = await resp.json();
         
-        let response = `Based on your mood (${mood || 'neutral'}) and energy level (${energy || 'medium'}), `;
-        
-        if (message.toLowerCase().includes('sleep') || conditions?.includes('insomnia')) {
-          response += `I understand sleep is important to you. With your typical ${sleepHours || '7'} hours of sleep, I'd recommend creating a consistent bedtime routine and avoiding screens an hour before bed.`;
-        } else if (message.toLowerCase().includes('food') || message.toLowerCase().includes('eat') || dietaryRestrictions?.includes('vegetarian')) {
-          response += `considering your dietary preferences${dietaryRestrictions?.length ? ' (' + dietaryRestrictions.join(', ') + ')' : ''}, I'd suggest focusing on nutrient-dense foods that provide sustained energy throughout the day.`;
-        } else if (message.toLowerCase().includes('exercise') || message.toLowerCase().includes('workout')) {
-          response += `with your ${activityLevel || 'moderate'} activity level, mixing cardio and strength training could be beneficial. Start with 20-30 minute sessions 3-4 times a week.`;
-        } else {
-          response += `I'd recommend focusing on your health goals${healthGoals?.length ? ' (' + healthGoals.join(', ') + ')' : ''}. Would you like specific advice on nutrition, exercise, mental well-being, or sleep?`;
+        if (!responses || responses.length === 0) {
+          throw new Error('No fallback responses available');
         }
+        
+        // Extract user context for personalization
+        const {
+          mood = currentMood || 'neutral',
+          energy = 'medium',
+          healthGoals = [],
+          sleepHours = '7',
+          activityLevel = 'moderate',
+          conditions = [],
+          dietaryRestrictions = []
+        } = userContext;
+        
+        // Find appropriate response based on context and message
+        let responseType = 'default';
+        const messageLower = message.toLowerCase();
+        
+        if (messageLower.includes('tired') || messageLower.includes('exhausted')) {
+          responseType = 'tired';
+        } else if (messageLower.includes('stress') || messageLower.includes('anxiety')) {
+          responseType = 'stressed';
+        } else if (messageLower.includes('sad') || messageLower.includes('unhappy')) {
+          responseType = 'sad';
+        } else if (messageLower.includes('happy') || messageLower.includes('good')) {
+          responseType = 'happy';
+        } else if (messageLower.includes('calm') || messageLower.includes('relaxed')) {
+          responseType = 'calm';
+        } else if (messageLower.includes('sleep')) {
+          responseType = 'sleep';
+        } else if (energy === 'low') {
+          responseType = 'low_energy';
+        } else if (energy === 'high') {
+          responseType = 'high_energy';
+        }
+        
+        if (dietaryRestrictions?.includes('vegetarian') && 
+            (messageLower.includes('food') || messageLower.includes('eat') || messageLower.includes('meal'))) {
+          responseType = 'vegetarian';
+        }
+        
+        if (conditions?.includes('diabetes') || conditions?.includes('blood sugar')) {
+          responseType = 'conditions_diabetes';
+        }
+        
+        if (conditions?.includes('insomnia') && messageLower.includes('sleep')) {
+          responseType = 'conditions_insomnia';
+        }
+        
+        // Find the matching response or use default
+        let response = responses.find(r => r.type === responseType)?.response;
+        if (!response) {
+          response = responses.find(r => r.type === 'default')?.response;
+        }
+        
+        // Personalize the response by replacing placeholders
+        response = response
+          .replace(/\${sleepHours}/g, sleepHours || '7')
+          .replace(/\${activityLevel}/g, activityLevel || 'moderate')
+          .replace(/\${healthGoals}/g, healthGoals?.join(', ') || 'improve wellness');
         
         return new Response(
           JSON.stringify({ response }),
@@ -92,7 +141,7 @@ serve(async (req) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${googleADKApiKey}`
+        'x-goog-api-key': googleADKApiKey
       },
       body: JSON.stringify({
         contents: [{
@@ -105,9 +154,9 @@ serve(async (req) => {
               Energy level: ${energy}
               Sleep hours: ${sleepHours}
               Activity level: ${activityLevel}
-              Health goals: ${healthGoals.join(', ')}
-              Health conditions: ${conditions.join(', ')}
-              Dietary restrictions: ${dietaryRestrictions.join(', ')}
+              Health goals: ${healthGoals.join(', ') || 'general wellness'}
+              Health conditions: ${conditions.join(', ') || 'none reported'}
+              Dietary restrictions: ${dietaryRestrictions.join(', ') || 'none reported'}
               
               Based on this comprehensive user profile, provide a personalized response with specific wellness recommendations.
               Make it empathetic, actionable, and tailored to their unique situation.
@@ -123,25 +172,7 @@ serve(async (req) => {
           topK: 40,
           topP: 0.95,
           maxOutputTokens: 1024,
-        },
-        safetySettings: [
-          {
-            category: "HARM_CATEGORY_HARASSMENT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          },
-          {
-            category: "HARM_CATEGORY_HATE_SPEECH",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          },
-          {
-            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          },
-          {
-            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          }
-        ]
+        }
       })
     });
 
@@ -166,7 +197,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error:', error);
     return new Response(
-      JSON.stringify({ error: 'Failed to process request' }),
+      JSON.stringify({ error: 'Failed to process request', details: error.message }),
       { 
         status: 500,
         headers: { 
