@@ -16,7 +16,8 @@ interface RequestBody {
   currentMood?: string;
   moodEmoji?: string;
   userContext?: UserContext;
-  aiProvider?: 'gemini' | 'openai';  // Added option to choose AI provider
+  aiProvider?: 'gemini' | 'openai';
+  healthSurveyData?: any;  // Added health survey data
 }
 
 serve(async (req) => {
@@ -33,7 +34,14 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { message, currentMood, moodEmoji, userContext = {}, aiProvider = 'gemini' } = await req.json() as RequestBody;
+    const { 
+      message, 
+      currentMood, 
+      moodEmoji, 
+      userContext = {}, 
+      aiProvider = 'gemini',
+      healthSurveyData = {}
+    } = await req.json() as RequestBody;
 
     // Validate input
     if (!message) {
@@ -54,6 +62,15 @@ serve(async (req) => {
       dietaryRestrictions = []
     } = userContext;
 
+    // Process health survey data
+    const healthSurveyInfo = healthSurveyData ? `
+      Health goals: ${healthSurveyData.healthGoals?.join(', ') || 'not specified'}
+      Sleep hours: ${healthSurveyData.sleepHours || 'not specified'}
+      Activity level: ${healthSurveyData.activityLevel || 'not specified'}
+      Health conditions: ${healthSurveyData.conditions?.join(', ') || 'none'}
+      Dietary restrictions: ${healthSurveyData.dietaryRestrictions?.join(', ') || 'none'}
+    ` : '';
+
     // Create user profile text
     const userProfile = `
       User's message: ${message}
@@ -65,7 +82,10 @@ serve(async (req) => {
       Health goals: ${healthGoals.join(', ') || 'general wellness'}
       Health conditions: ${conditions.join(', ') || 'none reported'}
       Dietary restrictions: ${dietaryRestrictions.join(', ') || 'none reported'}
+      ${healthSurveyInfo}
     `;
+
+    console.log("Processing request with profile:", userProfile);
 
     // Choose AI provider based on request
     if (aiProvider === 'openai') {

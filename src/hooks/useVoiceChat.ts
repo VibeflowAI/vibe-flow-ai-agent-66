@@ -1,5 +1,4 @@
-
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useMood } from '@/contexts/MoodContext';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,10 +34,36 @@ export const useVoiceChat = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [aiProvider, setAiProvider] = useState<'gemini' | 'openai'>('gemini');
+  const [healthSurveyData, setHealthSurveyData] = useState<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { currentMood, moodEmojis } = useMood();
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Fetch health survey data from Supabase
+  useEffect(() => {
+    const fetchHealthSurveyData = async () => {
+      if (!user) return;
+
+      try {
+        // This is a placeholder - in a real app, you would fetch this from a table
+        // where you store health survey responses
+        const healthData = {
+          healthGoals: user.healthProfile?.healthGoals || [],
+          sleepHours: user.healthProfile?.sleepHours || '7',
+          activityLevel: user.healthProfile?.activityLevel || 'moderate',
+          conditions: user.healthProfile?.conditions || [],
+          dietaryRestrictions: user.preferences?.dietaryRestrictions || []
+        };
+        
+        setHealthSurveyData(healthData);
+      } catch (error) {
+        console.error('Error fetching health survey data:', error);
+      }
+    };
+
+    fetchHealthSurveyData();
+  }, [user]);
 
   const stopAudio = () => {
     if (audioRef.current) {
@@ -142,7 +167,7 @@ export const useVoiceChat = () => {
         dietaryRestrictions: userPreferences.dietaryRestrictions || []
       };
       
-      console.log('Sending message to API with context:', { text, userContext, aiProvider });
+      console.log('Sending message to API with context:', { text, userContext, aiProvider, healthSurveyData });
       
       // Call Edge Function with user context and AI provider choice
       const response = await fetch('https://unparnunixbhxizmfvmc.supabase.co/functions/v1/mood-agent', {
@@ -156,7 +181,8 @@ export const useVoiceChat = () => {
           currentMood: currentMood?.mood,
           moodEmoji: currentMood ? moodEmojis[currentMood.mood] : null,
           userContext: userContext,
-          aiProvider: aiProvider
+          aiProvider: aiProvider,
+          healthSurveyData: healthSurveyData
         })
       });
 
@@ -332,6 +358,7 @@ export const useVoiceChat = () => {
     selectAlternativeResponse,
     regenerateResponse,
     aiProvider,
-    setAiProvider
+    setAiProvider,
+    healthSurveyData
   };
 };
