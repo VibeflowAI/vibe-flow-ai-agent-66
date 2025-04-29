@@ -9,7 +9,111 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      chat_history: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          response: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          response: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          response?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      moods: {
+        Row: {
+          energy: string
+          id: string
+          mood: string
+          note: string | null
+          timestamp: string
+          user_id: string
+        }
+        Insert: {
+          energy: string
+          id?: string
+          mood: string
+          note?: string | null
+          timestamp?: string
+          user_id: string
+        }
+        Update: {
+          energy?: string
+          id?: string
+          mood?: string
+          note?: string | null
+          timestamp?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      recommendations: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          energy_levels: string[]
+          id: string
+          image_url: string | null
+          mood_types: string[]
+          title: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description: string
+          energy_levels: string[]
+          id?: string
+          image_url?: string | null
+          mood_types: string[]
+          title: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          energy_levels?: string[]
+          id?: string
+          image_url?: string | null
+          mood_types?: string[]
+          title?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

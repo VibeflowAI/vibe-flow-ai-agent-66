@@ -90,7 +90,7 @@ serve(async (req) => {
 
 // Handle request using Google Gemini API
 async function handleGeminiRequest(message: string, userProfile: string) {
-  const googleADKApiKey = Deno.env.get('GOOGLE_ADK_API_KEY');
+  const googleADKApiKey = Deno.env.get('GEMINI_API_KEY');
   
   if (!googleADKApiKey) {
     console.log('Google ADK API key not configured');

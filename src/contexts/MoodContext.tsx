@@ -1,7 +1,8 @@
 
-import React, { createContext, useState, useContext, useCallback, ReactNode } from 'react';
+import React, { createContext, useState, useContext, useCallback, ReactNode, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { useAuth, User } from './AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 // Types
 export type MoodType = 'happy' | 'calm' | 'tired' | 'stressed' | 'sad';
@@ -40,7 +41,7 @@ type MoodContextType = {
 // Create context
 export const MoodContext = createContext<MoodContextType | undefined>(undefined);
 
-// Mock recommendations data
+// Mock recommendations data (will be replaced by Supabase data in production)
 const MOCK_RECOMMENDATIONS: Recommendation[] = [
   {
     id: '1',
@@ -129,19 +130,56 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
     high: 'Full of energy and ready to go'
   };
 
-  // Load mood history from localStorage when user changes
-  React.useEffect(() => {
-    if (user) {
-      const savedHistory = localStorage.getItem(`vibeflow_mood_${user.id}`);
-      if (savedHistory) {
-        const parsedHistory = JSON.parse(savedHistory);
-        setMoodHistory(parsedHistory);
-        setCurrentMood(parsedHistory[0] || null);
+  // Fetch mood history from Supabase when user changes
+  useEffect(() => {
+    const fetchMoodHistory = async () => {
+      if (!user) {
+        setMoodHistory([]);
+        setCurrentMood(null);
+        return;
       }
-    } else {
-      setMoodHistory([]);
-      setCurrentMood(null);
-    }
+
+      try {
+        setIsLoading(true);
+        
+        // Fetch mood data from Supabase
+        const { data, error } = await supabase
+          .from('moods')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('timestamp', { ascending: false });
+          
+        if (error) {
+          console.error('Error fetching mood history:', error);
+          toast({
+            variant: 'destructive',
+            title: 'Failed to load mood history',
+            description: error.message,
+          });
+          return;
+        }
+        
+        // Format the data
+        const formattedData = data.map(entry => ({
+          id: entry.id,
+          timestamp: new Date(entry.timestamp).getTime(),
+          mood: entry.mood as MoodType,
+          energy: entry.energy as EnergyLevel,
+          note: entry.note || undefined,
+        }));
+        
+        setMoodHistory(formattedData);
+        if (formattedData.length > 0) {
+          setCurrentMood(formattedData[0]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch mood history:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMoodHistory();
   }, [user]);
 
   // Log a new mood entry
@@ -153,20 +191,32 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
     try {
       // Create new mood entry
       const newMoodEntry: MoodEntry = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         timestamp: Date.now(),
         mood,
         energy,
         note
       };
       
+      // Save to Supabase
+      const { error } = await supabase
+        .from('moods')
+        .insert({
+          user_id: user.id,
+          mood,
+          energy,
+          note,
+          timestamp: new Date().toISOString(),
+        });
+        
+      if (error) {
+        throw error;
+      }
+      
       // Update state
       const updatedHistory = [newMoodEntry, ...moodHistory];
       setCurrentMood(newMoodEntry);
       setMoodHistory(updatedHistory);
-      
-      // Save to localStorage
-      localStorage.setItem(`vibeflow_mood_${user.id}`, JSON.stringify(updatedHistory));
       
       toast({
         title: 'Mood logged',
@@ -190,32 +240,59 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
   }, [moodHistory, user]);
 
   // Get recommendations based on current mood and energy level
-  const getRecommendationsForMood = (moodEntry: MoodEntry) => {
+  const getRecommendationsForMood = useCallback(async (moodEntry: MoodEntry) => {
     setIsLoading(true);
     
-    // Simulate API delay
-    setTimeout(() => {
-      const filteredRecommendations = MOCK_RECOMMENDATIONS.filter(rec => 
-        rec.moodTypes.includes(moodEntry.mood) && 
-        rec.energyLevels.includes(moodEntry.energy)
-      );
-      
-      // If no recommendations match exactly, return some defaults
-      const recommendationsToShow = filteredRecommendations.length > 0 
-        ? filteredRecommendations 
-        : MOCK_RECOMMENDATIONS.slice(0, 3);
+    try {
+      // Fetch recommendations from Supabase
+      const { data, error } = await supabase
+        .from('recommendations')
+        .select('*');
         
-      setRecommendations(recommendationsToShow);
+      if (error) {
+        throw error;
+      }
+      
+      if (data && data.length > 0) {
+        // Filter recommendations based on mood and energy
+        const filteredRecommendations = data.filter((rec) => 
+          rec.mood_types.includes(moodEntry.mood) && 
+          rec.energy_levels.includes(moodEntry.energy)
+        ).map(rec => ({
+          id: rec.id,
+          title: rec.title,
+          description: rec.description,
+          category: rec.category as 'food' | 'activity' | 'mindfulness',
+          imageUrl: rec.image_url || undefined,
+          moodTypes: rec.mood_types as MoodType[],
+          energyLevels: rec.energy_levels as EnergyLevel[],
+        }));
+        
+        if (filteredRecommendations.length > 0) {
+          setRecommendations(filteredRecommendations);
+        } else {
+          // Fallback to mock data if no matching recommendations
+          setRecommendations(MOCK_RECOMMENDATIONS.slice(0, 3));
+        }
+      } else {
+        // Fallback to mock data if API returns no data
+        setRecommendations(MOCK_RECOMMENDATIONS);
+      }
+    } catch (error) {
+      console.error('Failed to fetch recommendations:', error);
+      // Fallback to mock recommendations in case of error
+      setRecommendations(MOCK_RECOMMENDATIONS.slice(0, 3));
+    } finally {
       setIsLoading(false);
-    }, 1000);
-  };
+    }
+  }, []);
 
   // Get recommendations (to be called from outside)
   const getRecommendations = useCallback(() => {
     if (currentMood) {
       getRecommendationsForMood(currentMood);
     }
-  }, [currentMood]);
+  }, [currentMood, getRecommendationsForMood]);
 
   const value = {
     currentMood,

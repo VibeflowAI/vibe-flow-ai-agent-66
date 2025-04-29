@@ -2,6 +2,7 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { HealthSurveyData } from '@/components/auth/HealthSurvey';
+import { supabase } from '@/integrations/supabase/client';
 
 // Types
 export type User = {
@@ -41,7 +42,7 @@ type AuthContextType = {
   updateHealthProfile: (data: HealthSurveyData) => Promise<void>;
 };
 
-// Mock data for demo purposes
+// Mock data for demo purposes (will be replaced by Supabase data)
 const MOCK_USERS = [
   {
     id: '1',
@@ -77,35 +78,62 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for saved user in localStorage (simulating persistent auth)
-    const savedUser = localStorage.getItem('vibeflow_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setLoading(false);
+    // Set up the Supabase auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (session && session.user) {
+          // Convert Supabase user to our User type
+          const convertedUser: User = {
+            id: session.user.id,
+            email: session.user.email || '',
+            displayName: session.user.user_metadata.displayName || session.user.email?.split('@')[0] || 'User',
+            photoURL: session.user.user_metadata.photoURL,
+            // We'll fetch preferences and health profile separately if needed
+          };
+          setUser(convertedUser);
+        } else {
+          setUser(null);
+        }
+        setLoading(false);
+      }
+    );
+
+    // Check for existing session
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session && session.user) {
+        // Convert Supabase user to our User type
+        const convertedUser: User = {
+          id: session.user.id,
+          email: session.user.email || '',
+          displayName: session.user.user_metadata.displayName || session.user.email?.split('@')[0] || 'User',
+          photoURL: session.user.user_metadata.photoURL,
+        };
+        setUser(convertedUser);
+      }
+      setLoading(false);
+    };
+    
+    checkSession();
+    
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Simulate API request delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       
-      const foundUser = MOCK_USERS.find(
-        (u) => u.email === email && u.password === password
-      );
+      if (error) throw error;
       
-      if (!foundUser) {
-        throw new Error('Invalid email or password');
-      }
-      
-      // Use a type to extract only the User properties
-      const { password: _, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('vibeflow_user', JSON.stringify(userWithoutPassword));
       toast({
         title: 'Welcome back!',
-        description: `Glad to see you again, ${userWithoutPassword.displayName}!`,
+        description: `Glad to see you again, ${data.user?.user_metadata.displayName || data.user?.email?.split('@')[0] || 'User'}!`,
       });
     } catch (error) {
       toast({
@@ -122,14 +150,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signUp = async (email: string, password: string, displayName: string, healthData?: HealthSurveyData) => {
     setLoading(true);
     try {
-      // Simulate API request delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      // Check if user already exists
-      if (MOCK_USERS.some((u) => u.email === email)) {
-        throw new Error('Email already in use');
-      }
-
       // Process health data if available
       const healthProfile: HealthProfile = healthData ? {
         height: healthData.height || '',
@@ -151,26 +171,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         lastUpdated: Date.now()
       };
       
-      // Create new user
-      const newUser = {
-        id: Date.now().toString(),
+      // Sign up with Supabase, including metadata
+      const { data, error } = await supabase.auth.signUp({
         email,
-        displayName,
-        photoURL: `https://api.dicebear.com/6.x/avataaars/svg?seed=${displayName}`,
-        preferences: {
-          dietaryRestrictions: [],
-          activityLevel: 'moderate' as const,
-          sleepGoals: '8 hours',
-          notificationsEnabled: true,
-        },
-        healthProfile,
-      };
+        password,
+        options: {
+          data: {
+            displayName,
+            healthProfile,
+            photoURL: `https://api.dicebear.com/6.x/avataaars/svg?seed=${displayName}`,
+          }
+        }
+      });
       
-      // In a real app, we would save to database here
-      MOCK_USERS.push({ ...newUser, password });
+      if (error) throw error;
       
-      setUser(newUser);
-      localStorage.setItem('vibeflow_user', JSON.stringify(newUser));
       toast({
         title: 'Account created!',
         description: `Welcome to VibeFlow, ${displayName}!`,
@@ -187,9 +202,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const signOut = () => {
-    setUser(null);
-    localStorage.removeItem('vibeflow_user');
+  const signOut = async () => {
+    await supabase.auth.signOut();
     toast({
       title: 'Signed out',
       description: 'You have been signed out successfully.',
@@ -198,14 +212,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const updateProfile = async (data: Partial<User>) => {
     try {
-      // Simulate API request delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      
       if (!user) throw new Error('No authenticated user');
       
-      const updatedUser = { ...user, ...data };
-      setUser(updatedUser);
-      localStorage.setItem('vibeflow_user', JSON.stringify(updatedUser));
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          ...data,
+        }
+      });
+      
+      if (error) throw error;
+      
+      // Update local state
+      setUser(prev => prev ? { ...prev, ...data } : null);
       
       toast({
         title: 'Profile updated',
@@ -237,13 +255,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         lastUpdated: Date.now(),
       };
       
-      const updatedUser = { 
-        ...user, 
-        healthProfile 
-      };
+      // Update user metadata in Supabase
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          healthProfile
+        }
+      });
       
-      setUser(updatedUser);
-      localStorage.setItem('vibeflow_user', JSON.stringify(updatedUser));
+      if (error) throw error;
+      
+      // Update local state
+      setUser(prev => prev ? { 
+        ...prev, 
+        healthProfile 
+      } : null);
       
       toast({
         title: 'Health profile updated',

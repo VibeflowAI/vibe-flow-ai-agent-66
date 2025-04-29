@@ -3,6 +3,7 @@ import { useState, useRef } from 'react';
 import { useMood } from '@/contexts/MoodContext';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
   id: string;
@@ -93,6 +94,26 @@ export const useVoiceChat = () => {
     }
   };
 
+  const saveToHistory = async (message: string, response: string) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('chat_history')
+        .insert({
+          user_id: user.id,
+          message,
+          response
+        });
+        
+      if (error) {
+        console.error('Error saving chat history:', error);
+      }
+    } catch (error) {
+      console.error('Failed to save chat history:', error);
+    }
+  };
+
   const handleSendMessage = async (text: string) => {
     if (!text.trim()) return;
 
@@ -123,11 +144,12 @@ export const useVoiceChat = () => {
       
       console.log('Sending message to API with context:', { text, userContext, aiProvider });
       
-      // Call API with user context and AI provider choice
-      const response = await fetch('/api/edge/mood-agent', {
+      // Call Edge Function with user context and AI provider choice
+      const response = await fetch('https://unparnunixbhxizmfvmc.supabase.co/functions/v1/mood-agent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.auth.getSession() ? (await supabase.auth.getSession()).data.session?.access_token : ''}`
         },
         body: JSON.stringify({
           message: text,
@@ -161,6 +183,11 @@ export const useVoiceChat = () => {
       };
       
       setMessages(prev => [...prev, botMessage]);
+      
+      // Save chat history to Supabase
+      if (user) {
+        saveToHistory(text, mainResponse);
+      }
       
       // Generate and play audio response if needed
       if (audioRef.current) {
@@ -223,10 +250,11 @@ export const useVoiceChat = () => {
       };
 
       // Call Supabase Edge Function to get agent response
-      const response = await fetch('/api/edge/mood-agent', {
+      const response = await fetch('https://unparnunixbhxizmfvmc.supabase.co/functions/v1/mood-agent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.auth.getSession() ? (await supabase.auth.getSession()).data.session?.access_token : ''}`
         },
         body: JSON.stringify({
           message: prompt,
@@ -265,6 +293,11 @@ export const useVoiceChat = () => {
           return message;
         });
       });
+      
+      // Save chat history to Supabase
+      if (user) {
+        saveToHistory(prompt, mainResponse);
+      }
       
       // Generate and play audio response if needed
       if (audioRef.current) {
