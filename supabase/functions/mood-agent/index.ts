@@ -91,7 +91,9 @@ serve(async (req) => {
           Your response should be encouraging and provide actionable suggestions.
         `;
         
+        console.log("Sending request to Gemini API");
         const result = await model.generateContent(prompt);
+        console.log("Received response from Gemini API");
         const text = result.response.text();
         aiResponse = text;
       } catch (error) {

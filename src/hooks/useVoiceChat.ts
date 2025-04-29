@@ -155,7 +155,6 @@ export const useVoiceChat = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Don't send auth token - it was causing issues
         },
         body: JSON.stringify({
           message: text,
@@ -272,7 +271,6 @@ export const useVoiceChat = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Don't send auth token - it was causing issues
         },
         body: JSON.stringify({
           message: prompt,
