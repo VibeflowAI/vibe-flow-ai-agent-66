@@ -169,12 +169,17 @@ export const useVoiceChat = () => {
       
       console.log('Sending message to API with context:', { text, userContext, aiProvider, healthSurveyData });
       
+      // Get the session - but handle case where it's null
+      const session = await supabase.auth.getSession();
+      const accessToken = session?.data?.session?.access_token || '';
+      
       // Call Edge Function with user context and AI provider choice
       const response = await fetch('https://unparnunixbhxizmfvmc.supabase.co/functions/v1/mood-agent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.auth.getSession() ? (await supabase.auth.getSession()).data.session?.access_token : ''}`
+          // Only include Authorization header if we have a token
+          ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {})
         },
         body: JSON.stringify({
           message: text,
@@ -187,7 +192,9 @@ export const useVoiceChat = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get response from agent');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error response:', response.status, errorData);
+        throw new Error(`Failed to get response from agent: ${response.status}`);
       }
 
       const data = await response.json();
@@ -275,19 +282,25 @@ export const useVoiceChat = () => {
         dietaryRestrictions: userPreferences.dietaryRestrictions || []
       };
 
+      // Get the session - but handle case where it's null
+      const session = await supabase.auth.getSession();
+      const accessToken = session?.data?.session?.access_token || '';
+
       // Call Supabase Edge Function to get agent response
       const response = await fetch('https://unparnunixbhxizmfvmc.supabase.co/functions/v1/mood-agent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.auth.getSession() ? (await supabase.auth.getSession()).data.session?.access_token : ''}`
+          // Only include Authorization header if we have a token
+          ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {})
         },
         body: JSON.stringify({
           message: prompt,
           currentMood: currentMood?.mood,
           moodEmoji: currentMood ? moodEmojis[currentMood.mood] : null,
           userContext: userContext,
-          aiProvider: aiProvider
+          aiProvider: aiProvider,
+          healthSurveyData: healthSurveyData
         })
       });
 

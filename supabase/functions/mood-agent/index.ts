@@ -48,9 +48,17 @@ serve(async (req) => {
     if (!message) {
       return new Response(
         JSON.stringify({ error: 'Message is required' }), 
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        { 
+          status: 400, 
+          headers: { 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          } 
+        }
       );
     }
+
+    console.log("Processing request with data:", { message, currentMood, aiProvider, healthSurveyData });
 
     // Extract user context for personalization
     const {
