@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { useMood } from '@/contexts/MoodContext';
 import { useToast } from '@/hooks/use-toast';
@@ -28,6 +27,7 @@ interface UserPreferences {
 // ElevenLabs API key - In production, this should be in an environment variable
 const ELEVENLABS_API_KEY = 'sk_ac5a8f880ba45f9f6e18b1621e1ae55fb9c8841babe5613e';
 const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; // Sarah's voice ID
+const GEMINI_API_KEY = 'AIzaSyCgRoUv7_0AhFDsNW03AxFFu94lzVxCKns';
 
 export const useVoiceChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -119,6 +119,77 @@ export const useVoiceChat = () => {
     }
   };
 
+  // Direct API calls to AI providers
+  const processWithGemini = async (prompt: string): Promise<string> => {
+    try {
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': GEMINI_API_KEY,
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
+          }]
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Gemini API error: ${response.status}${errorData.error ? ' - ' + errorData.error.message : ''}`);
+      }
+
+      const data = await response.json();
+      return data.candidates[0].content.parts[0].text;
+    } catch (error) {
+      console.error('Gemini API Error:', error);
+      throw new Error('Failed to get response from Gemini: ' + error.message);
+    }
+  };
+
+  const processWithOpenAI = async (prompt: string): Promise<string> => {
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY') || ''}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: `You are VibeFlow AI, a friendly wellness assistant. You are helpful, empathetic, 
+                        and focused on providing practical wellness advice. Keep responses concise 
+                        (under 150 words) and focused on wellness, mental health, or lifestyle improvements.`
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 300,
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`OpenAI API error: ${response.status}${errorData.error ? ' - ' + errorData.error.message : ''}`);
+      }
+
+      const data = await response.json();
+      return data.choices[0].message.content;
+    } catch (error) {
+      console.error('OpenAI API Error:', error);
+      throw new Error('Failed to get response from OpenAI: ' + error.message);
+    }
+  };
+
   const handleSendMessage = async (text: string) => {
     if (!text.trim()) return;
 
@@ -148,36 +219,50 @@ export const useVoiceChat = () => {
         dietaryRestrictions: userPreferences.dietaryRestrictions || []
       };
       
+      // Create user profile text
+      const userProfile = `
+        User's message: ${text}
+        Current mood: ${userContext.mood}
+        Mood emoji: ${currentMood ? moodEmojis[currentMood.mood] : '😐'}
+        Energy level: ${userContext.energy}
+        Sleep hours: ${userContext.sleepHours}
+        Activity level: ${userContext.activityLevel}
+        Health goals: ${userContext.healthGoals.join(', ') || 'general wellness'}
+        Health conditions: ${userContext.conditions.join(', ') || 'none reported'}
+        Dietary restrictions: ${userContext.dietaryRestrictions.join(', ') || 'none reported'}
+      `;
+      
+      // Construct the prompt for AI
+      const aiPrompt = `
+        You are VibeFlow AI, a friendly wellness assistant. 
+        You are helpful, empathetic, and focused on providing practical wellness advice.
+        
+        User context:
+        ${userProfile}
+        
+        Please provide a thoughtful, personalized response addressing the user's message.
+        Keep your response concise (under 150 words) and focused on wellness, mental health,
+        or lifestyle improvements based on their current mood and context.
+        
+        Your response should be encouraging and provide actionable suggestions.
+      `;
+      
       console.log('Sending message to AI:', { text, userContext, aiProvider });
       
-      // Call Edge Function with user context and AI provider choice
-      const response = await fetch('https://unparnunixbhxizmfvmc.supabase.co/functions/v1/mood-agent', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: text,
-          currentMood: currentMood?.mood,
-          moodEmoji: currentMood ? moodEmojis[currentMood.mood] : null,
-          userContext: userContext,
-          aiProvider: aiProvider
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`Failed to get response from agent: ${response.status}${errorData.details ? ' - ' + errorData.details : ''}`);
+      // Get response from selected AI provider
+      let aiResponse;
+      if (aiProvider === 'gemini') {
+        aiResponse = await processWithGemini(aiPrompt);
+      } else {
+        aiResponse = await processWithOpenAI(aiPrompt);
       }
-
-      const data = await response.json();
       
-      if (!data.response) {
+      if (!aiResponse) {
         throw new Error("Received empty response from the AI");
       }
       
       // Generate 2 alternative responses with slight variations
-      const mainResponse = data.response;
+      const mainResponse = aiResponse;
       const alternativeResponses = [
         mainResponse.replace(/I recommend/i, "Based on your profile, I suggest"),
         mainResponse.replace(/I recommend/i, "You might consider"),
@@ -202,7 +287,7 @@ export const useVoiceChat = () => {
       // Generate and play audio response if needed
       if (audioRef.current) {
         try {
-          const audioUrl = await generateSpeech(data.response);
+          const audioUrl = await generateSpeech(aiResponse);
           playAudio(audioUrl);
         } catch (error) {
           console.error('Error generating speech:', error);
@@ -266,34 +351,48 @@ export const useVoiceChat = () => {
         dietaryRestrictions: userPreferences.dietaryRestrictions || []
       };
 
-      // Call Supabase Edge Function to get agent response
-      const response = await fetch('https://unparnunixbhxizmfvmc.supabase.co/functions/v1/mood-agent', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: prompt,
-          currentMood: currentMood?.mood,
-          moodEmoji: currentMood ? moodEmojis[currentMood.mood] : null,
-          userContext: userContext,
-          aiProvider: aiProvider
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`Failed to get response from agent: ${response.status}${errorData.details ? ' - ' + errorData.details : ''}`);
-      }
-
-      const data = await response.json();
+      // Create user profile text
+      const userProfile = `
+        User's message: ${prompt}
+        Current mood: ${userContext.mood}
+        Mood emoji: ${currentMood ? moodEmojis[currentMood.mood] : '😐'}
+        Energy level: ${userContext.energy}
+        Sleep hours: ${userContext.sleepHours}
+        Activity level: ${userContext.activityLevel}
+        Health goals: ${userContext.healthGoals.join(', ') || 'general wellness'}
+        Health conditions: ${userContext.conditions.join(', ') || 'none reported'}
+        Dietary restrictions: ${userContext.dietaryRestrictions.join(', ') || 'none reported'}
+      `;
       
-      if (!data.response) {
+      // Construct the prompt for AI
+      const aiPrompt = `
+        You are VibeFlow AI, a friendly wellness assistant. 
+        You are helpful, empathetic, and focused on providing practical wellness advice.
+        
+        User context:
+        ${userProfile}
+        
+        Please provide a thoughtful, personalized response addressing the user's message.
+        Keep your response concise (under 150 words) and focused on wellness, mental health,
+        or lifestyle improvements based on their current mood and context.
+        
+        Your response should be encouraging and provide actionable suggestions.
+      `;
+      
+      // Get response from selected AI provider
+      let aiResponse;
+      if (aiProvider === 'gemini') {
+        aiResponse = await processWithGemini(aiPrompt);
+      } else {
+        aiResponse = await processWithOpenAI(aiPrompt);
+      }
+      
+      if (!aiResponse) {
         throw new Error("Received empty response from the AI");
       }
       
-      // Generate alternative responses
-      const mainResponse = data.response;
+      // Generate 2 alternative responses with slight variations
+      const mainResponse = aiResponse;
       const alternativeResponses = [
         mainResponse.replace(/I recommend/i, "Based on your profile, I suggest"),
         mainResponse.replace(/I recommend/i, "You might consider"),
@@ -305,7 +404,7 @@ export const useVoiceChat = () => {
           if (message.id === messageId) {
             return {
               id: Date.now().toString(),
-              text: data.response,
+              text: aiResponse,
               isUser: false,
               timestamp: new Date(),
               alternativeResponses: alternativeResponses
@@ -323,7 +422,7 @@ export const useVoiceChat = () => {
       // Generate and play audio response if needed
       if (audioRef.current) {
         try {
-          const audioUrl = await generateSpeech(data.response);
+          const audioUrl = await generateSpeech(aiResponse);
           playAudio(audioUrl);
         } catch (error) {
           console.error('Error generating speech:', error);
