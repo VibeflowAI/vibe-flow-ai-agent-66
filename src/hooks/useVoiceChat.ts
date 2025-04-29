@@ -123,7 +123,7 @@ export const useVoiceChat = () => {
   // Direct API calls to AI providers
   const processWithGemini = async (prompt: string): Promise<string> => {
     try {
-      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
+      const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -183,14 +183,14 @@ export const useVoiceChat = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(`OpenAI API error: ${response.status}${errorData.error ? ' - ' + errorData.error.message : ''}`);
+        throw new Error(`OpenRouter API error: ${response.status}${errorData.error ? ' - ' + errorData.error.message : ''}`);
       }
 
       const data = await response.json();
       return data.choices[0].message.content;
     } catch (error) {
-      console.error('OpenAI API Error:', error);
-      throw new Error('Failed to get response from OpenAI: ' + error.message);
+      console.error('OpenRouter API Error:', error);
+      throw new Error('Failed to get response from OpenRouter: ' + error.message);
     }
   };
 
