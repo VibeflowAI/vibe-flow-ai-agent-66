@@ -1,5 +1,8 @@
 
 project_id = "unparnunixbhxizmfvmc"
 
+[auth.email]
+enable_confirmations = false
+
 [functions.mood-agent]
 verify_jwt = false

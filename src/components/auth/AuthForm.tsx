@@ -4,7 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { HealthSurvey, HealthSurveyData } from './HealthSurvey';
 
 type AuthFormProps = {
   type: 'signin' | 'signup';
@@ -17,7 +16,6 @@ export const AuthForm = ({ type, onSuccess }: AuthFormProps) => {
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showHealthSurvey, setShowHealthSurvey] = useState(false);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -41,38 +39,17 @@ export const AuthForm = ({ type, onSuccess }: AuthFormProps) => {
     
     if (!validate()) return;
 
-    if (type === 'signin') {
-      try {
-        await signIn(email, password);
-        if (onSuccess) onSuccess();
-      } catch (error) {
-        console.error('Authentication error:', error);
-      }
-    } else if (type === 'signup') {
-      // For signup, show health survey instead of immediately creating account
-      setShowHealthSurvey(true);
-    }
-  };
-
-  const handleHealthSurveyComplete = async (healthData: HealthSurveyData) => {
     try {
-      await signUp(email, password, displayName, healthData);
+      if (type === 'signin') {
+        await signIn(email, password);
+      } else {
+        await signUp(email, password, displayName);
+      }
       if (onSuccess) onSuccess();
     } catch (error) {
-      console.error('Registration error:', error);
-      // Error is handled in auth context with toast
-      setShowHealthSurvey(false); // Go back to signup form on error
+      console.error('Authentication error:', error);
     }
   };
-
-  if (showHealthSurvey) {
-    return (
-      <HealthSurvey 
-        onComplete={handleHealthSurveyComplete} 
-        onBack={() => setShowHealthSurvey(false)} 
-      />
-    );
-  }
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -154,7 +131,7 @@ export const AuthForm = ({ type, onSuccess }: AuthFormProps) => {
             className="w-full bg-vibe-primary hover:bg-vibe-dark"
             disabled={loading}
           >
-            {loading ? 'Processing...' : type === 'signin' ? 'Sign In' : 'Continue'}
+            {loading ? 'Processing...' : type === 'signin' ? 'Sign In' : 'Sign Up'}
           </Button>
         </form>
       </CardContent>

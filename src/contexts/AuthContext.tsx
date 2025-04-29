@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { HealthSurveyData } from '@/components/auth/HealthSurvey';
@@ -150,25 +149,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signUp = async (email: string, password: string, displayName: string, healthData?: HealthSurveyData) => {
     setLoading(true);
     try {
-      // Process health data if available
-      const healthProfile: HealthProfile = healthData ? {
-        height: healthData.height || '',
-        weight: healthData.weight || '',
-        bloodType: healthData.bloodType || '',
-        conditions: healthData.conditions || [],
-        sleepHours: healthData.sleepHours || '',
-        activityLevel: healthData.activityLevel || 'moderate',
-        healthGoals: healthData.healthGoals || [],
-        lastUpdated: Date.now(),
-      } : {
-        height: '',
-        weight: '',
-        bloodType: '',
-        conditions: [],
-        sleepHours: '',
-        activityLevel: 'moderate',
-        healthGoals: [],
-        lastUpdated: Date.now()
+      // Create user metadata with user information
+      const metadata = {
+        displayName,
+        photoURL: `https://api.dicebear.com/6.x/avataaars/svg?seed=${displayName}`,
       };
       
       // Sign up with Supabase, including metadata
@@ -176,20 +160,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email,
         password,
         options: {
-          data: {
-            displayName,
-            healthProfile,
-            photoURL: `https://api.dicebear.com/6.x/avataaars/svg?seed=${displayName}`,
-          }
+          data: metadata,
+          emailRedirectTo: window.location.origin + '/dashboard'
         }
       });
       
       if (error) throw error;
       
-      toast({
-        title: 'Account created!',
-        description: `Welcome to VibeFlow, ${displayName}!`,
-      });
+      // If sign up is successful, automatically sign in the user
+      if (data.user) {
+        toast({
+          title: 'Account created!',
+          description: `Welcome to VibeFlow, ${displayName}!`,
+        });
+      }
     } catch (error) {
       toast({
         variant: 'destructive',
