@@ -5,9 +5,8 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { useMood } from '@/contexts/MoodContext';
-import { Bot, Send, Volume2, VolumeX, RotateCcw, Activity, HeartPulse } from 'lucide-react';
+import { Bot, Send, Volume2, VolumeX, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/hooks/use-toast';
 import { useVoiceChat } from '@/hooks/useVoiceChat';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -25,8 +24,7 @@ const Chat = () => {
     selectAlternativeResponse,
     regenerateResponse,
     aiProvider,
-    setAiProvider,
-    healthSurveyData
+    setAiProvider
   } = useVoiceChat();
   
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -42,25 +40,6 @@ const Chat = () => {
     e.preventDefault();
     handleSendMessage(inputText);
   };
-
-  // Create a summary of health data for display
-  const generateHealthBadges = () => {
-    if (!healthSurveyData) return [];
-    
-    const badges = [];
-    
-    if (healthSurveyData.healthGoals?.length) {
-      badges.push({ key: 'goals', label: healthSurveyData.healthGoals[0], icon: <Activity className="w-3 h-3 mr-1" /> });
-    }
-    
-    if (healthSurveyData.conditions?.length) {
-      badges.push({ key: 'conditions', label: healthSurveyData.conditions[0], icon: <HeartPulse className="w-3 h-3 mr-1" /> });
-    }
-    
-    return badges;
-  };
-
-  const healthBadges = generateHealthBadges();
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -80,11 +59,6 @@ const Chat = () => {
                 <Badge variant="outline" className="bg-vibe-primary/5 text-vibe-primary">
                   Energy: {currentMood.energy}
                 </Badge>
-                {healthBadges.map(badge => (
-                  <Badge key={badge.key} variant="outline" className="bg-vibe-primary/5 text-vibe-primary flex items-center">
-                    {badge.icon} {badge.label}
-                  </Badge>
-                ))}
               </div>
             )}
           </div>
@@ -130,9 +104,8 @@ const Chat = () => {
                   <p className="font-medium mb-2">Your responses are personalized based on:</p>
                   <ul className="space-y-1 list-disc pl-5">
                     <li>Your current mood and energy levels</li>
-                    <li>Health goals from your profile</li>
-                    <li>Dietary restrictions and preferences</li>
-                    <li>Your activity level and health conditions</li>
+                    <li>Personal preferences learned from our conversations</li>
+                    <li>AI-powered agentic intelligence using Python</li>
                   </ul>
                 </div>
                 <div className="mt-4 text-sm">
@@ -234,7 +207,7 @@ const Chat = () => {
             <Input
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Ask for health advice based on your mood and health profile..."
+              placeholder="Ask for wellness advice based on your current mood..."
               className="flex-1"
               disabled={isProcessing}
             />

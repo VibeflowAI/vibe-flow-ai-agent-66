@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+
+import { useState, useRef } from 'react';
 import { useMood } from '@/contexts/MoodContext';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,18 +13,6 @@ interface Message {
   alternativeResponses?: string[];
 }
 
-// Define types for user profile data
-interface HealthProfile {
-  healthGoals?: string[];
-  sleepHours?: string;
-  activityLevel?: string;
-  conditions?: string[];
-}
-
-interface UserPreferences {
-  dietaryRestrictions?: string[];
-}
-
 // ElevenLabs API key - In production, this should be in an environment variable
 const ELEVENLABS_API_KEY = 'sk_ac5a8f880ba45f9f6e18b1621e1ae55fb9c8841babe5613e';
 const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; // Sarah's voice ID
@@ -34,36 +23,10 @@ export const useVoiceChat = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [aiProvider, setAiProvider] = useState<'gemini' | 'openai'>('gemini');
-  const [healthSurveyData, setHealthSurveyData] = useState<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { currentMood, moodEmojis } = useMood();
   const { user } = useAuth();
   const { toast } = useToast();
-
-  // Fetch health survey data from Supabase
-  useEffect(() => {
-    const fetchHealthSurveyData = async () => {
-      if (!user) return;
-
-      try {
-        // This is a placeholder - in a real app, you would fetch this from a table
-        // where you store health survey responses
-        const healthData = {
-          healthGoals: user.healthProfile?.healthGoals || [],
-          sleepHours: user.healthProfile?.sleepHours || '7',
-          activityLevel: user.healthProfile?.activityLevel || 'moderate',
-          conditions: user.healthProfile?.conditions || [],
-          dietaryRestrictions: user.preferences?.dietaryRestrictions || []
-        };
-        
-        setHealthSurveyData(healthData);
-      } catch (error) {
-        console.error('Error fetching health survey data:', error);
-      }
-    };
-
-    fetchHealthSurveyData();
-  }, [user]);
 
   const stopAudio = () => {
     if (audioRef.current) {
@@ -152,22 +115,13 @@ export const useVoiceChat = () => {
     setIsProcessing(true);
     
     try {
-      // Safely access user health profile and preferences with default empty objects
-      const userHealthProfile = (user?.healthProfile as HealthProfile) || {};
-      const userPreferences = (user?.preferences as UserPreferences) || {};
-      
       // Prepare user context for AI with safe property access
       const userContext = {
         mood: currentMood?.mood || 'unknown',
-        energy: currentMood?.energy || 'medium',
-        healthGoals: userHealthProfile.healthGoals || [],
-        sleepHours: userHealthProfile.sleepHours || '7',
-        activityLevel: userHealthProfile.activityLevel || 'moderate',
-        conditions: userHealthProfile.conditions || [],
-        dietaryRestrictions: userPreferences.dietaryRestrictions || []
+        energy: currentMood?.energy || 'medium'
       };
       
-      console.log('Sending message to API with context:', { text, userContext, aiProvider, healthSurveyData });
+      console.log('Sending message to AI agent:', { text, userContext, aiProvider });
       
       // Get the session - but handle case where it's null
       const session = await supabase.auth.getSession();
@@ -186,8 +140,7 @@ export const useVoiceChat = () => {
           currentMood: currentMood?.mood,
           moodEmoji: currentMood ? moodEmojis[currentMood.mood] : null,
           userContext: userContext,
-          aiProvider: aiProvider,
-          healthSurveyData: healthSurveyData
+          aiProvider: aiProvider
         })
       });
 
@@ -202,7 +155,7 @@ export const useVoiceChat = () => {
       // Generate 2 alternative responses with slight variations
       const mainResponse = data.response;
       const alternativeResponses = [
-        mainResponse.replace(/I recommend/i, "Based on your profile, I suggest"),
+        mainResponse.replace(/I recommend/i, "Based on your mood, I suggest"),
         mainResponse.replace(/I recommend/i, "You might consider"),
         mainResponse.replace(/try/i, "consider trying")
       ].filter(r => r !== mainResponse).slice(0, 2);
@@ -267,19 +220,10 @@ export const useVoiceChat = () => {
     setIsProcessing(true);
 
     try {
-      // Safely access user health profile and preferences with default empty objects
-      const userHealthProfile = (user?.healthProfile as HealthProfile) || {};
-      const userPreferences = (user?.preferences as UserPreferences) || {};
-      
       // Prepare user context for AI with safe property access
       const userContext = {
         mood: currentMood?.mood || 'unknown',
-        energy: currentMood?.energy || 'medium',
-        healthGoals: userHealthProfile.healthGoals || [],
-        sleepHours: userHealthProfile.sleepHours || '7',
-        activityLevel: userHealthProfile.activityLevel || 'moderate',
-        conditions: userHealthProfile.conditions || [],
-        dietaryRestrictions: userPreferences.dietaryRestrictions || []
+        energy: currentMood?.energy || 'medium'
       };
 
       // Get the session - but handle case where it's null
@@ -299,8 +243,7 @@ export const useVoiceChat = () => {
           currentMood: currentMood?.mood,
           moodEmoji: currentMood ? moodEmojis[currentMood.mood] : null,
           userContext: userContext,
-          aiProvider: aiProvider,
-          healthSurveyData: healthSurveyData
+          aiProvider: aiProvider
         })
       });
 
@@ -313,7 +256,7 @@ export const useVoiceChat = () => {
       // Generate alternative responses
       const mainResponse = data.response;
       const alternativeResponses = [
-        mainResponse.replace(/I recommend/i, "Based on your profile, I suggest"),
+        mainResponse.replace(/I recommend/i, "Based on your mood, I suggest"),
         mainResponse.replace(/I recommend/i, "You might consider"),
         mainResponse.replace(/try/i, "consider trying")
       ].filter(r => r !== mainResponse).slice(0, 2);
@@ -372,6 +315,6 @@ export const useVoiceChat = () => {
     regenerateResponse,
     aiProvider,
     setAiProvider,
-    healthSurveyData
+    healthSurveyData: null // Set to null as we're not using health survey data
   };
 };
