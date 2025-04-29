@@ -3,18 +3,9 @@ import React, { createContext, useState, useContext, useCallback, ReactNode, use
 import { toast } from '@/hooks/use-toast';
 import { useAuth, User } from './AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { MoodType, EnergyLevel, MoodEntry } from '@/types/database';
 
-// Types
-export type MoodType = 'happy' | 'calm' | 'tired' | 'stressed' | 'sad';
-export type EnergyLevel = 'low' | 'medium' | 'high';
-
-export type MoodEntry = {
-  id: string;
-  timestamp: number;
-  mood: MoodType;
-  energy: EnergyLevel;
-  note?: string;
-};
+export type { MoodType, EnergyLevel, MoodEntry };
 
 export type Recommendation = {
   id: string;
@@ -108,23 +99,29 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   // Helper objects for UI
-  const moodEmojis = {
+  const moodEmojis: Record<MoodType, string> = {
     happy: '😊',
     calm: '😌',
     tired: '😴',
     stressed: '😓',
-    sad: '😞'
+    sad: '😞',
+    anxious: '😰',
+    energetic: '⚡',
+    neutral: '😐'
   };
 
-  const moodDescriptions = {
+  const moodDescriptions: Record<MoodType, string> = {
     happy: 'Feeling positive and optimistic',
     calm: 'Feeling peaceful and centered',
     tired: 'Feeling low on energy',
     stressed: 'Feeling tense and overwhelmed',
-    sad: 'Feeling down or blue'
+    sad: 'Feeling down or blue',
+    anxious: 'Feeling worried or uneasy',
+    energetic: 'Feeling full of energy',
+    neutral: 'Feeling neither positive nor negative'
   };
 
-  const energyDescriptions = {
+  const energyDescriptions: Record<EnergyLevel, string> = {
     low: 'Minimal energy available',
     medium: 'Moderate energy levels',
     high: 'Full of energy and ready to go'
@@ -159,10 +156,11 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
         
-        // Format the data
-        const formattedData = data.map(entry => ({
+        // Format the data with type assertion
+        const formattedData = (data || []).map(entry => ({
           id: entry.id,
-          timestamp: new Date(entry.timestamp).getTime(),
+          user_id: entry.user_id,
+          timestamp: entry.timestamp,
           mood: entry.mood as MoodType,
           energy: entry.energy as EnergyLevel,
           note: entry.note || undefined,
@@ -190,13 +188,14 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
     
     try {
       // Create new mood entry
-      const newMoodEntry: MoodEntry = {
+      const newMoodEntry = {
         id: crypto.randomUUID(),
-        timestamp: Date.now(),
+        user_id: user.id,
+        timestamp: new Date().toISOString(),
         mood,
         energy,
         note
-      };
+      } as MoodEntry;
       
       // Save to Supabase
       const { error } = await supabase
@@ -254,19 +253,22 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (data && data.length > 0) {
-        // Filter recommendations based on mood and energy
-        const filteredRecommendations = data.filter((rec) => 
-          rec.mood_types.includes(moodEntry.mood) && 
-          rec.energy_levels.includes(moodEntry.energy)
-        ).map(rec => ({
-          id: rec.id,
-          title: rec.title,
-          description: rec.description,
-          category: rec.category as 'food' | 'activity' | 'mindfulness',
-          imageUrl: rec.image_url || undefined,
-          moodTypes: rec.mood_types as MoodType[],
-          energyLevels: rec.energy_levels as EnergyLevel[],
-        }));
+        // Filter recommendations based on mood and energy with type assertion
+        const typedData = data as any[];
+        const filteredRecommendations = typedData
+          .filter((rec) => {
+            return rec.mood_types?.includes(moodEntry.mood) && 
+                  rec.energy_levels?.includes(moodEntry.energy);
+          })
+          .map(rec => ({
+            id: rec.id,
+            title: rec.title,
+            description: rec.description,
+            category: rec.category as 'food' | 'activity' | 'mindfulness',
+            imageUrl: rec.image_url || undefined,
+            moodTypes: rec.mood_types as MoodType[],
+            energyLevels: rec.energy_levels as EnergyLevel[],
+          }));
         
         if (filteredRecommendations.length > 0) {
           setRecommendations(filteredRecommendations);

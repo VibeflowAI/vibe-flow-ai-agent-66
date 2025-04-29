@@ -1,8 +1,7 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { MoodType, EnergyLevel, MoodEntry } from '@/agents/mood/types';
+import { MoodType, EnergyLevel, MoodEntry } from '@/types/database';
 
 // Auth services
 export const authService = {
@@ -83,11 +82,7 @@ export const moodService = {
         energy: moodData.energy 
       });
       
-      return {
-        ...data[0],
-        mood: data[0].mood as MoodType,
-        energy: data[0].energy as EnergyLevel
-      };
+      return data[0] as MoodEntry;
     } catch (error) {
       console.error('Error recording mood:', error);
       toast({
@@ -109,11 +104,7 @@ export const moodService = {
         
       if (error) throw error;
       
-      return data.map(item => ({
-        ...item,
-        mood: item.mood as MoodType,
-        energy: item.energy as EnergyLevel
-      }));
+      return (data || []) as MoodEntry[];
     } catch (error) {
       console.error('Error getting mood history:', error);
       return [];
@@ -133,11 +124,7 @@ export const moodService = {
       
       if (data.length === 0) return null;
       
-      return {
-        ...data[0],
-        mood: data[0].mood as MoodType,
-        energy: data[0].energy as EnergyLevel
-      };
+      return data[0] as MoodEntry;
     } catch (error) {
       console.error('Error getting recent mood:', error);
       return null;

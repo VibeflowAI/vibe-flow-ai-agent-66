@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { MoodAgentHookResult, MoodEntry, MoodState, MoodType, EnergyLevel } from './types';
+import { MoodAgentHookResult, MoodState } from './types';
+import { MoodType, EnergyLevel, MoodEntry } from '@/types/database';
 import { logService, moodService } from '@/services/supabase';
 
 export function useMoodAgent(userId: string): MoodAgentHookResult {

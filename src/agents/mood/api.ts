@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { MoodEntry, MoodType, EnergyLevel } from './types';
+import { MoodEntry, MoodType, EnergyLevel } from '@/types/database';
 
 export async function fetchMoodHistory(userId: string): Promise<MoodEntry[]> {
   if (!userId) return [];
@@ -16,11 +16,8 @@ export async function fetchMoodHistory(userId: string): Promise<MoodEntry[]> {
     throw error;
   }
   
-  return data.map(item => ({
-    ...item,
-    mood: item.mood as MoodType,
-    energy: item.energy as EnergyLevel
-  }));
+  // Type assertion to handle the Supabase response
+  return (data || []) as MoodEntry[];
 }
 
 export async function createMoodEntry(
@@ -50,11 +47,8 @@ export async function createMoodEntry(
     throw error;
   }
   
-  return {
-    ...data,
-    mood: data.mood as MoodType,
-    energy: data.energy as EnergyLevel
-  };
+  // Type assertion for the response data
+  return data as MoodEntry;
 }
 
 export async function deleteMoodEntry(moodId: string): Promise<void> {
@@ -89,9 +83,6 @@ export async function updateMoodEntry(
     throw error;
   }
   
-  return {
-    ...data,
-    mood: data.mood as MoodType,
-    energy: data.energy as EnergyLevel
-  };
+  // Type assertion for the response data
+  return data as MoodEntry;
 }

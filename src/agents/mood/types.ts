@@ -1,15 +1,7 @@
 
-export type MoodType = 'happy' | 'calm' | 'sad' | 'anxious' | 'tired' | 'energetic' | 'stressed' | 'neutral';
-export type EnergyLevel = 'high' | 'medium' | 'low';
+import { MoodType, EnergyLevel, MoodEntry } from '@/types/database';
 
-export interface MoodEntry {
-  id: string;
-  user_id: string;
-  mood: MoodType;
-  energy: EnergyLevel;
-  note?: string;
-  timestamp: string | number;
-}
+export { MoodType, EnergyLevel, MoodEntry };
 
 export interface MoodState {
   currentMood: MoodEntry | null;
