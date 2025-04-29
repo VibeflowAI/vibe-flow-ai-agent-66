@@ -13,6 +13,18 @@ interface Message {
   alternativeResponses?: string[];
 }
 
+// Define types for user profile data
+interface HealthProfile {
+  healthGoals?: string[];
+  sleepHours?: string;
+  activityLevel?: string;
+  conditions?: string[];
+}
+
+interface UserPreferences {
+  dietaryRestrictions?: string[];
+}
+
 // ElevenLabs API key - In production, this should be in an environment variable
 const ELEVENLABS_API_KEY = 'sk_ac5a8f880ba45f9f6e18b1621e1ae55fb9c8841babe5613e';
 const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; // Sarah's voice ID
@@ -115,25 +127,29 @@ export const useVoiceChat = () => {
     setIsProcessing(true);
     
     try {
+      // Safely access user health profile and preferences with default empty objects
+      const userHealthProfile = (user?.healthProfile as HealthProfile) || {};
+      const userPreferences = (user?.preferences as UserPreferences) || {};
+      
       // Prepare user context for AI with safe property access
       const userContext = {
         mood: currentMood?.mood || 'unknown',
-        energy: currentMood?.energy || 'medium'
+        energy: currentMood?.energy || 'medium',
+        healthGoals: userHealthProfile.healthGoals || [],
+        sleepHours: userHealthProfile.sleepHours || '7',
+        activityLevel: userHealthProfile.activityLevel || 'moderate',
+        conditions: userHealthProfile.conditions || [],
+        dietaryRestrictions: userPreferences.dietaryRestrictions || []
       };
       
-      console.log('Sending message to AI agent:', { text, userContext, aiProvider });
-      
-      // Get the session - but handle case where it's null
-      const session = await supabase.auth.getSession();
-      const accessToken = session?.data?.session?.access_token || '';
+      console.log('Sending message to API with context:', { text, userContext, aiProvider });
       
       // Call Edge Function with user context and AI provider choice
       const response = await fetch('https://unparnunixbhxizmfvmc.supabase.co/functions/v1/mood-agent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Only include Authorization header if we have a token
-          ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {})
+          'Authorization': `Bearer ${supabase.auth.getSession() ? (await supabase.auth.getSession()).data.session?.access_token : ''}`
         },
         body: JSON.stringify({
           message: text,
@@ -145,9 +161,7 @@ export const useVoiceChat = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Error response:', response.status, errorData);
-        throw new Error(`Failed to get response from agent: ${response.status}`);
+        throw new Error('Failed to get response from agent');
       }
 
       const data = await response.json();
@@ -155,7 +169,7 @@ export const useVoiceChat = () => {
       // Generate 2 alternative responses with slight variations
       const mainResponse = data.response;
       const alternativeResponses = [
-        mainResponse.replace(/I recommend/i, "Based on your mood, I suggest"),
+        mainResponse.replace(/I recommend/i, "Based on your profile, I suggest"),
         mainResponse.replace(/I recommend/i, "You might consider"),
         mainResponse.replace(/try/i, "consider trying")
       ].filter(r => r !== mainResponse).slice(0, 2);
@@ -220,23 +234,27 @@ export const useVoiceChat = () => {
     setIsProcessing(true);
 
     try {
+      // Safely access user health profile and preferences with default empty objects
+      const userHealthProfile = (user?.healthProfile as HealthProfile) || {};
+      const userPreferences = (user?.preferences as UserPreferences) || {};
+      
       // Prepare user context for AI with safe property access
       const userContext = {
         mood: currentMood?.mood || 'unknown',
-        energy: currentMood?.energy || 'medium'
+        energy: currentMood?.energy || 'medium',
+        healthGoals: userHealthProfile.healthGoals || [],
+        sleepHours: userHealthProfile.sleepHours || '7',
+        activityLevel: userHealthProfile.activityLevel || 'moderate',
+        conditions: userHealthProfile.conditions || [],
+        dietaryRestrictions: userPreferences.dietaryRestrictions || []
       };
-
-      // Get the session - but handle case where it's null
-      const session = await supabase.auth.getSession();
-      const accessToken = session?.data?.session?.access_token || '';
 
       // Call Supabase Edge Function to get agent response
       const response = await fetch('https://unparnunixbhxizmfvmc.supabase.co/functions/v1/mood-agent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Only include Authorization header if we have a token
-          ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {})
+          'Authorization': `Bearer ${supabase.auth.getSession() ? (await supabase.auth.getSession()).data.session?.access_token : ''}`
         },
         body: JSON.stringify({
           message: prompt,
@@ -256,7 +274,7 @@ export const useVoiceChat = () => {
       // Generate alternative responses
       const mainResponse = data.response;
       const alternativeResponses = [
-        mainResponse.replace(/I recommend/i, "Based on your mood, I suggest"),
+        mainResponse.replace(/I recommend/i, "Based on your profile, I suggest"),
         mainResponse.replace(/I recommend/i, "You might consider"),
         mainResponse.replace(/try/i, "consider trying")
       ].filter(r => r !== mainResponse).slice(0, 2);
@@ -314,7 +332,6 @@ export const useVoiceChat = () => {
     selectAlternativeResponse,
     regenerateResponse,
     aiProvider,
-    setAiProvider,
-    healthSurveyData: null // Set to null as we're not using health survey data
+    setAiProvider
   };
 };

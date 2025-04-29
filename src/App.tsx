@@ -3,8 +3,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
 import { MoodProvider } from "./contexts/MoodContext";
 import { Layout } from "./components/layout/Layout";
 
@@ -17,27 +17,6 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import Chat from "./pages/Chat";
 import Stats from "./pages/Stats";
-import { Loader } from "lucide-react";
-
-// Protected Route component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader className="h-8 w-8 animate-spin text-vibe-primary" />
-        <span className="ml-2 text-lg">Loading...</span>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/signin" replace />;
-  }
-
-  return <>{children}</>;
-};
 
 // Mock API handlers for development
 const setupMockApi = () => {
@@ -237,34 +216,10 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/signin" element={<SignIn />} />
               <Route path="/signup" element={<SignUp />} />
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Dashboard />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/chat" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Chat />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/profile" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Profile />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/stats" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Stats />
-                  </Layout>
-                </ProtectedRoute>
-              } />
+              <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
+              <Route path="/chat" element={<Layout><Chat /></Layout>} />
+              <Route path="/profile" element={<Layout><Profile /></Layout>} />
+              <Route path="/stats" element={<Layout><Stats /></Layout>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

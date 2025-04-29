@@ -7,9 +7,9 @@ import { Card } from '@/components/ui/card';
 import { useMood } from '@/contexts/MoodContext';
 import { Bot, Send, Volume2, VolumeX, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
 import { useVoiceChat } from '@/hooks/useVoiceChat';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 
 const Chat = () => {
   const {
@@ -28,8 +28,6 @@ const Chat = () => {
   } = useVoiceChat();
   
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const { currentMood } = useMood();
-  const { user } = useAuth();
 
   useEffect(() => {
     // Scroll to bottom when messages update
@@ -51,16 +49,6 @@ const Chat = () => {
             <p className="text-sm text-gray-600">
               Your personal wellness companion powered by AI
             </p>
-            {currentMood && (
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant="outline" className="bg-vibe-primary/5 text-vibe-primary">
-                  Mood: {currentMood.mood}
-                </Badge>
-                <Badge variant="outline" className="bg-vibe-primary/5 text-vibe-primary">
-                  Energy: {currentMood.energy}
-                </Badge>
-              </div>
-            )}
           </div>
           <div className="w-48">
             <Select value={aiProvider} onValueChange={(value) => setAiProvider(value as 'gemini' | 'openai')}>
@@ -100,16 +88,9 @@ const Chat = () => {
                     Sleep improvement tips
                   </li>
                 </ul>
-                <div className="mt-6 p-4 bg-vibe-primary/5 rounded-lg text-sm text-left">
-                  <p className="font-medium mb-2">Your responses are personalized based on:</p>
-                  <ul className="space-y-1 list-disc pl-5">
-                    <li>Your current mood and energy levels</li>
-                    <li>Personal preferences learned from our conversations</li>
-                    <li>AI-powered agentic intelligence using Python</li>
-                  </ul>
-                </div>
                 <div className="mt-4 text-sm">
                   <p>Currently using: <span className="font-medium">{aiProvider === 'gemini' ? 'Google Gemini AI' : 'OpenAI GPT'}</span></p>
+                  <p className="mt-1">Change the AI model using the selector above</p>
                 </div>
               </div>
             ) : (
@@ -191,7 +172,6 @@ const Chat = () => {
                   <div className="flex gap-2 items-center text-sm text-gray-500">
                     <Bot className="w-4 h-4 animate-pulse" />
                     Thinking using {aiProvider === 'gemini' ? 'Google Gemini' : 'OpenAI GPT'}...
-                    {currentMood && <span className="text-xs text-vibe-primary ml-1">(Using your {currentMood.mood} mood data)</span>}
                   </div>
                 </div>
               </div>
@@ -207,7 +187,7 @@ const Chat = () => {
             <Input
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Ask for wellness advice based on your current mood..."
+              placeholder="Type your message..."
               className="flex-1"
               disabled={isProcessing}
             />

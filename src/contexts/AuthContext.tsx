@@ -1,5 +1,5 @@
+
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { Session } from '@supabase/supabase-js';
 import { toast } from '@/hooks/use-toast';
 import { HealthSurveyData } from '@/components/auth/HealthSurvey';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,14 +34,40 @@ export type HealthProfile = {
 
 type AuthContextType = {
   user: User | null;
-  session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, displayName: string, healthData?: HealthSurveyData) => Promise<void>;
-  signOut: () => Promise<void>;
+  signOut: () => void;
   updateProfile: (data: Partial<User>) => Promise<void>;
   updateHealthProfile: (data: HealthSurveyData) => Promise<void>;
 };
+
+// Mock data for demo purposes (will be replaced by Supabase data)
+const MOCK_USERS = [
+  {
+    id: '1',
+    email: 'demo@example.com',
+    password: 'password',
+    displayName: 'Demo User',
+    photoURL: 'https://api.dicebear.com/6.x/avataaars/svg?seed=Felix',
+    preferences: {
+      dietaryRestrictions: ['vegetarian'],
+      activityLevel: 'moderate' as const,
+      sleepGoals: '8 hours',
+      notificationsEnabled: true,
+    },
+    healthProfile: {
+      height: '175',
+      weight: '70',
+      bloodType: 'O+',
+      conditions: ['None'],
+      sleepHours: '7-8',
+      activityLevel: 'moderate',
+      healthGoals: ['Reduce Stress', 'Improve Sleep'],
+      lastUpdated: Date.now(),
+    },
+  },
+];
 
 // Create context
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -49,60 +75,43 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 // Provider component
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // IMPORTANT: Setup auth state listener FIRST
+    // Set up the Supabase auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
-        console.log('Auth state changed:', event);
-        
-        setSession(newSession);
-        
-        if (newSession && newSession.user) {
+      (event, session) => {
+        if (session && session.user) {
           // Convert Supabase user to our User type
           const convertedUser: User = {
-            id: newSession.user.id,
-            email: newSession.user.email || '',
-            displayName: newSession.user.user_metadata.displayName || newSession.user.email?.split('@')[0] || 'User',
-            photoURL: newSession.user.user_metadata.photoURL,
+            id: session.user.id,
+            email: session.user.email || '',
+            displayName: session.user.user_metadata.displayName || session.user.email?.split('@')[0] || 'User',
+            photoURL: session.user.user_metadata.photoURL,
+            // We'll fetch preferences and health profile separately if needed
           };
           setUser(convertedUser);
         } else {
           setUser(null);
         }
-        
-        // Set loading to false AFTER updating the user state
         setLoading(false);
       }
     );
 
-    // THEN check for existing session
+    // Check for existing session
     const checkSession = async () => {
-      try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        
-        if (currentSession && currentSession.user) {
-          console.log('Existing session found:', currentSession.user.email);
-          
-          // Convert Supabase user to our User type
-          const convertedUser: User = {
-            id: currentSession.user.id,
-            email: currentSession.user.email || '',
-            displayName: currentSession.user.user_metadata.displayName || currentSession.user.email?.split('@')[0] || 'User',
-            photoURL: currentSession.user.user_metadata.photoURL,
-          };
-          
-          setUser(convertedUser);
-          setSession(currentSession);
-        }
-        
-        setLoading(false);
-      } catch (error) {
-        console.error('Error checking session:', error);
-        setLoading(false);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session && session.user) {
+        // Convert Supabase user to our User type
+        const convertedUser: User = {
+          id: session.user.id,
+          email: session.user.email || '',
+          displayName: session.user.user_metadata.displayName || session.user.email?.split('@')[0] || 'User',
+          photoURL: session.user.user_metadata.photoURL,
+        };
+        setUser(convertedUser);
       }
+      setLoading(false);
     };
     
     checkSession();
@@ -126,20 +135,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         title: 'Welcome back!',
         description: `Glad to see you again, ${data.user?.user_metadata.displayName || data.user?.email?.split('@')[0] || 'User'}!`,
       });
-      
-      return Promise.resolve();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to sign in';
-      console.error('Sign in error:', errorMessage);
-      
       toast({
         variant: 'destructive',
         title: 'Authentication failed',
-        description: errorMessage.includes('Invalid login') 
-          ? 'Invalid email or password. Please try again.' 
-          : errorMessage,
+        description: error instanceof Error ? error.message : 'Failed to sign in',
       });
-      
       throw error;
     } finally {
       setLoading(false);
@@ -149,10 +150,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signUp = async (email: string, password: string, displayName: string, healthData?: HealthSurveyData) => {
     setLoading(true);
     try {
-      // Create user metadata with user information
-      const metadata = {
-        displayName,
-        photoURL: `https://api.dicebear.com/6.x/avataaars/svg?seed=${displayName}`,
+      // Process health data if available
+      const healthProfile: HealthProfile = healthData ? {
+        height: healthData.height || '',
+        weight: healthData.weight || '',
+        bloodType: healthData.bloodType || '',
+        conditions: healthData.conditions || [],
+        sleepHours: healthData.sleepHours || '',
+        activityLevel: healthData.activityLevel || 'moderate',
+        healthGoals: healthData.healthGoals || [],
+        lastUpdated: Date.now(),
+      } : {
+        height: '',
+        weight: '',
+        bloodType: '',
+        conditions: [],
+        sleepHours: '',
+        activityLevel: 'moderate',
+        healthGoals: [],
+        lastUpdated: Date.now()
       };
       
       // Sign up with Supabase, including metadata
@@ -160,40 +176,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email,
         password,
         options: {
-          data: metadata,
+          data: {
+            displayName,
+            healthProfile,
+            photoURL: `https://api.dicebear.com/6.x/avataaars/svg?seed=${displayName}`,
+          }
         }
       });
       
       if (error) throw error;
       
-      if (data.user) {
-        // After successful signup, immediately sign in with the credentials
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-        
-        if (signInError) throw signInError;
-        
-        toast({
-          title: 'Account created!',
-          description: `Welcome to VibeFlow, ${displayName}!`,
-        });
-        
-        return Promise.resolve();
-      }
+      toast({
+        title: 'Account created!',
+        description: `Welcome to VibeFlow, ${displayName}!`,
+      });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create account';
-      console.error('Sign up error:', errorMessage);
-      
       toast({
         variant: 'destructive',
         title: 'Registration failed',
-        description: errorMessage.includes('already registered') 
-          ? 'This email is already registered. Please sign in instead.' 
-          : errorMessage,
+        description: error instanceof Error ? error.message : 'Failed to create account',
       });
-      
       throw error;
     } finally {
       setLoading(false);
@@ -201,22 +203,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      
-      toast({
-        title: 'Signed out',
-        description: 'You have been signed out successfully.',
-      });
-    } catch (error) {
-      console.error('Sign out error:', error);
-      
-      toast({
-        variant: 'destructive',
-        title: 'Sign out failed',
-        description: 'There was an error signing you out. Please try again.',
-      });
-    }
+    await supabase.auth.signOut();
+    toast({
+      title: 'Signed out',
+      description: 'You have been signed out successfully.',
+    });
   };
 
   const updateProfile = async (data: Partial<User>) => {
@@ -238,18 +229,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         title: 'Profile updated',
         description: 'Your profile has been updated successfully.',
       });
-      
       return Promise.resolve();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update profile';
-      console.error('Update profile error:', errorMessage);
-      
       toast({
         variant: 'destructive',
         title: 'Update failed',
-        description: errorMessage,
+        description: error instanceof Error ? error.message : 'Failed to update profile',
       });
-      
       return Promise.reject(error);
     }
   };
@@ -288,25 +274,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         title: 'Health profile updated',
         description: 'Your health information has been updated successfully.',
       });
-      
       return Promise.resolve();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update health profile';
-      console.error('Update health profile error:', errorMessage);
-      
       toast({
         variant: 'destructive',
         title: 'Update failed',
-        description: errorMessage,
+        description: error instanceof Error ? error.message : 'Failed to update health profile',
       });
-      
       return Promise.reject(error);
     }
   };
 
   const value = {
     user,
-    session,
     loading,
     signIn,
     signUp,
