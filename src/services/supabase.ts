@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { MoodType, EnergyLevel, MoodEntry } from '@/agents/mood/types';
 
 // Auth services
 export const authService = {
@@ -61,7 +62,7 @@ export const authService = {
 
 // Mood services
 export const moodService = {
-  recordMood: async (userId: string, moodData: { mood: string, energy: string, note?: string }) => {
+  recordMood: async (userId: string, moodData: { mood: MoodType, energy: EnergyLevel, note?: string }): Promise<MoodEntry> => {
     try {
       const { data, error } = await supabase
         .from('moods')
@@ -69,7 +70,8 @@ export const moodService = {
           user_id: userId,
           mood: moodData.mood,
           energy: moodData.energy,
-          note: moodData.note
+          note: moodData.note,
+          timestamp: new Date().toISOString()
         })
         .select();
         
@@ -81,7 +83,11 @@ export const moodService = {
         energy: moodData.energy 
       });
       
-      return data[0];
+      return {
+        ...data[0],
+        mood: data[0].mood as MoodType,
+        energy: data[0].energy as EnergyLevel
+      };
     } catch (error) {
       console.error('Error recording mood:', error);
       toast({
@@ -93,7 +99,7 @@ export const moodService = {
     }
   },
   
-  getMoodHistory: async (userId: string) => {
+  getMoodHistory: async (userId: string): Promise<MoodEntry[]> => {
     try {
       const { data, error } = await supabase
         .from('moods')
@@ -102,14 +108,19 @@ export const moodService = {
         .order('timestamp', { ascending: false });
         
       if (error) throw error;
-      return data;
+      
+      return data.map(item => ({
+        ...item,
+        mood: item.mood as MoodType,
+        energy: item.energy as EnergyLevel
+      }));
     } catch (error) {
       console.error('Error getting mood history:', error);
       return [];
     }
   },
   
-  getRecentMood: async (userId: string) => {
+  getRecentMood: async (userId: string): Promise<MoodEntry | null> => {
     try {
       const { data, error } = await supabase
         .from('moods')
@@ -119,7 +130,14 @@ export const moodService = {
         .limit(1);
         
       if (error) throw error;
-      return data.length > 0 ? data[0] : null;
+      
+      if (data.length === 0) return null;
+      
+      return {
+        ...data[0],
+        mood: data[0].mood as MoodType,
+        energy: data[0].energy as EnergyLevel
+      };
     } catch (error) {
       console.error('Error getting recent mood:', error);
       return null;
@@ -168,19 +186,29 @@ export const recommendationsService = {
 };
 
 // Logging service
+export interface LogData {
+  user_id: string;
+  event_type: string;
+  event_data?: Record<string, any>;
+  created_at?: string;
+}
+
 export const logService = {
-  createLog: async (userId: string, eventType: string, eventData: Record<string, any>) => {
+  createLog: async (userId: string, eventType: string, eventData: Record<string, any> = {}) => {
     try {
       const { error } = await supabase
         .from('logs')
         .insert({
           user_id: userId,
           event_type: eventType,
-          event_data: eventData,
-          created_at: new Date().toISOString()
+          event_data: eventData
         });
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating log:', error);
+        return false;
+      }
+      
       return true;
     } catch (error) {
       console.error('Error creating log:', error);
@@ -199,9 +227,7 @@ export const logService = {
         query = query.eq('event_type', eventType);
       }
       
-      query = query.order('created_at', { ascending: false });
-      
-      const { data, error } = await query;
+      const { data, error } = await query.order('created_at', { ascending: false });
       
       if (error) throw error;
       return data;

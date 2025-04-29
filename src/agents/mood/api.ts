@@ -16,7 +16,11 @@ export async function fetchMoodHistory(userId: string): Promise<MoodEntry[]> {
     throw error;
   }
   
-  return data;
+  return data.map(item => ({
+    ...item,
+    mood: item.mood as MoodType,
+    energy: item.energy as EnergyLevel
+  }));
 }
 
 export async function createMoodEntry(
@@ -46,7 +50,11 @@ export async function createMoodEntry(
     throw error;
   }
   
-  return data;
+  return {
+    ...data,
+    mood: data.mood as MoodType,
+    energy: data.energy as EnergyLevel
+  };
 }
 
 export async function deleteMoodEntry(moodId: string): Promise<void> {
@@ -81,5 +89,9 @@ export async function updateMoodEntry(
     throw error;
   }
   
-  return data;
+  return {
+    ...data,
+    mood: data.mood as MoodType,
+    energy: data.energy as EnergyLevel
+  };
 }
