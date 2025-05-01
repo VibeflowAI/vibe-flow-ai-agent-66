@@ -20,6 +20,7 @@ serve(async (req) => {
     
     console.log("Received message:", message);
     console.log("User context:", userContext);
+    console.log("API key available:", !!GOOGLE_API_KEY);
     
     // Check if API key is available
     if (!GOOGLE_API_KEY) {
@@ -43,7 +44,18 @@ serve(async (req) => {
       User's message: ${message}
     `;
     
+    // Check if the message is in Arabic and adjust the prompt
+    const isArabic = /[\u0600-\u06FF]/.test(message);
+    let finalPrompt = prompt;
+    
+    if (isArabic) {
+      finalPrompt += "\n\nThe user's message appears to be in Arabic. Please respond in Arabic.";
+      console.log("Arabic message detected, will request Arabic response");
+    }
+    
     // Updated to use Gemini API
+    console.log("Calling Gemini API...");
+    
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key=${GOOGLE_API_KEY}`,
       {
@@ -52,7 +64,7 @@ serve(async (req) => {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: prompt
+              text: finalPrompt
             }]
           }]
         }),
@@ -66,6 +78,7 @@ serve(async (req) => {
     }
     
     const data = await response.json();
+    console.log("Gemini API response received:", data);
     
     // Process Gemini API response
     let aiResponse;
