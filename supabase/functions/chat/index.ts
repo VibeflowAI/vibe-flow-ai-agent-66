@@ -21,6 +21,7 @@ serve(async (req) => {
     console.log("Received message:", message);
     console.log("User context:", userContext);
     console.log("API key available:", !!GOOGLE_API_KEY);
+    console.log("API key first 5 characters:", GOOGLE_API_KEY ? GOOGLE_API_KEY.substring(0, 5) : "none");
     
     // Check if API key is available
     if (!GOOGLE_API_KEY) {
@@ -73,23 +74,23 @@ serve(async (req) => {
     
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("Gemini API error:", errorData);
+      console.error("Gemini API error:", JSON.stringify(errorData, null, 2));
       throw new Error(`Gemini API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
     }
     
     const data = await response.json();
-    console.log("Gemini API response received:", data);
+    console.log("Gemini API response received");
     
     // Process Gemini API response
     let aiResponse;
     if (data?.candidates && data.candidates.length > 0 && data.candidates[0].content?.parts?.length > 0) {
       aiResponse = data.candidates[0].content.parts[0].text;
     } else {
-      console.error("Unexpected API response format:", data);
+      console.error("Unexpected API response format:", JSON.stringify(data, null, 2));
       aiResponse = "I'm sorry, I couldn't process your request at the moment. Please try again later.";
     }
     
-    console.log("AI response:", aiResponse);
+    console.log("AI response:", aiResponse.substring(0, 50) + "...");
     
     // Generate alternative responses
     const alternativeResponses = [
