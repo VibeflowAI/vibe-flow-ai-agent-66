@@ -13,7 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Mail, Lock, Languages, MessageSquare } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Mail, Lock, Languages, MessageSquare, Bell } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const languageSchema = z.object({
@@ -39,8 +40,12 @@ const contactSchema = z.object({
   message: z.string().min(10, { message: "Message must be at least 10 characters" }),
 });
 
+const notificationSchema = z.object({
+  notificationsEnabled: z.boolean(),
+});
+
 const Settings = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, updateProfile } = useAuth();
   const { toast } = useToast();
 
   const languageForm = useForm<z.infer<typeof languageSchema>>({
@@ -75,6 +80,13 @@ const Settings = () => {
     },
   });
 
+  const notificationForm = useForm<z.infer<typeof notificationSchema>>({
+    resolver: zodResolver(notificationSchema),
+    defaultValues: {
+      notificationsEnabled: user?.preferences?.notificationsEnabled || false,
+    },
+  });
+
   const onLanguageSubmit = (values: z.infer<typeof languageSchema>) => {
     toast({
       title: "Language updated",
@@ -104,6 +116,32 @@ const Settings = () => {
     contactForm.reset({ name: values.name, email: values.email, message: "" });
   };
 
+  const onNotificationSubmit = async (values: z.infer<typeof notificationSchema>) => {
+    try {
+      if (user) {
+        const preferences = {
+          ...user.preferences,
+          notificationsEnabled: values.notificationsEnabled
+        };
+        
+        await updateProfile({
+          preferences
+        });
+        
+        toast({
+          title: "Notification preferences updated",
+          description: values.notificationsEnabled ? "Notifications are now enabled" : "Notifications are now disabled",
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to update notification preferences",
+        description: error instanceof Error ? error.message : "An error occurred"
+      });
+    }
+  };
+
   if (!user) {
     return <Navigate to="/signin" />;
   }
@@ -119,11 +157,12 @@ const Settings = () => {
         </header>
 
         <Tabs defaultValue="account" className="w-full">
-          <TabsList className="grid grid-cols-4 mb-8">
+          <TabsList className="grid grid-cols-5 mb-8">
             <TabsTrigger value="account">Account</TabsTrigger>
             <TabsTrigger value="email">Email</TabsTrigger>
             <TabsTrigger value="password">Password</TabsTrigger>
             <TabsTrigger value="language">Language</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
           
           <TabsContent value="account" className="space-y-4">
@@ -327,12 +366,7 @@ const Settings = () => {
                             </FormControl>
                             <SelectContent>
                               <SelectItem value="english">English</SelectItem>
-                              <SelectItem value="spanish">Spanish</SelectItem>
-                              <SelectItem value="french">French</SelectItem>
-                              <SelectItem value="german">German</SelectItem>
-                              <SelectItem value="portuguese">Portuguese</SelectItem>
-                              <SelectItem value="chinese">Chinese</SelectItem>
-                              <SelectItem value="japanese">Japanese</SelectItem>
+                              <SelectItem value="arabic">Arabic</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -342,6 +376,47 @@ const Settings = () => {
                     <Button type="submit" className="w-full">
                       <Languages className="mr-2 h-4 w-4" />
                       Update Language
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="notifications">
+            <Card>
+              <CardHeader>
+                <CardTitle>Notification Settings</CardTitle>
+                <CardDescription>Manage your notification preferences</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Form {...notificationForm}>
+                  <form onSubmit={notificationForm.handleSubmit(onNotificationSubmit)} className="space-y-4">
+                    <FormField
+                      control={notificationForm.control}
+                      name="notificationsEnabled"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">
+                              Enable Notifications
+                            </FormLabel>
+                            <FormDescription>
+                              Receive personalized wellness reminders and updates
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="submit" className="w-full">
+                      <Bell className="mr-2 h-4 w-4" />
+                      Save Notification Settings
                     </Button>
                   </form>
                 </Form>

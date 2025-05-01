@@ -36,7 +36,6 @@ export const UserProfile = () => {
       activityLevel: user?.preferences?.activityLevel || 'moderate',
       dietaryRestrictions: user?.preferences?.dietaryRestrictions || [],
       sleepGoals: user?.preferences?.sleepGoals || '8 hours',
-      notificationsEnabled: user?.preferences?.notificationsEnabled || false
     }
   });
 
@@ -60,7 +59,7 @@ export const UserProfile = () => {
         activityLevel: data.activityLevel as 'low' | 'moderate' | 'high',
         dietaryRestrictions: data.dietaryRestrictions || [],
         sleepGoals: data.sleepGoals,
-        notificationsEnabled: data.notificationsEnabled
+        notificationsEnabled: user.preferences?.notificationsEnabled || false
       };
       
       await updateProfile({
@@ -201,29 +200,6 @@ export const UserProfile = () => {
                 )}
               />
               
-              <FormField
-                control={form.control}
-                name="notificationsEnabled"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        Enable notifications
-                      </FormLabel>
-                      <FormDescription>
-                        Receive personalized wellness reminders
-                      </FormDescription>
-                    </div>
-                  </FormItem>
-                )}
-              />
-              
               <div className="flex justify-end space-x-2">
                 <Button
                   type="button"
@@ -262,10 +238,6 @@ export const UserProfile = () => {
                 <div className="flex justify-between py-2 border-b">
                   <span className="text-gray-500">Sleep Goal</span>
                   <span className="font-medium">{user.preferences?.sleepGoals || 'Not set'}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-gray-500">Notifications</span>
-                  <span className="font-medium">{user.preferences?.notificationsEnabled ? 'Enabled' : 'Disabled'}</span>
                 </div>
               </div>
             </div>
