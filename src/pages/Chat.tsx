@@ -5,11 +5,12 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { useMood } from '@/contexts/MoodContext';
-import { Bot, Send, Volume2, VolumeX, RotateCcw, AlertCircle } from 'lucide-react';
+import { Bot, Send, Volume2, VolumeX, RotateCcw, AlertCircle, Info } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { useVoiceChat } from '@/hooks/useVoiceChat';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const Chat = () => {
   const {
@@ -37,6 +38,20 @@ const Chat = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     handleSendMessage(inputText);
+  };
+
+  // Helper function to get a display name for the AI provider
+  const getAIProviderDisplayName = (providerId: string | undefined) => {
+    switch (providerId) {
+      case 'gemini':
+        return 'Google Gemini';
+      case 'huggingface':
+        return 'Hugging Face';
+      case 'openai':
+        return 'OpenRouter GPT';
+      default:
+        return 'AI';
+    }
   };
 
   return (
@@ -116,7 +131,7 @@ const Chat = () => {
                       )}
                       {!msg.isUser && (
                         <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 items-center">
                             <Button 
                               variant="ghost" 
                               size="sm" 
@@ -143,6 +158,26 @@ const Chat = () => {
                             >
                               <RotateCcw className="h-4 w-4" />
                             </Button>
+                            
+                            {msg.provider && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 px-2 text-xs flex items-center gap-1"
+                                    >
+                                      <Info className="h-3 w-3" />
+                                      {getAIProviderDisplayName(msg.provider)}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>This response was generated using {getAIProviderDisplayName(msg.provider)}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
                           </div>
                           <span>{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                         </div>

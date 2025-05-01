@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { useMood } from '@/contexts/MoodContext';
 import { useToast } from '@/hooks/use-toast';
@@ -11,6 +10,7 @@ interface Message {
   isUser: boolean;
   timestamp: Date;
   alternativeResponses?: string[];
+  provider?: string;
 }
 
 // Define types for user profile data
@@ -121,7 +121,7 @@ export const useVoiceChat = () => {
   };
 
   // Update to use Supabase edge function for Gemini API
-  const processWithGemini = async (prompt: string, userContextData: any): Promise<{ response: string, alternatives: string[] }> => {
+  const processWithGemini = async (prompt: string, userContextData: any): Promise<{ response: string, alternatives: string[], provider: string }> => {
     try {
       const response = await supabase.functions.invoke('chat', {
         body: {
@@ -131,16 +131,17 @@ export const useVoiceChat = () => {
       });
 
       if (response.error) {
-        throw new Error(`Gemini API error via edge function: ${response.error.message}`);
+        throw new Error(`AI API error via edge function: ${response.error.message}`);
       }
 
       return {
         response: response.data.response || "I'm sorry, I couldn't process your request at the moment.",
-        alternatives: response.data.alternatives || []
+        alternatives: response.data.alternatives || [],
+        provider: response.data.provider || 'unknown'
       };
     } catch (error) {
-      console.error('Gemini API Error:', error);
-      throw new Error('Failed to get response from Gemini: ' + error.message);
+      console.error('AI API Error:', error);
+      throw new Error('Failed to get response from AI: ' + error.message);
     }
   };
 
@@ -234,11 +235,13 @@ export const useVoiceChat = () => {
       // Get response from selected AI provider
       let aiResponse;
       let alternativeResponses = [];
+      let responseProvider = '';
       
       if (aiProvider === 'gemini') {
         const geminiResponse = await processWithGemini(text, userContext);
         aiResponse = geminiResponse.response;
         alternativeResponses = geminiResponse.alternatives;
+        responseProvider = geminiResponse.provider;
       } else {
         // For OpenRouter, we'll build the prompt manually
         const aiPrompt = `
@@ -256,6 +259,7 @@ export const useVoiceChat = () => {
         `;
         
         aiResponse = await processWithOpenAI(aiPrompt);
+        responseProvider = 'openai';
         
         // Generate alternative responses manually for OpenRouter
         alternativeResponses = [
@@ -274,7 +278,8 @@ export const useVoiceChat = () => {
         text: aiResponse,
         isUser: false,
         timestamp: new Date(),
-        alternativeResponses: alternativeResponses
+        alternativeResponses: alternativeResponses,
+        provider: responseProvider
       };
       
       setMessages(prev => [...prev, botMessage]);
@@ -373,11 +378,13 @@ export const useVoiceChat = () => {
       // Get response from selected AI provider
       let aiResponse;
       let alternativeResponses = [];
+      let responseProvider = '';
       
       if (aiProvider === 'gemini') {
         const geminiResponse = await processWithGemini(prompt, userContext);
         aiResponse = geminiResponse.response;
         alternativeResponses = geminiResponse.alternatives;
+        responseProvider = geminiResponse.provider;
       } else {
         // For OpenRouter, we'll build the prompt manually
         const aiPrompt = `
@@ -395,6 +402,7 @@ export const useVoiceChat = () => {
         `;
         
         aiResponse = await processWithOpenAI(aiPrompt);
+        responseProvider = 'openai';
         
         // Generate alternative responses manually for OpenRouter
         alternativeResponses = [
@@ -410,7 +418,8 @@ export const useVoiceChat = () => {
             return {
               ...message,
               text: aiResponse,
-              alternativeResponses: alternativeResponses
+              alternativeResponses: alternativeResponses,
+              provider: responseProvider
             };
           }
           return message;
