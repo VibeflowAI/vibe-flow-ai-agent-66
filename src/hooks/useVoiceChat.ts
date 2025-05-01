@@ -28,7 +28,7 @@ interface UserPreferences {
 // ElevenLabs API key - In production, this should be in an environment variable
 const ELEVENLABS_API_KEY = 'sk_ac5a8f880ba45f9f6e18b1621e1ae55fb9c8841babe5613e';
 const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; // Sarah's voice ID
-const GEMINI_API_KEY = 'AIzaSyCgRoUv7_0AhFDsNW03AxFFu94lzVxCKns';
+const GEMINI_API_KEY = 'AIzaSyBHnc2gwN71N7SCLLt_byEhp1OAzkg9S_k';
 const OPENROUTER_API_KEY = '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';
 
 export const useVoiceChat = () => {
@@ -121,31 +121,24 @@ export const useVoiceChat = () => {
     }
   };
 
-  // Direct API calls to AI providers
-  const processWithGemini = async (prompt: string): Promise<string> => {
+  // Update to use Supabase edge function for Gemini API
+  const processWithGemini = async (prompt: string, userContextData: any): Promise<{ response: string, alternatives: string[] }> => {
     try {
-      const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': GEMINI_API_KEY,
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }]
-        })
+      const response = await supabase.functions.invoke('chat', {
+        body: {
+          message: prompt,
+          userContext: userContextData
+        }
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`Gemini API error: ${response.status}${errorData.error ? ' - ' + errorData.error.message : ''}`);
+      if (response.error) {
+        throw new Error(`Gemini API error via edge function: ${response.error.message}`);
       }
 
-      const data = await response.json();
-      return data.candidates[0].content.parts[0].text;
+      return {
+        response: response.data.response,
+        alternatives: response.data.alternatives || []
+      };
     } catch (error) {
       console.error('Gemini API Error:', error);
       throw new Error('Failed to get response from Gemini: ' + error.message);
@@ -224,7 +217,7 @@ export const useVoiceChat = () => {
         dietaryRestrictions: userPreferences.dietaryRestrictions || []
       };
       
-      // Create user profile text
+      // Create user profile text for non-Gemini providers
       const userProfile = `
         User's message: ${text}
         Current mood: ${userContext.mood}
@@ -237,46 +230,49 @@ export const useVoiceChat = () => {
         Dietary restrictions: ${userContext.dietaryRestrictions.join(', ') || 'none reported'}
       `;
       
-      // Construct the prompt for AI
-      const aiPrompt = `
-        You are VibeFlow AI, a friendly wellness assistant. 
-        You are helpful, empathetic, and focused on providing practical wellness advice.
-        
-        User context:
-        ${userProfile}
-        
-        Please provide a thoughtful, personalized response addressing the user's message.
-        Keep your response concise (under 150 words) and focused on wellness, mental health,
-        or lifestyle improvements based on their current mood and context.
-        
-        Your response should be encouraging and provide actionable suggestions.
-      `;
-      
       console.log('Sending message to AI:', { text, userContext, aiProvider });
       
       // Get response from selected AI provider
       let aiResponse;
+      let alternativeResponses = [];
+      
       if (aiProvider === 'gemini') {
-        aiResponse = await processWithGemini(aiPrompt);
+        const geminiResponse = await processWithGemini(text, userContext);
+        aiResponse = geminiResponse.response;
+        alternativeResponses = geminiResponse.alternatives;
       } else {
+        // For OpenRouter, we'll build the prompt manually
+        const aiPrompt = `
+          You are VibeFlow AI, a friendly wellness assistant. 
+          You are helpful, empathetic, and focused on providing practical wellness advice.
+          
+          User context:
+          ${userProfile}
+          
+          Please provide a thoughtful, personalized response addressing the user's message.
+          Keep your response concise (under 150 words) and focused on wellness, mental health,
+          or lifestyle improvements based on their current mood and context.
+          
+          Your response should be encouraging and provide actionable suggestions.
+        `;
+        
         aiResponse = await processWithOpenAI(aiPrompt);
+        
+        // Generate alternative responses manually for OpenRouter
+        alternativeResponses = [
+          aiResponse.replace(/I recommend/i, "Based on your profile, I suggest"),
+          aiResponse.replace(/I recommend/i, "You might consider"),
+          aiResponse.replace(/try/i, "consider trying")
+        ].filter(r => r !== aiResponse).slice(0, 2);
       }
       
       if (!aiResponse) {
         throw new Error("Received empty response from the AI");
       }
       
-      // Generate 2 alternative responses with slight variations
-      const mainResponse = aiResponse;
-      const alternativeResponses = [
-        mainResponse.replace(/I recommend/i, "Based on your profile, I suggest"),
-        mainResponse.replace(/I recommend/i, "You might consider"),
-        mainResponse.replace(/try/i, "consider trying")
-      ].filter(r => r !== mainResponse).slice(0, 2);
-      
       const botMessage = {
         id: Date.now().toString(),
-        text: mainResponse,
+        text: aiResponse,
         isUser: false,
         timestamp: new Date(),
         alternativeResponses: alternativeResponses
@@ -286,7 +282,7 @@ export const useVoiceChat = () => {
       
       // Save chat history to Supabase
       if (user) {
-        saveToHistory(text, mainResponse);
+        saveToHistory(text, aiResponse);
       }
       
       // Generate and play audio response if needed
@@ -356,7 +352,7 @@ export const useVoiceChat = () => {
         dietaryRestrictions: userPreferences.dietaryRestrictions || []
       };
 
-      // Create user profile text
+      // Create user profile text for non-Gemini providers
       const userProfile = `
         User's message: ${prompt}
         Current mood: ${userContext.mood}
@@ -366,43 +362,42 @@ export const useVoiceChat = () => {
         Activity level: ${userContext.activityLevel}
         Health goals: ${userContext.healthGoals.join(', ') || 'general wellness'}
         Health conditions: ${userContext.conditions.join(', ') || 'none reported'}
-        Dietary restrictions: ${userContext.dietaryRestrictions.join(', ') || 'none reported'}
-      `;
-      
-      // Construct the prompt for AI
-      const aiPrompt = `
-        You are VibeFlow AI, a friendly wellness assistant. 
-        You are helpful, empathetic, and focused on providing practical wellness advice.
-        
-        User context:
-        ${userProfile}
-        
-        Please provide a thoughtful, personalized response addressing the user's message.
-        Keep your response concise (under 150 words) and focused on wellness, mental health,
-        or lifestyle improvements based on their current mood and context.
-        
-        Your response should be encouraging and provide actionable suggestions.
+        Dietary restrictions: ${userPreferences.dietaryRestrictions.join(', ') || 'none reported'}
       `;
       
       // Get response from selected AI provider
       let aiResponse;
+      let alternativeResponses = [];
+      
       if (aiProvider === 'gemini') {
-        aiResponse = await processWithGemini(aiPrompt);
+        const geminiResponse = await processWithGemini(prompt, userContext);
+        aiResponse = geminiResponse.response;
+        alternativeResponses = geminiResponse.alternatives;
       } else {
+        // For OpenRouter, we'll build the prompt manually
+        const aiPrompt = `
+          You are VibeFlow AI, a friendly wellness assistant. 
+          You are helpful, empathetic, and focused on providing practical wellness advice.
+          
+          User context:
+          ${userProfile}
+          
+          Please provide a thoughtful, personalized response addressing the user's message.
+          Keep your response concise (under 150 words) and focused on wellness, mental health,
+          or lifestyle improvements based on their current mood and context.
+          
+          Your response should be encouraging and provide actionable suggestions.
+        `;
+        
         aiResponse = await processWithOpenAI(aiPrompt);
+        
+        // Generate alternative responses manually for OpenRouter
+        alternativeResponses = [
+          aiResponse.replace(/I recommend/i, "Based on your profile, I suggest"),
+          aiResponse.replace(/I recommend/i, "You might consider"),
+          aiResponse.replace(/try/i, "consider trying")
+        ].filter(r => r !== aiResponse).slice(0, 2);
       }
-      
-      if (!aiResponse) {
-        throw new Error("Received empty response from the AI");
-      }
-      
-      // Generate 2 alternative responses with slight variations
-      const mainResponse = aiResponse;
-      const alternativeResponses = [
-        mainResponse.replace(/I recommend/i, "Based on your profile, I suggest"),
-        mainResponse.replace(/I recommend/i, "You might consider"),
-        mainResponse.replace(/try/i, "consider trying")
-      ].filter(r => r !== mainResponse).slice(0, 2);
       
       setMessages(prev => {
         return prev.map(message => {
@@ -421,7 +416,7 @@ export const useVoiceChat = () => {
       
       // Save chat history to Supabase
       if (user) {
-        saveToHistory(prompt, mainResponse);
+        saveToHistory(prompt, aiResponse);
       }
       
       // Generate and play audio response if needed
