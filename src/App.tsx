@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,6 +16,7 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import Chat from "./pages/Chat";
 import Stats from "./pages/Stats";
+import Settings from "./pages/Settings";
 
 // Mock API handlers for development
 const setupMockApi = () => {
@@ -220,6 +220,7 @@ const App = () => (
               <Route path="/chat" element={<Layout><Chat /></Layout>} />
               <Route path="/profile" element={<Layout><Profile /></Layout>} />
               <Route path="/stats" element={<Layout><Stats /></Layout>} />
+              <Route path="/settings" element={<Layout><Settings /></Layout>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
