@@ -21,6 +21,11 @@ serve(async (req) => {
     console.log("Received message:", message);
     console.log("User context:", userContext);
     
+    // Check if API key is available
+    if (!GOOGLE_API_KEY) {
+      throw new Error("Google API key is not configured");
+    }
+    
     // Construct the prompt with user context
     const prompt = `
       You are VibeFlow AI, a friendly wellness assistant. 
@@ -54,6 +59,12 @@ serve(async (req) => {
       }
     );
     
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Gemini API error:", errorData);
+      throw new Error(`Gemini API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+    }
+    
     const data = await response.json();
     
     // Process Gemini API response
@@ -62,7 +73,7 @@ serve(async (req) => {
       aiResponse = data.candidates[0].content.parts[0].text;
     } else {
       console.error("Unexpected API response format:", data);
-      aiResponse = "I'm sorry, I couldn't process your request at the moment.";
+      aiResponse = "I'm sorry, I couldn't process your request at the moment. Please try again later.";
     }
     
     console.log("AI response:", aiResponse);
@@ -88,7 +99,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         error: "Failed to process your request",
-        details: error.message
+        details: error.message,
+        response: "I'm sorry, I couldn't process your request at the moment. Please try again later.",
+        alternatives: []
       }),
       { 
         status: 500, 

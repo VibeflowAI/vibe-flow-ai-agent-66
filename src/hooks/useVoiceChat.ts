@@ -28,7 +28,6 @@ interface UserPreferences {
 // ElevenLabs API key - In production, this should be in an environment variable
 const ELEVENLABS_API_KEY = 'sk_ac5a8f880ba45f9f6e18b1621e1ae55fb9c8841babe5613e';
 const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; // Sarah's voice ID
-const GEMINI_API_KEY = 'AIzaSyBHnc2gwN71N7SCLLt_byEhp1OAzkg9S_k';
 const OPENROUTER_API_KEY = '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';
 
 export const useVoiceChat = () => {
@@ -136,7 +135,7 @@ export const useVoiceChat = () => {
       }
 
       return {
-        response: response.data.response,
+        response: response.data.response || "I'm sorry, I couldn't process your request at the moment.",
         alternatives: response.data.alternatives || []
       };
     } catch (error) {
@@ -337,6 +336,12 @@ export const useVoiceChat = () => {
     setIsProcessing(true);
 
     try {
+      // Find the message that needs regeneration
+      const messageIndex = messages.findIndex(m => m.id === messageId);
+      if (messageIndex < 0) {
+        throw new Error("Message not found");
+      }
+      
       // Safely access user health profile and preferences with default empty objects
       const userHealthProfile = (user?.healthProfile as HealthProfile) || {};
       const userPreferences = (user?.preferences as UserPreferences) || {};
@@ -360,9 +365,9 @@ export const useVoiceChat = () => {
         Energy level: ${userContext.energy}
         Sleep hours: ${userContext.sleepHours}
         Activity level: ${userContext.activityLevel}
-        Health goals: ${userContext.healthGoals.join(', ') || 'general wellness'}
-        Health conditions: ${userContext.conditions.join(', ') || 'none reported'}
-        Dietary restrictions: ${userPreferences.dietaryRestrictions.join(', ') || 'none reported'}
+        Health goals: ${Array.isArray(userContext.healthGoals) ? userContext.healthGoals.join(', ') : 'general wellness'}
+        Health conditions: ${Array.isArray(userContext.conditions) ? userContext.conditions.join(', ') : 'none reported'}
+        Dietary restrictions: ${Array.isArray(userContext.dietaryRestrictions) ? userContext.dietaryRestrictions.join(', ') : 'none reported'}
       `;
       
       // Get response from selected AI provider
@@ -403,10 +408,8 @@ export const useVoiceChat = () => {
         return prev.map(message => {
           if (message.id === messageId) {
             return {
-              id: Date.now().toString(),
+              ...message,
               text: aiResponse,
-              isUser: false,
-              timestamp: new Date(),
               alternativeResponses: alternativeResponses
             };
           }
