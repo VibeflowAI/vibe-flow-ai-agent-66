@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -64,10 +65,10 @@ export const AuthForm = ({ type, onSuccess, onError }: AuthFormProps) => {
     try {
       console.log("Health survey complete, registering user with data:", healthData);
       
-      // Ensure we pass empty arrays as empty arrays, not as undefined or stringified arrays
+      // Ensure we handle empty arrays properly for PostgreSQL compatibility
       const finalHealthData: HealthSurveyData = {
         ...healthData,
-        // Important: Ensure these are proper arrays, not stringified arrays which cause issues
+        // Important: Ensure these are proper arrays, not stringified arrays
         conditions: Array.isArray(healthData.conditions) ? healthData.conditions : [],
         healthGoals: Array.isArray(healthData.healthGoals) ? healthData.healthGoals : [],
         // Sanitize other fields

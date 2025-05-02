@@ -72,7 +72,7 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
 
   // Handle skipping health survey and continuing with minimal data
   const handleSkip = () => {
-    // Create an empty health data object with only required fields
+    // Create an empty health data object with only required fields and empty arrays
     const minimalData: HealthSurveyData = {
       conditions: [],
       sleepHours: '7-8',
@@ -127,11 +127,11 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
       });
     }
 
-    // If all arrays are empty, convert to empty arrays
+    // Make sure we return empty arrays, not undefined or null values
     const finalData = {
       ...data,
-      conditions: sanitizedConditions.length > 0 ? sanitizedConditions : [],
-      healthGoals: sanitizedHealthGoals.length > 0 ? sanitizedHealthGoals : [],
+      conditions: sanitizedConditions,
+      healthGoals: sanitizedHealthGoals,
       // Ensure other fields are properly formatted
       height: data.height?.trim() || undefined,
       weight: data.weight?.trim() || undefined,

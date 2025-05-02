@@ -206,24 +206,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log("Received health data for signup:", healthData);
       
-      // Create health profile object
-      const healthProfile: HealthProfile = healthData ? {
-        height: healthData.height || '',
-        weight: healthData.weight || '',
-        bloodType: healthData.bloodType || '',
-        conditions: Array.isArray(healthData.conditions) ? healthData.conditions : [],
-        sleepHours: healthData.sleepHours || '',
-        activityLevel: healthData.activityLevel || 'moderate',
-        healthGoals: Array.isArray(healthData.healthGoals) ? healthData.healthGoals : [],
-        lastUpdated: Date.now(),
-      } : {
-        height: '',
-        weight: '',
-        bloodType: '',
-        conditions: [],
-        sleepHours: '',
-        activityLevel: 'moderate',
-        healthGoals: [],
+      // Create health profile object - ensure it's defined with empty arrays
+      const healthProfile: HealthProfile = {
+        height: healthData?.height || '',
+        weight: healthData?.weight || '',
+        bloodType: healthData?.bloodType || '',
+        conditions: Array.isArray(healthData?.conditions) ? healthData.conditions : [],
+        sleepHours: healthData?.sleepHours || '7-8',
+        activityLevel: healthData?.activityLevel || 'moderate',
+        healthGoals: Array.isArray(healthData?.healthGoals) ? healthData.healthGoals : [],
         lastUpdated: Date.now()
       };
       
@@ -244,24 +235,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // After successful signup, create the user record in the users table
       if (data.user) {
-        // Convert numeric strings to actual numbers
+        // Parse numeric strings to numbers for database
         const heightCm = healthData?.height ? parseFloat(healthData.height) : null;
         const weightKg = healthData?.weight ? parseFloat(healthData.weight) : null;
         
-        // Important: When creating the user record, ensure arrays are either properly formatted or null
-        // PostgreSQL requires special formatting for arrays, so we'll use null for empty arrays
-        const medical_conditions = 
-          Array.isArray(healthData?.conditions) && 
-          healthData.conditions.length > 0 ? 
-          healthData.conditions : null;
-        
-        console.log("Creating user record with formatted data:");
-        console.log("- medical_conditions:", medical_conditions);
-        console.log("- height_cm:", heightCm);
-        console.log("- weight_kg:", weightKg);
-        console.log("- blood_type:", healthData?.bloodType || null);
-        
-        // Create user with properly formatted arrays for PostgreSQL
+        // CRITICAL FIX: Always pass NULL for empty arrays to PostgreSQL
+        // This is the main fix for the "malformed array literal" error
         const { error: insertError } = await supabase
           .from('users')
           .insert({
@@ -274,7 +253,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             height_cm: heightCm,
             weight_kg: weightKg,
             blood_type: healthData?.bloodType || null,
-            medical_conditions: medical_conditions,
+            medical_conditions: null, // Always null for empty arrays
             current_medications: null,
             allergies: null
           });
