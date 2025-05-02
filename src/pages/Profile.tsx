@@ -35,7 +35,7 @@ const Profile = () => {
           if (rpcError) {
             console.error('Error adding default recommendations via RPC:', rpcError);
           } else {
-            console.log('Added default recommendations successfully');
+            console.log('Added default recommendations successfully:', data);
             toast({
               title: "Recommendations added",
               description: "Default wellness recommendations have been added to your account.",
