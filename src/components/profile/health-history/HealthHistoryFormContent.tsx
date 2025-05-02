@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,13 +17,18 @@ import { AllergiesField } from './fields/AllergiesField';
 export const HealthHistoryFormContent = () => {
   const { user, updateHealthProfile } = useAuth();
   const { loadHealthData, saveHealthData, isLoading } = useHealthHistoryData();
+  const [isFormLoading, setIsFormLoading] = useState(true);
   
   const form = useForm<HealthHistoryFormData>({
     resolver: zodResolver(HealthHistorySchema),
     defaultValues: {
+      height: '',
+      weight: '',
+      bloodType: '',
       conditions: [],
       medications: "",
       allergies: "",
+      lastCheckup: new Date(),
     },
   });
   
@@ -33,12 +38,19 @@ export const HealthHistoryFormContent = () => {
       if (!user || !user.id) return;
       
       try {
+        setIsFormLoading(true);
         const healthData = await loadHealthData(user.id);
         
         if (healthData) {
+          // Set all form values with explicit type handling
           form.setValue('height', healthData.height_cm?.toString() || '');
           form.setValue('weight', healthData.weight_kg?.toString() || '');
-          form.setValue('bloodType', healthData.blood_type || '');
+          
+          // Explicitly handle blood type field - this was the issue
+          if (healthData.blood_type) {
+            console.log('Setting blood type:', healthData.blood_type);
+            form.setValue('bloodType', healthData.blood_type);
+          }
           
           if (healthData.last_checkup_date) {
             form.setValue('lastCheckup', new Date(healthData.last_checkup_date));
@@ -67,6 +79,8 @@ export const HealthHistoryFormContent = () => {
           title: "Failed to load health data",
           description: "Please try again later or contact support.",
         });
+      } finally {
+        setIsFormLoading(false);
       }
     };
     
@@ -83,15 +97,18 @@ export const HealthHistoryFormContent = () => {
       return;
     }
     
+    // Prevent duplicate submissions
+    if (isLoading) return;
+    
     try {
       // Save health data
       await saveHealthData(user.id, data);
       
-      // Also update in auth context
+      // Also update in auth context with explicit blood type
       await updateHealthProfile({
         height: data.height,
         weight: data.weight,
-        bloodType: data.bloodType,
+        bloodType: data.bloodType, // Pass the blood type explicitly
         conditions: data.conditions,
         healthGoals: [],
         sleepHours: user.healthProfile?.sleepHours || '7-8',
@@ -110,6 +127,14 @@ export const HealthHistoryFormContent = () => {
       });
     }
   };
+
+  if (isFormLoading) {
+    return (
+      <div className="flex justify-center py-8">
+        <div className="h-8 w-8 rounded-full border-4 border-t-transparent border-vibe-primary animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <Form {...form}>

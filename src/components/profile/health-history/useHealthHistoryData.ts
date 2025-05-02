@@ -27,6 +27,9 @@ export const useHealthHistoryData = () => {
   };
 
   const saveHealthData = async (userId: string, data: HealthHistoryFormData) => {
+    // Prevent multiple simultaneous save attempts
+    if (isLoading) return;
+    
     setIsLoading(true);
     try {
       // Format data for database
@@ -71,8 +74,16 @@ export const useHealthHistoryData = () => {
         console.error('Error updating health history:', error);
         throw error;
       }
+      
+      return true;
+    } catch (error) {
+      console.error('Error in saveHealthData:', error);
+      throw error;
     } finally {
-      setIsLoading(false);
+      // Add a small delay to prevent the loading state from flashing too quickly
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 300);
     }
   };
 
