@@ -3,17 +3,19 @@ import { toast } from '@/hooks/use-toast';
 import { HealthSurveyData } from '@/components/auth/HealthSurvey';
 import { supabase } from '@/integrations/supabase/client';
 
+export type UserPreferences = {
+  dietaryRestrictions?: string[];
+  activityLevel?: 'low' | 'moderate' | 'high';
+  sleepGoals?: string;
+  notificationsEnabled?: boolean;
+};
+
 type User = {
   id: string;
   email: string;
   displayName: string;
   photoURL?: string;
-  preferences?: {
-    dietaryRestrictions?: string[];
-    activityLevel?: 'low' | 'moderate' | 'high';
-    sleepGoals?: string;
-    notificationsEnabled?: boolean;
-  };
+  preferences?: UserPreferences;
   healthProfile?: {
     height: string;
     weight: string;
