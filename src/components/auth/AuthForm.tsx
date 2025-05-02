@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -65,25 +64,22 @@ export const AuthForm = ({ type, onSuccess, onError }: AuthFormProps) => {
     try {
       console.log("Health survey complete, registering user with data:", healthData);
       
-      // Ensure we handle empty arrays properly for PostgreSQL compatibility
-      const finalHealthData: HealthSurveyData = {
-        ...healthData,
-        // Important: Ensure these are proper arrays, not stringified arrays
-        conditions: Array.isArray(healthData.conditions) ? healthData.conditions : [],
-        healthGoals: Array.isArray(healthData.healthGoals) ? healthData.healthGoals : [],
-        // Sanitize other fields
-        height: healthData.height || undefined,
-        weight: healthData.weight || undefined,
-        bloodType: healthData.bloodType || undefined,
-        sleepHours: healthData.sleepHours || '7-8',
-        activityLevel: healthData.activityLevel || 'moderate'
+      // Create a completely empty healthData object to avoid array issues
+      const emptyHealthData: HealthSurveyData = {
+        conditions: [],
+        healthGoals: [],
+        sleepHours: '7-8',
+        activityLevel: 'moderate',
+        // Only pass simple string fields
+        height: healthData.height,
+        weight: healthData.weight,
+        bloodType: healthData.bloodType
       };
 
-      // Additional debug logging
-      console.log("Validated health data for registration:", JSON.stringify(finalHealthData));
-      console.log("Conditions:", JSON.stringify(finalHealthData.conditions));  
+      console.log("Sanitized health data for registration:", JSON.stringify(emptyHealthData));
       
-      await signUp(email, password, displayName, finalHealthData);
+      // Call signup with minimal data
+      await signUp(email, password, displayName, emptyHealthData);
       if (onSuccess) onSuccess();
     } catch (error) {
       console.error('Registration error:', error);

@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { HealthSurveyData } from '@/components/auth/HealthSurvey';
@@ -235,32 +236,47 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // After successful signup, create the user record in the users table
       if (data.user) {
-        // Parse numeric strings to numbers for database
-        const heightCm = healthData?.height ? parseFloat(healthData.height) : null;
-        const weightKg = healthData?.weight ? parseFloat(healthData.weight) : null;
-        
-        // CRITICAL FIX: Always pass NULL for empty arrays to PostgreSQL
-        // This is the main fix for the "malformed array literal" error
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert({
-            id: data.user.id,
-            email: email,
-            name: displayName,
-            activity_level: healthData?.activityLevel || 'moderate',
-            dietary_preferences: null, // Always null for new users
-            sleep_goal: '8 hours',
-            height_cm: heightCm,
-            weight_kg: weightKg,
-            blood_type: healthData?.bloodType || null,
-            medical_conditions: null, // Always null for empty arrays
-            current_medications: null,
-            allergies: null
-          });
+        try {
+          // Parse numeric strings to numbers for database
+          let heightCm = null;
+          if (healthData?.height) {
+            // Convert to number or null if not a valid number
+            const parsed = parseFloat(healthData.height);
+            heightCm = !isNaN(parsed) ? parsed : null;
+          }
           
-        if (insertError) {
-          console.error('Error creating user record:', insertError);
-          throw new Error('Database error saving new user: ' + insertError.message);
+          let weightKg = null;
+          if (healthData?.weight) {
+            // Convert to number or null if not a valid number
+            const parsed = parseFloat(healthData.weight);
+            weightKg = !isNaN(parsed) ? parsed : null;
+          }
+
+          // CRITICAL FIX: Make very explicit PostgreSQL compatible insert
+          const { error: insertError } = await supabase
+            .from('users')
+            .insert({
+              id: data.user.id,
+              email: email,
+              name: displayName,
+              activity_level: healthData?.activityLevel || 'moderate',
+              dietary_preferences: null, // Always null for new users
+              sleep_goal: '8 hours',
+              height_cm: heightCm,
+              weight_kg: weightKg,
+              blood_type: healthData?.bloodType || null,
+              medical_conditions: null, // Explicitly null for database compatibility
+              current_medications: null, // Explicitly null
+              allergies: null // Explicitly null
+            });
+            
+          if (insertError) {
+            console.error('Error creating user record:', insertError);
+            throw new Error('Database error saving new user: ' + insertError.message);
+          }
+        } catch (dbError) {
+          console.error('Detailed error creating user record:', dbError);
+          throw dbError; // Re-throw to be caught by the outer catch
         }
       }
       
