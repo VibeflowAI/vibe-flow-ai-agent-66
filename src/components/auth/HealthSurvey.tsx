@@ -21,6 +21,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from '@/hooks/use-toast';
 
 type HealthSurveyProps = {
   onComplete: (data: HealthSurveyData) => void;
@@ -70,22 +71,32 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
   const validateArrays = (data: HealthSurveyData): HealthSurveyData => {
     // Ensure conditions is always a properly formatted array with maximum 2 items to avoid PostgreSQL issues
     let sanitizedConditions = Array.isArray(data.conditions) ? 
-      data.conditions.filter(item => item !== undefined && item !== null && item !== "") : 
+      data.conditions.filter(Boolean) : 
       [];
     
     // Limit to max 2 conditions to avoid potential PostgreSQL array formatting issues
     if (sanitizedConditions.length > 2) {
       sanitizedConditions = sanitizedConditions.slice(0, 2);
+      toast({
+        title: "Selection limited",
+        description: "Maximum 2 medical conditions allowed. Only the first 2 selections will be saved.",
+        variant: "warning"
+      });
     }
     
     // Ensure healthGoals is always a properly formatted array with maximum 3 items
     let sanitizedHealthGoals = Array.isArray(data.healthGoals) ? 
-      data.healthGoals.filter(item => item !== undefined && item !== null && item !== "") : 
+      data.healthGoals.filter(Boolean) : 
       [];
       
     // Limit goals to maximum 3 to avoid potential PostgreSQL array issues
     if (sanitizedHealthGoals.length > 3) {
       sanitizedHealthGoals = sanitizedHealthGoals.slice(0, 3);
+      toast({
+        title: "Selection limited",
+        description: "Maximum 3 health goals allowed. Only the first 3 selections will be saved.",
+        variant: "warning"
+      });
     }
     
     // If "None" is selected for conditions, clear any other selections
@@ -118,6 +129,11 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
       onComplete(formattedData);
     } catch (error) {
       console.error("Error in health survey submission:", error);
+      toast({
+        title: "Submission error",
+        description: "There was a problem with your health data. Please try again with fewer selections.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -127,7 +143,7 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
         <CardTitle className="text-2xl font-bold text-center">Health Profile</CardTitle>
         <CardDescription className="text-center">
           Tell us about your health to get personalized recommendations
-          <p className="mt-2 text-sm text-amber-600">
+          <p className="mt-2 text-sm font-medium text-amber-600">
             Please select no more than 2 conditions and 3 health goals
           </p>
         </CardDescription>
@@ -198,7 +214,7 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                   <div className="mb-2">
                     <FormLabel>Medical Conditions</FormLabel>
                     <FormDescription>
-                      Select up to 2 conditions that apply to you
+                      <span className="text-amber-600 font-medium">Select up to 2 conditions</span> that apply to you
                     </FormDescription>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -221,15 +237,23 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                               } else {
                                 // If any other condition is selected, remove "None" if present
                                 const filteredValue = currentValue.filter(value => value !== "None");
-                                const newValue = [...filteredValue, condition];
                                 
-                                // Limit to 2 conditions maximum
-                                if (newValue.length > 2) {
-                                  // If more than 2, remove the oldest selection
-                                  newValue.shift();
+                                // Only add if we don't exceed 2 conditions
+                                if (filteredValue.length < 2 || filteredValue.includes(condition)) {
+                                  const newValue = filteredValue.includes(condition) 
+                                    ? filteredValue 
+                                    : [...filteredValue, condition];
+                                    
+                                  return field.onChange(newValue);
+                                } else {
+                                  // Show warning toast if trying to select more than 2 conditions
+                                  toast({
+                                    title: "Selection limit reached",
+                                    description: "Maximum 2 medical conditions allowed.",
+                                    variant: "warning"
+                                  });
+                                  return field.onChange(filteredValue);
                                 }
-                                
-                                return field.onChange(newValue);
                               }
                             } else {
                               return field.onChange(
@@ -319,7 +343,7 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                   <div className="mb-2">
                     <FormLabel>Health Goals</FormLabel>
                     <FormDescription>
-                      Select up to 3 primary health and wellness goals
+                      <span className="text-amber-600 font-medium">Select up to 3 goals</span> for your health journey
                     </FormDescription>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -341,15 +365,22 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                                   checked={currentValue.includes(goal)}
                                   onCheckedChange={(checked) => {
                                     if (checked) {
-                                      // Limit to maximum 3 goals
-                                      if (currentValue.length >= 3) {
-                                        // If already at max, replace the oldest one
-                                        const newValue = [...currentValue];
-                                        newValue.shift(); // Remove the oldest
-                                        newValue.push(goal); // Add the new one
-                                        return field.onChange(newValue);
+                                      // Only add if we don't exceed 3 goals
+                                      if (currentValue.length < 3 || currentValue.includes(goal)) {
+                                        return field.onChange(
+                                          currentValue.includes(goal) 
+                                            ? currentValue 
+                                            : [...currentValue, goal]
+                                        );
+                                      } else {
+                                        // Show warning toast if trying to select more than 3 goals
+                                        toast({
+                                          title: "Selection limit reached",
+                                          description: "Maximum 3 health goals allowed.",
+                                          variant: "warning"
+                                        });
+                                        return field.onChange(currentValue);
                                       }
-                                      return field.onChange([...currentValue, goal]);
                                     } else {
                                       return field.onChange(
                                         currentValue.filter(value => value !== goal)

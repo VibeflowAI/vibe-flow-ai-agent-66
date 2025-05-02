@@ -4,6 +4,7 @@ import { AuthForm } from '@/components/auth/AuthForm';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
+import { AlertCircle } from 'lucide-react';
 
 const SignUp = () => {
   const { user } = useAuth();
@@ -54,9 +55,12 @@ const SignUp = () => {
         <p className="text-gray-600">Create an account to start your wellness journey</p>
         
         {error && (
-          <div className="mt-4 p-3 bg-red-100 text-red-800 rounded-md text-sm">
-            {error}
-            <p className="mt-1 text-xs">
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 text-red-800 rounded-md text-sm">
+            <div className="flex items-center gap-2 mb-1">
+              <AlertCircle className="h-4 w-4" />
+              <p className="font-medium">{error}</p>
+            </div>
+            <p className="mt-1 text-xs pl-6">
               Tip: Try limiting your selection to 2 medical conditions and 3 health goals.
             </p>
           </div>

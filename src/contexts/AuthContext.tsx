@@ -206,18 +206,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log("Received health data for signup:", healthData);
       
-      // Process health data if available
+      // Process health data if available - ensure arrays are properly formatted
       const healthProfile: HealthProfile = healthData ? {
         height: healthData.height || '',
         weight: healthData.weight || '',
         bloodType: healthData.bloodType || '',
         conditions: Array.isArray(healthData.conditions) && healthData.conditions.length > 0 
-          ? healthData.conditions.slice(0, 2) // Limit to maximum 2 conditions
+          ? healthData.conditions.filter(Boolean).slice(0, 2) // Limit to maximum 2 conditions
           : [],
         sleepHours: healthData.sleepHours || '',
         activityLevel: healthData.activityLevel || 'moderate',
         healthGoals: Array.isArray(healthData.healthGoals) && healthData.healthGoals.length > 0
-          ? healthData.healthGoals.slice(0, 3) // Limit to maximum 3 goals
+          ? healthData.healthGoals.filter(Boolean).slice(0, 3) // Limit to maximum 3 goals
           : [],
         lastUpdated: Date.now(),
       } : {
@@ -248,14 +248,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // After successful signup, manually create the user record in the users table
       if (data.user) {
-        // Ensure conditions is either a small array or null to avoid PostgreSQL formatting issues
-        const healthConditions = Array.isArray(healthData?.conditions) && healthData.conditions.length > 0 
-          ? healthData.conditions.slice(0, 2) // Limit to maximum 2 conditions
-          : null;
-          
-        console.log("Creating user record with properly formatted conditions:", healthConditions);
-
-        // CRITICAL FIX: Send arrays directly to PostgreSQL with proper formatting and size limits
+        // Create user with properly formatted arrays to prevent PostgreSQL errors
         const { error: insertError } = await supabase
           .from('users')
           .insert({
@@ -268,7 +261,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             height_cm: healthData?.height ? parseFloat(healthData.height) : null,
             weight_kg: healthData?.weight ? parseFloat(healthData.weight) : null,
             blood_type: healthData?.bloodType || null,
-            medical_conditions: healthConditions, // Send as plain array (limited to 2 items) or null
+            medical_conditions: Array.isArray(healthData?.conditions) && healthData.conditions.length > 0 
+              ? healthData.conditions.filter(Boolean) 
+              : null,
             current_medications: null,
             allergies: null
           });
@@ -295,7 +290,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           errorMessage.includes('ERROR: malformed array') ||
           errorMessage.includes('Database error saving new user')
         ) {
-          errorMessage = 'Error with health data format. Please try again with different selections.';
+          errorMessage = 'Error with health data format. Please try again with fewer selections.';
         }
       }
       
@@ -373,14 +368,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       if (!user) throw new Error('No authenticated user');
 
+      // Sanitize and validate arrays before sending
+      const sanitizedConditions = Array.isArray(healthData.conditions) && healthData.conditions.length > 0 
+        ? healthData.conditions.filter(Boolean).slice(0, 2) // Limit to 2 conditions maximum
+        : [];
+        
+      const sanitizedHealthGoals = Array.isArray(healthData.healthGoals) && healthData.healthGoals.length > 0 
+        ? healthData.healthGoals.filter(Boolean).slice(0, 3) // Limit to 3 goals maximum
+        : [];
+
       const healthProfile: HealthProfile = {
         height: healthData.height || '',
         weight: healthData.weight || '',
         bloodType: healthData.bloodType || '',
-        conditions: healthData.conditions || [],
+        conditions: sanitizedConditions,
         sleepHours: healthData.sleepHours || '',
         activityLevel: healthData.activityLevel || 'moderate',
-        healthGoals: healthData.healthGoals || [],
+        healthGoals: sanitizedHealthGoals,
         lastUpdated: Date.now(),
       };
       
@@ -394,8 +398,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (authError) throw authError;
       
       // Properly format arrays for PostgreSQL - convert empty arrays to null
-      const medical_conditions = Array.isArray(healthData.conditions) && healthData.conditions.length > 0 ? 
-        healthData.conditions : null;
+      const medical_conditions = sanitizedConditions.length > 0 ? 
+        sanitizedConditions : null;
       
       // Update corresponding fields in users table
       const { error: dbError } = await supabase
