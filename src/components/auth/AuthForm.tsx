@@ -9,9 +9,10 @@ import { HealthSurvey, HealthSurveyData } from './HealthSurvey';
 type AuthFormProps = {
   type: 'signin' | 'signup';
   onSuccess?: () => void;
+  onError?: (message: string) => void;
 };
 
-export const AuthForm = ({ type, onSuccess }: AuthFormProps) => {
+export const AuthForm = ({ type, onSuccess, onError }: AuthFormProps) => {
   const { signIn, signUp, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -47,6 +48,7 @@ export const AuthForm = ({ type, onSuccess }: AuthFormProps) => {
         if (onSuccess) onSuccess();
       } catch (error) {
         console.error('Authentication error:', error);
+        if (onError) onError(error instanceof Error ? error.message : 'Failed to sign in');
       }
     } else if (type === 'signup') {
       // For signup, show health survey instead of immediately creating account
@@ -60,8 +62,10 @@ export const AuthForm = ({ type, onSuccess }: AuthFormProps) => {
       if (onSuccess) onSuccess();
     } catch (error) {
       console.error('Registration error:', error);
-      // Error is handled in auth context with toast
-      setShowHealthSurvey(false); // Go back to signup form on error
+      // Pass the error to the parent component
+      if (onError) onError(error instanceof Error ? error.message : 'Failed to create account');
+      // Go back to signup form on error
+      setShowHealthSurvey(false);
     }
   };
 

@@ -1,12 +1,14 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { AuthForm } from '@/components/auth/AuthForm';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, useNavigate } from 'react-router-dom';
+import { toast } from '@/hooks/use-toast';
 
 const SignUp = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
 
   if (user) {
     return <Navigate to="/dashboard" />;
@@ -14,6 +16,15 @@ const SignUp = () => {
 
   const handleSuccess = () => {
     navigate('/dashboard');
+  };
+
+  const handleError = (message: string) => {
+    setError(message);
+    toast({
+      variant: 'destructive',
+      title: 'Registration failed',
+      description: message,
+    });
   };
 
   return (
@@ -26,9 +37,19 @@ const SignUp = () => {
           <h1 className="text-3xl font-bold text-vibe-primary">VibeFlow</h1>
         </div>
         <p className="text-gray-600">Create an account to start your wellness journey</p>
+        
+        {error && (
+          <div className="mt-4 p-3 bg-red-100 text-red-800 rounded-md">
+            {error}
+          </div>
+        )}
       </div>
       
-      <AuthForm type="signup" onSuccess={handleSuccess} />
+      <AuthForm 
+        type="signup" 
+        onSuccess={handleSuccess} 
+        onError={handleError} 
+      />
     </div>
   );
 };

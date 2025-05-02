@@ -212,10 +212,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         height: healthData.height || '',
         weight: healthData.weight || '',
         bloodType: healthData.bloodType || '',
-        conditions: healthData.conditions || [],
+        conditions: Array.isArray(healthData.conditions) ? healthData.conditions : [],
         sleepHours: healthData.sleepHours || '',
         activityLevel: healthData.activityLevel || 'moderate',
-        healthGoals: healthData.healthGoals || [],
+        healthGoals: Array.isArray(healthData.healthGoals) ? healthData.healthGoals : [],
         lastUpdated: Date.now(),
       } : {
         height: '',
@@ -245,6 +245,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // After successful signup, manually create the user record in the users table
       if (data.user) {
+        // Prepare medical conditions array - must be properly formatted for PostgreSQL
+        const medical_conditions = healthData?.conditions?.length ? 
+          healthData.conditions : 
+          null;
+          
+        // Log what we're trying to insert
+        console.log("Creating user record with data:", {
+          id: data.user.id,
+          email,
+          name: displayName,
+          activity_level: healthData?.activityLevel || 'moderate',
+          height_cm: healthData?.height ? parseFloat(healthData.height) : null,
+          weight_kg: healthData?.weight ? parseFloat(healthData.weight) : null,
+          blood_type: healthData?.bloodType || null,
+          medical_conditions,
+          current_medications: null,
+          allergies: null
+        });
+
         const { error: insertError } = await supabase
           .from('users')
           .insert({
@@ -252,14 +271,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             email: email,
             name: displayName,
             activity_level: healthData?.activityLevel || 'moderate',
-            dietary_preferences: [], // Initialize as empty array
+            dietary_preferences: null, // Initialize as null instead of empty array
             sleep_goal: '8 hours', // Default value
             height_cm: healthData?.height ? parseFloat(healthData.height) : null,
             weight_kg: healthData?.weight ? parseFloat(healthData.weight) : null,
             blood_type: healthData?.bloodType || null,
-            medical_conditions: healthData?.conditions?.length ? healthData.conditions : null,
-            current_medications: [], // Initialize as empty array
-            allergies: [] // Initialize as empty array
+            medical_conditions: medical_conditions, // Use prepared value
+            current_medications: null, // Initialize as null instead of empty array
+            allergies: null // Initialize as null instead of empty array
           });
           
         if (insertError) {

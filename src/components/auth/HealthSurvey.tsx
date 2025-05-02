@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -74,6 +73,7 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
       healthGoals: Array.isArray(data.healthGoals) ? data.healthGoals : []
     };
     
+    // Log the formatted data for debugging
     console.log("Submitting health data:", formattedData);
     onComplete(formattedData);
   };
@@ -312,3 +312,5 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
     </Card>
   );
 };
+
+export default HealthSurvey;
