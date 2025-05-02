@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ThumbsUp, ThumbsDown, Heart } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Heart, Image, ImageOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Recommendation } from '@/contexts/MoodContext';
 import { toast } from '@/hooks/use-toast';
@@ -9,6 +9,7 @@ import { toast } from '@/hooks/use-toast';
 export const RecommendationCard = ({ recommendation }: { recommendation: Recommendation }) => {
   const [liked, setLiked] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
 
   const handleFeedback = (isPositive: boolean) => {
     toast({
@@ -27,9 +28,12 @@ export const RecommendationCard = ({ recommendation }: { recommendation: Recomme
     });
   };
 
-  // Get image URL, use recommendation.imageUrl if available
-  // If imageUrl is present but had an error loading, use placeholder
-  const imageUrl = imageError ? '/placeholder.svg' : (recommendation.imageUrl || '/placeholder.svg');
+  // Check if we actually have a valid image URL
+  const hasImageUrl = recommendation.imageUrl && recommendation.imageUrl.trim() !== '';
+  
+  const imageUrl = hasImageUrl && !imageError 
+    ? recommendation.imageUrl 
+    : '/placeholder.svg';
 
   const item = {
     hidden: { opacity: 0, y: 20 },
@@ -40,12 +44,30 @@ export const RecommendationCard = ({ recommendation }: { recommendation: Recomme
     <motion.div variants={item} className="group">
       <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow">
         <div className="h-36 overflow-hidden relative">
+          {imageLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+              <Image className="h-8 w-8 text-gray-400 animate-pulse" />
+            </div>
+          )}
+          
           <img 
             src={imageUrl} 
             alt={recommendation.title} 
-            className="w-full h-full object-cover transition-transform group-hover:scale-105"
-            onError={() => setImageError(true)}
+            className={`w-full h-full object-cover transition-transform group-hover:scale-105 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
+            onLoad={() => setImageLoading(false)}
+            onError={() => {
+              setImageLoading(false);
+              setImageError(true);
+              console.log('Image failed to load:', recommendation.imageUrl);
+            }}
           />
+          
+          {imageError && hasImageUrl && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+              <ImageOff className="h-8 w-8 text-gray-400" />
+            </div>
+          )}
+          
           <Button 
             variant="ghost" 
             size="icon" 
