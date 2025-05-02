@@ -23,11 +23,12 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
   // Handle skipping health survey and continuing with minimal data
   const handleSkip = () => {
     // Create a minimal health data object with only required fields
+    // IMPORTANT: Use null instead of empty arrays to avoid PostgreSQL formatting issues
     const minimalData: HealthSurveyData = {
-      conditions: [],
+      conditions: [], // Empty array will be converted to null in AuthContext
       sleepHours: '7-8',
       activityLevel: 'moderate',
-      healthGoals: []
+      healthGoals: [] // Empty array will be converted to null in AuthContext
     };
     
     console.log("Skipping health survey with minimal data:", minimalData);

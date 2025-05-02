@@ -23,14 +23,13 @@ const SignUp = () => {
     // Log the full error message for debugging
     console.error('Registration error:', message);
     
-    // User-friendly error message
-    let userFriendlyMessage = 'Please try again using the "Skip" button.';
+    // Simplified user-friendly error message
+    setError('Unable to create your account. Please try using the "Skip" button on the health survey.');
     
-    setError(userFriendlyMessage);
     toast({
       variant: 'destructive',
       title: 'Registration failed',
-      description: userFriendlyMessage,
+      description: 'Please try again using the "Skip & Continue" button.',
     });
   };
 

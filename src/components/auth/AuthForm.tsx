@@ -65,16 +65,8 @@ export const AuthForm = ({ type, onSuccess, onError }: AuthFormProps) => {
     try {
       console.log("Health survey complete, registering user with data:", healthData);
       
-      // Ensure we don't pass any arrays with content
-      const safeHealthData: HealthSurveyData = {
-        sleepHours: healthData.sleepHours,
-        activityLevel: healthData.activityLevel,
-        conditions: [],
-        healthGoals: []
-      };
-
-      // Call signup with safe data
-      await signUp(email, password, displayName, safeHealthData);
+      // Call signup with clean data
+      await signUp(email, password, displayName, healthData);
       if (onSuccess) onSuccess();
     } catch (error) {
       console.error('Registration error:', error);

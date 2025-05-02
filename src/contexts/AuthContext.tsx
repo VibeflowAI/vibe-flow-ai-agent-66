@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { HealthSurveyData } from '@/components/auth/HealthSurvey';
@@ -212,10 +211,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         height: healthData?.height || '',
         weight: healthData?.weight || '',
         bloodType: healthData?.bloodType || '',
-        conditions: [], // Always use empty array here, we'll handle database format separately
+        conditions: [], // Always use empty array in the client-side object
         sleepHours: healthData?.sleepHours || '7-8',
         activityLevel: healthData?.activityLevel || 'moderate',
-        healthGoals: [], // Always use empty array here, we'll handle database format separately
+        healthGoals: [], // Always use empty array in the client-side object
         lastUpdated: Date.now()
       };
       
@@ -250,7 +249,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             weightKg = !isNaN(parsed) ? parsed : null;
           }
 
-          // IMPORTANT: For arrays, explicitly use null - never send empty arrays to the DB
+          console.log("Creating user record with null values for array fields");
+          
+          // IMPORTANT: All array fields MUST be explicitly null for PostgreSQL compatibility
           const { error: insertError } = await supabase
             .from('users')
             .insert({
@@ -258,14 +259,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               email: email,
               name: displayName,
               activity_level: healthData?.activityLevel || 'moderate',
-              dietary_preferences: null, // Explicitly null
-              sleep_goal: '8 hours',
+              dietary_preferences: null, // Explicitly null, not empty array
+              sleep_goal: '8 hours', 
               height_cm: heightCm,
               weight_kg: weightKg,
               blood_type: healthData?.bloodType || null,
-              medical_conditions: null, // Explicitly null
-              current_medications: null, // Explicitly null
-              allergies: null // Explicitly null
+              medical_conditions: null, // Explicitly null, not empty array
+              current_medications: null, // Explicitly null, not empty array
+              allergies: null // Explicitly null, not empty array
             });
             
           if (insertError) {
@@ -360,7 +361,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const updateHealthProfile = async (healthData: HealthSurveyData) => {
+  const updateHealthProfile = async (data: HealthSurveyData) => {
     try {
       if (!user) throw new Error('No authenticated user');
 
