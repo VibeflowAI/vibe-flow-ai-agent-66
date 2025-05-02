@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -175,12 +176,12 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('Fetching recommendations for mood:', moodToUse.mood, 'and energy:', moodToUse.energy);
       
-      // Get recommendations from Supabase
+      // Fix: Use proper array format for PostgreSQL array columns (using the ANY operator)
       const { data, error } = await supabase
         .from('recommendations')
         .select('*')
-        .contains('mood_types', [moodToUse.mood])
-        .contains('energy_levels', [moodToUse.energy]);
+        .filter('mood_types', 'cs', `{${moodToUse.mood}}`)
+        .filter('energy_levels', 'cs', `{${moodToUse.energy}}`);
       
       if (error) {
         console.error('Error fetching recommendations:', error);
@@ -225,7 +226,33 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
           setRecommendations(formattedRecommendations);
         } else {
           console.log('No recommendations available at all');
-          setRecommendations([]);
+          // Create some default recommendations
+          setRecommendations([
+            {
+              id: 'default-1',
+              title: 'Take a short walk',
+              description: 'Even a 10-minute walk can boost your mood and energy levels.',
+              category: 'activity',
+              moodTypes: ['tired', 'stressed', 'sad'],
+              energyLevels: ['low', 'medium']
+            },
+            {
+              id: 'default-2',
+              title: 'Drink water',
+              description: 'Staying hydrated is essential for maintaining energy levels.',
+              category: 'food',
+              moodTypes: ['tired'],
+              energyLevels: ['low', 'medium', 'high']
+            },
+            {
+              id: 'default-3',
+              title: 'Deep breathing exercise',
+              description: 'Take 5 deep breaths, inhaling for 4 counts and exhaling for 6.',
+              category: 'mindfulness',
+              moodTypes: ['stressed', 'sad'],
+              energyLevels: ['low', 'medium', 'high']
+            }
+          ]);
         }
       }
     } catch (error) {

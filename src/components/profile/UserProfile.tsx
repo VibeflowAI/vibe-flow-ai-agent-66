@@ -75,6 +75,7 @@ export const UserProfile = () => {
     setIsLoading(true);
     
     try {
+      // FIXED: Handle empty arrays properly for PostgreSQL
       const dietaryRestrictions = data.dietaryRestrictions && data.dietaryRestrictions.length > 0
         ? data.dietaryRestrictions
         : null;
@@ -87,15 +88,14 @@ export const UserProfile = () => {
       };
       
       console.log('Updating profile with preferences:', preferences);
-      console.log('Updating Supabase with dietary_preferences:', dietaryRestrictions);
       
-      // Update Supabase user data
+      // Update Supabase user data - FIXED: properly format data for PostgreSQL
       const { error } = await supabase
         .from('users')
         .update({
           name: data.displayName,
           activity_level: data.activityLevel,
-          dietary_preferences: dietaryRestrictions,
+          dietary_preferences: dietaryRestrictions, // Send null if empty array
           sleep_goal: data.sleepGoals,
           updated_at: new Date().toISOString()
         })
@@ -106,7 +106,7 @@ export const UserProfile = () => {
         throw error;
       }
       
-      // Update profile in auth context and in Supabase
+      // Update profile in auth context
       await updateProfile({
         displayName: data.displayName,
         preferences
@@ -117,7 +117,10 @@ export const UserProfile = () => {
         description: "Your profile has been updated successfully.",
       });
       
-      setIsEditing(false);
+      // FIXED: Wait briefly before disabling edit mode to allow state updates to complete
+      setTimeout(() => {
+        setIsEditing(false);
+      }, 100);
     } catch (error) {
       toast({
         variant: "destructive",

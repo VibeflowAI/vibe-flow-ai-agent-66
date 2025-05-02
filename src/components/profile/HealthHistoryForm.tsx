@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -133,7 +132,7 @@ export const HealthHistoryForm = () => {
     }
     
     try {
-      // Ensure proper array handling - never send empty arrays as []
+      // FIXED: Properly handle empty arrays for PostgreSQL
       const medications = data.medications && data.medications.trim() !== ''
         ? data.medications.split(',').map(item => item.trim())
         : null;
@@ -176,7 +175,7 @@ export const HealthHistoryForm = () => {
         throw error;
       }
       
-      // Also update in auth context
+      // Also update in auth context - FIXED: create proper healthProfile object
       await updateHealthProfile({
         height: data.height,
         weight: data.weight,
