@@ -35,9 +35,9 @@ export const MoodTracker = () => {
             .from('users')
             .select('id')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
           
-          if (userError) {
+          if (!userData || userError) {
             console.log('User not found, trying to create user record first');
             // Create a basic user record if it doesn't exist
             const { error: insertUserError } = await supabase
@@ -72,6 +72,8 @@ export const MoodTracker = () => {
         
         // Reset form after submission
         setNote('');
+        setSelectedMood(null);
+        setSelectedEnergy(null);
         
         toast({
           title: 'Mood tracked successfully',

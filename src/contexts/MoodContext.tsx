@@ -23,6 +23,7 @@ export type Recommendation = {
   moodTypes: MoodType[];
   energyLevels: EnergyLevel[];
   imageUrl?: string;
+  rating?: number;
 };
 
 type MoodContextType = {

@@ -205,7 +205,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signUp = async (email: string, password: string, displayName: string, healthData?: HealthSurveyData) => {
     setLoading(true);
     try {
-      // Process health data if available
+      // Process health data if available - fix array handling for conditions, healthGoals, etc.
       const healthProfile: HealthProfile = healthData ? {
         height: healthData.height || '',
         weight: healthData.weight || '',
@@ -240,6 +240,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       
       if (error) throw error;
+
+      // After successful signup, manually create the user record in the users table
+      if (data.user) {
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert({
+            id: data.user.id,
+            email: email,
+            name: displayName,
+            activity_level: healthData?.activityLevel || 'moderate',
+            dietary_preferences: healthData?.dietaryPreferences || null,
+            sleep_goal: healthData?.sleepGoals || '8 hours',
+            height_cm: healthData?.height ? parseFloat(healthData.height) : null,
+            weight_kg: healthData?.weight ? parseFloat(healthData.weight) : null,
+            blood_type: healthData?.bloodType || null,
+            medical_conditions: healthData?.conditions || null,
+            current_medications: healthData?.medications || null,
+            allergies: healthData?.allergies || null
+          });
+          
+        if (insertError) {
+          console.error('Error creating user record:', insertError);
+          throw new Error('Failed to create user record');
+        }
+      }
       
       toast({
         title: 'Account created!',
@@ -285,7 +310,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           .update({
             name: data.displayName || user.displayName,
             activity_level: data.preferences?.activityLevel || user.preferences?.activityLevel,
-            dietary_preferences: data.preferences?.dietaryRestrictions || user.preferences?.dietaryRestrictions,
+            dietary_preferences: data.preferences?.dietaryRestrictions || null,
             sleep_goal: data.preferences?.sleepGoals || user.preferences?.sleepGoals,
             updated_at: new Date().toISOString()
           })
@@ -343,7 +368,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           height_cm: healthData.height ? parseFloat(healthData.height) : null,
           weight_kg: healthData.weight ? parseFloat(healthData.weight) : null,
           blood_type: healthData.bloodType || null,
-          medical_conditions: healthData.conditions || [],
+          medical_conditions: healthData.conditions || null,
           activity_level: healthData.activityLevel || 'moderate',
           updated_at: new Date().toISOString()
         })
