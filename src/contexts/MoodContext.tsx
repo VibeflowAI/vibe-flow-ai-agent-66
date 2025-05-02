@@ -15,7 +15,7 @@ export type MoodEntry = {
   timestamp: number;
 };
 
-type Recommendation = {
+export type Recommendation = {
   id: string;
   title: string;
   description: string;
@@ -171,7 +171,18 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (data && data.length > 0) {
-        setRecommendations(data as Recommendation[]);
+        // Map the snake_case fields from Supabase to camelCase for our app
+        const formattedRecommendations: Recommendation[] = data.map(rec => ({
+          id: rec.id,
+          title: rec.title,
+          description: rec.description,
+          category: rec.category,
+          moodTypes: rec.mood_types as MoodType[],
+          energyLevels: rec.energy_levels as EnergyLevel[],
+          imageUrl: rec.image_url
+        }));
+        
+        setRecommendations(formattedRecommendations);
       } else {
         // Fallback to get any recommendations if none match the specific mood/energy
         const { data: fallbackData, error: fallbackError } = await supabase
@@ -180,7 +191,18 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
           .limit(5);
           
         if (!fallbackError && fallbackData) {
-          setRecommendations(fallbackData as Recommendation[]);
+          // Map the snake_case fields from Supabase to camelCase for our app
+          const formattedRecommendations: Recommendation[] = fallbackData.map(rec => ({
+            id: rec.id,
+            title: rec.title,
+            description: rec.description,
+            category: rec.category,
+            moodTypes: rec.mood_types as MoodType[],
+            energyLevels: rec.energy_levels as EnergyLevel[],
+            imageUrl: rec.image_url
+          }));
+          
+          setRecommendations(formattedRecommendations);
         }
       }
     } catch (error) {
