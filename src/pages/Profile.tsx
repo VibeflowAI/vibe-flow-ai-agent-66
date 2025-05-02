@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { UserProfile } from '@/components/profile/UserProfile';
 import { HealthHistoryForm } from '@/components/profile/HealthHistoryForm';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,6 +9,7 @@ import { toast } from '@/hooks/use-toast';
 
 const Profile = () => {
   const { user } = useAuth();
+  const [isInitializing, setIsInitializing] = useState(true);
 
   // Check if there are any recommendations in the database
   useEffect(() => {
@@ -16,6 +17,9 @@ const Profile = () => {
       if (!user) return;
       
       try {
+        setIsInitializing(true);
+        console.log("Checking recommendations for user:", user.id);
+        
         const { count, error } = await supabase
           .from('recommendations')
           .select('*', { count: 'exact', head: true });
@@ -24,6 +28,8 @@ const Profile = () => {
           console.error('Error checking recommendations:', error);
           return;
         }
+        
+        console.log("Found recommendation count:", count);
         
         // If no recommendations exist, add some default ones
         if (count === 0) {
@@ -44,6 +50,8 @@ const Profile = () => {
         }
       } catch (err) {
         console.error('Error in checkRecommendations:', err);
+      } finally {
+        setIsInitializing(false);
       }
     };
     
@@ -64,8 +72,19 @@ const Profile = () => {
           </p>
         </header>
 
-        <UserProfile />
-        <HealthHistoryForm />
+        {isInitializing ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="flex flex-col items-center gap-2">
+              <div className="h-10 w-10 rounded-full border-4 border-t-transparent border-vibe-primary animate-spin"></div>
+              <p className="text-sm text-gray-500">Loading your profile...</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <UserProfile />
+            <HealthHistoryForm />
+          </>
+        )}
       </div>
     </div>
   );

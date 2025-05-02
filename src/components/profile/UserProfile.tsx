@@ -26,19 +26,13 @@ import { useForm } from 'react-hook-form';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Loader } from 'lucide-react';
 
 export const UserProfile = () => {
   const { user, updateProfile, fetchUserProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  
-  // Fetch the latest user profile when the component mounts
-  useEffect(() => {
-    if (user) {
-      fetchUserProfile();
-    }
-  }, [fetchUserProfile, user]);
   
   const form = useForm({
     defaultValues: {
@@ -55,7 +49,9 @@ export const UserProfile = () => {
       form.reset({
         displayName: user.displayName || '',
         activityLevel: user.preferences?.activityLevel || 'moderate',
-        dietaryRestrictions: user.preferences?.dietaryRestrictions || [],
+        dietaryRestrictions: Array.isArray(user.preferences?.dietaryRestrictions) 
+          ? user.preferences.dietaryRestrictions 
+          : [],
         sleepGoals: user.preferences?.sleepGoals || '8 hours',
       });
     }
@@ -125,9 +121,11 @@ export const UserProfile = () => {
       // Fetch user profile again to ensure we have the latest data
       await fetchUserProfile();
       
-      // Close dialog only after all updates are complete
-      setIsDialogOpen(false);
-      setIsEditing(false);
+      // Add delay before closing dialog and editing mode to ensure data is properly fetched
+      setTimeout(() => {
+        setIsDialogOpen(false);
+        setIsEditing(false);
+      }, 1000);
     } catch (error) {
       console.error('Profile update error:', error);
       toast({
@@ -136,6 +134,7 @@ export const UserProfile = () => {
         description: error instanceof Error ? error.message : "An error occurred"
       });
       setIsDialogOpen(false);
+      // Don't exit editing mode on error, let user try again
     } finally {
       setIsLoading(false);
     }
@@ -315,7 +314,11 @@ export const UserProfile = () => {
       </Card>
 
       {/* Loading Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => {
+        // Prevent manual closing of dialog during loading
+        if (isLoading) return;
+        setIsDialogOpen(open);
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Updating Profile</DialogTitle>
@@ -324,7 +327,10 @@ export const UserProfile = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="flex items-center justify-center py-4">
-            <div className="h-8 w-8 rounded-full border-4 border-t-transparent border-vibe-primary animate-spin"></div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="h-8 w-8 rounded-full border-4 border-t-transparent border-vibe-primary animate-spin"></div>
+              {isLoading && <p className="text-sm text-gray-500">This may take a moment...</p>}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
