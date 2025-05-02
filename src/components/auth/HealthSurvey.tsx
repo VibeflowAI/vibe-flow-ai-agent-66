@@ -68,20 +68,32 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
 
   // This ensures empty arrays are properly initialized
   const validateArrays = (data: HealthSurveyData): HealthSurveyData => {
+    // Ensure conditions is always an array
+    const sanitizedConditions = Array.isArray(data.conditions) ? data.conditions : [];
+    
+    // Ensure healthGoals is always an array
+    const sanitizedHealthGoals = Array.isArray(data.healthGoals) ? data.healthGoals : [];
+    
     return {
       ...data,
-      conditions: Array.isArray(data.conditions) ? data.conditions : [],
-      healthGoals: Array.isArray(data.healthGoals) ? data.healthGoals : []
+      conditions: sanitizedConditions,
+      healthGoals: sanitizedHealthGoals
     };
   };
 
   const handleSubmit = (data: HealthSurveyData) => {
-    // Ensure conditions and healthGoals are properly formatted as arrays
-    const formattedData = validateArrays(data);
-    
-    // Log the formatted data for debugging
-    console.log("Submitting health data:", formattedData);
-    onComplete(formattedData);
+    try {
+      // Format and validate data before sending
+      const formattedData = validateArrays(data);
+      
+      // Log detailed information for debugging
+      console.log("Submitting health data:", formattedData);
+      
+      // Pass the validated data to parent component
+      onComplete(formattedData);
+    } catch (error) {
+      console.error("Error in health survey submission:", error);
+    }
   };
 
   return (
@@ -168,6 +180,7 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                         control={form.control}
                         name="conditions"
                         render={({ field }) => {
+                          // Ensure field.value is always an array
                           const currentValue = Array.isArray(field.value) ? field.value : [];
                           return (
                             <FormItem
@@ -268,6 +281,7 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                         control={form.control}
                         name="healthGoals"
                         render={({ field }) => {
+                          // Ensure field.value is always an array
                           const currentValue = Array.isArray(field.value) ? field.value : [];
                           return (
                             <FormItem

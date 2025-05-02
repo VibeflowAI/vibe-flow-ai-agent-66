@@ -22,11 +22,17 @@ const SignUp = () => {
     // Log the full error message for debugging
     console.error('Registration error:', message);
     
-    setError(message);
+    // Check for specific PostgreSQL errors related to array format
+    let userFriendlyMessage = message;
+    if (message.includes('malformed array literal') || message.includes('Database error saving new user')) {
+      userFriendlyMessage = 'There was a problem with your health data. Please try again with different options.';
+    }
+    
+    setError(userFriendlyMessage);
     toast({
       variant: 'destructive',
       title: 'Registration failed',
-      description: message,
+      description: userFriendlyMessage,
     });
   };
 

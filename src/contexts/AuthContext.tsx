@@ -205,7 +205,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signUp = async (email: string, password: string, displayName: string, healthData?: HealthSurveyData) => {
     setLoading(true);
     try {
-      console.log("Received health data:", healthData);
+      console.log("Received health data for signup:", healthData);
       
       // Process health data if available
       const healthProfile: HealthProfile = healthData ? {
@@ -245,11 +245,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // After successful signup, manually create the user record in the users table
       if (data.user) {
-        // Properly format arrays for PostgreSQL - key fix
-        const medical_conditions = healthData?.conditions && healthData.conditions.length > 0 ? 
+        // Properly handle array values for PostgreSQL - KEY FIX
+        // Convert empty arrays to null or properly format non-empty arrays
+        const medical_conditions = Array.isArray(healthData?.conditions) && healthData.conditions.length > 0 ? 
           healthData.conditions : null;
           
-        console.log("Creating user record with formatted data:", {
+        console.log("Creating user record with properly formatted data:", {
           id: data.user.id,
           email,
           name: displayName,
@@ -267,7 +268,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             email: email,
             name: displayName,
             activity_level: healthData?.activityLevel || 'moderate',
-            dietary_preferences: null,
+            dietary_preferences: null, // Always null for new users
             sleep_goal: '8 hours',
             height_cm: healthData?.height ? parseFloat(healthData.height) : null,
             weight_kg: healthData?.weight ? parseFloat(healthData.weight) : null,
@@ -289,10 +290,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
     } catch (error) {
       console.error('Registration error details:', error);
+      
+      let errorMessage = 'Failed to create account';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        // Check for specific PostgreSQL array format errors
+        if (errorMessage.includes('malformed array literal')) {
+          errorMessage = 'Error with health data format. Please try again with different selections.';
+        }
+      }
+      
       toast({
         variant: 'destructive',
         title: 'Registration failed',
-        description: error instanceof Error ? error.message : 'Failed to create account',
+        description: errorMessage,
       });
       throw error;
     } finally {
@@ -323,12 +334,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       // Update user profile in users table
       if (data.preferences || data.displayName) {
+        // Convert empty arrays to null for PostgreSQL compatibility
+        const dietaryRestrictions = data.preferences?.dietaryRestrictions?.length ? 
+          data.preferences.dietaryRestrictions : null;
+        
         const { error: dbError } = await supabase
           .from('users')
           .update({
             name: data.displayName || user.displayName,
             activity_level: data.preferences?.activityLevel || user.preferences?.activityLevel,
-            dietary_preferences: data.preferences?.dietaryRestrictions?.length ? data.preferences.dietaryRestrictions : null,
+            dietary_preferences: dietaryRestrictions,
             sleep_goal: data.preferences?.sleepGoals || user.preferences?.sleepGoals,
             updated_at: new Date().toISOString()
           })
@@ -379,7 +394,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (authError) throw authError;
       
-      // Properly format arrays for PostgreSQL
+      // Properly format arrays for PostgreSQL - convert empty arrays to null
       const medical_conditions = Array.isArray(healthData.conditions) && healthData.conditions.length > 0 ? 
         healthData.conditions : null;
       
