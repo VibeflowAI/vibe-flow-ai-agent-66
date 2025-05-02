@@ -3,197 +3,119 @@ import { toast } from '@/hooks/use-toast';
 import { HealthSurveyData } from '@/components/auth/HealthSurvey';
 import { supabase } from '@/integrations/supabase/client';
 
-// Types
-export type User = {
+type User = {
   id: string;
   email: string;
   displayName: string;
   photoURL?: string;
-  preferences?: UserPreferences;
-  healthProfile?: HealthProfile;
-};
-
-export type UserPreferences = {
-  dietaryRestrictions?: string[];
-  activityLevel?: 'low' | 'moderate' | 'high';
-  sleepGoals?: string;
-  notificationsEnabled?: boolean;
-};
-
-export type HealthProfile = {
-  height: string;
-  weight: string;
-  bloodType: string;
-  conditions: string[];
-  sleepHours: string;
-  activityLevel: string;
-  healthGoals: string[];
-  lastUpdated: number;
-  lastCheckupDate?: string;
-  medications?: string[];
-  allergies?: string[];
-};
-
-export type DbUserProfile = {
-  id: string;
-  email: string;
-  name: string;
-  activity_level?: string;
-  dietary_preferences?: string[] | null;
-  sleep_goal?: string;
-  height_cm?: number;
-  weight_kg?: number;
-  blood_type?: string;
-  last_checkup_date?: string;
-  medical_conditions?: string[] | null;
-  current_medications?: string[] | null;
-  allergies?: string[] | null;
+  preferences?: {
+    dietaryRestrictions?: string[];
+    activityLevel?: 'low' | 'moderate' | 'high';
+    sleepGoals?: string;
+    notificationsEnabled?: boolean;
+  };
+  healthProfile?: {
+    height: string;
+    weight: string;
+    bloodType: string;
+    conditions: string[];
+    sleepHours: string;
+    activityLevel: string;
+    healthGoals: string[];
+    lastUpdated: number;
+    lastCheckupDate?: string;
+    medications?: string[];
+    allergies?: string[];
+  };
 };
 
 type AuthContextType = {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, displayName: string, healthData?: HealthSurveyData) => Promise<void>;
+  signUp: (email: string, password: string, displayName: string, healthData?: HealthSurveyData | null) => Promise<void>;
   signOut: () => void;
   updateProfile: (data: Partial<User>) => Promise<void>;
   updateHealthProfile: (data: HealthSurveyData) => Promise<void>;
   fetchUserProfile: () => Promise<void>;
 };
 
-// Create context
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Provider component
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Convert DB user profile to our app's User type
-  const convertDbProfileToUser = (dbProfile: DbUserProfile): User => {
-    return {
-      id: dbProfile.id,
-      email: dbProfile.email,
-      displayName: dbProfile.name,
-      photoURL: `https://api.dicebear.com/6.x/avataaars/svg?seed=${dbProfile.name}`,
-      preferences: {
-        dietaryRestrictions: dbProfile.dietary_preferences || [],
-        activityLevel: (dbProfile.activity_level as 'low' | 'moderate' | 'high') || 'moderate',
-        sleepGoals: dbProfile.sleep_goal || '8 hours',
-        notificationsEnabled: true,
-      },
-      healthProfile: {
-        height: dbProfile.height_cm?.toString() || '',
-        weight: dbProfile.weight_kg?.toString() || '',
-        bloodType: dbProfile.blood_type || '',
-        conditions: dbProfile.medical_conditions || [],
-        sleepHours: '7-8', // Default value
-        activityLevel: dbProfile.activity_level || 'moderate',
-        healthGoals: [],
-        lastUpdated: Date.now(),
-        lastCheckupDate: dbProfile.last_checkup_date,
-        medications: dbProfile.current_medications,
-        allergies: dbProfile.allergies,
-      },
-    };
-  };
-
-  // Fetch user profile from Supabase
   const fetchUserProfile = async () => {
     try {
       const { data: authUser } = await supabase.auth.getUser();
       if (!authUser.user) return;
       
-      const { data: profile, error } = await supabase
+      const { data: profile } = await supabase
         .from('users')
         .select('*')
         .eq('id', authUser.user.id)
         .single();
       
-      if (error) {
-        console.error('Error fetching user profile:', error);
-        return;
-      }
-      
       if (profile) {
-        const userData = convertDbProfileToUser(profile as DbUserProfile);
-        setUser(userData);
+        setUser({
+          id: profile.id,
+          email: profile.email,
+          displayName: profile.name,
+          photoURL: `https://api.dicebear.com/6.x/avataaars/svg?seed=${profile.name}`,
+          preferences: {
+            dietaryRestrictions: profile.dietary_preferences || [],
+            activityLevel: profile.activity_level as 'low' | 'moderate' | 'high',
+            sleepGoals: profile.sleep_goal
+          },
+          healthProfile: {
+            height: profile.height_cm?.toString() || '',
+            weight: profile.weight_kg?.toString() || '',
+            bloodType: profile.blood_type || '',
+            conditions: profile.medical_conditions || [],
+            sleepHours: profile.sleep_goal || '7-8',
+            activityLevel: profile.activity_level || 'moderate',
+            healthGoals: [],
+            lastUpdated: Date.now()
+          }
+        });
       }
     } catch (error) {
-      console.error('Error in fetchUserProfile:', error);
+      console.error('Error fetching profile:', error);
     }
   };
 
   useEffect(() => {
-    // Set up the Supabase auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session && session.user) {
-          // First just set basic user info to avoid delays
-          const basicUser: User = {
-            id: session.user.id,
-            email: session.user.email || '',
-            displayName: session.user.user_metadata.displayName || session.user.email?.split('@')[0] || 'User',
-            photoURL: session.user.user_metadata.photoURL,
-          };
-          setUser(basicUser);
-          
-          // Then fetch full profile asynchronously
-          setTimeout(() => {
-            fetchUserProfile();
-          }, 0);
-        } else {
-          setUser(null);
-        }
-        setLoading(false);
-      }
-    );
-
-    // Check for existing session
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session && session.user) {
-        // Set basic user info immediately
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
         const basicUser: User = {
           id: session.user.id,
           email: session.user.email || '',
-          displayName: session.user.user_metadata.displayName || session.user.email?.split('@')[0] || 'User',
-          photoURL: session.user.user_metadata.photoURL,
+          displayName: session.user.user_metadata?.displayName || session.user.email?.split('@')[0] || 'User',
+          photoURL: session.user.user_metadata?.photoURL
         };
         setUser(basicUser);
-        
-        // Then fetch full profile
         fetchUserProfile();
+      } else {
+        setUser(null);
       }
       setLoading(false);
-    };
-    
-    checkSession();
-    
-    return () => {
-      subscription.unsubscribe();
-    };
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      
-      toast({
-        title: 'Welcome back!',
-        description: `Glad to see you again, ${data.user?.user_metadata.displayName || data.user?.email?.split('@')[0] || 'User'}!`,
-      });
+      toast({ title: 'Welcome back!' });
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Authentication failed',
-        description: error instanceof Error ? error.message : 'Failed to sign in',
+        title: 'Sign in failed',
+        description: error instanceof Error ? error.message : 'Invalid credentials'
       });
       throw error;
     } finally {
@@ -201,102 +123,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const signUp = async (email: string, password: string, displayName: string, healthData?: HealthSurveyData) => {
+  const signUp = async (email: string, password: string, displayName: string, healthData?: HealthSurveyData | null) => {
     setLoading(true);
     try {
-      console.log("Received health data for signup:", healthData);
-      
-      // Create health profile object with safe defaults
-      const healthProfile: HealthProfile = {
-        height: healthData?.height || '',
-        weight: healthData?.weight || '',
-        bloodType: healthData?.bloodType || '',
-        conditions: [], // Always use empty array in the client-side object
-        sleepHours: healthData?.sleepHours || '7-8',
-        activityLevel: healthData?.activityLevel || 'moderate',
-        healthGoals: [], // Always use empty array in the client-side object
-        lastUpdated: Date.now()
-      };
-      
-      // Sign up with Supabase, including metadata
-      const { data, error } = await supabase.auth.signUp({
+      // Create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: {
-            displayName,
-            healthProfile,
-            photoURL: `https://api.dicebear.com/6.x/avataaars/svg?seed=${displayName}`,
-          }
+          data: { displayName }
         }
       });
-      
-      if (error) throw error;
 
-      // After successful signup, create the user record in the users table
-      if (data.user) {
-        try {
-          // Parse numeric strings to numbers for database
-          let heightCm = null;
-          if (healthData?.height) {
-            const parsed = parseFloat(healthData.height);
-            heightCm = !isNaN(parsed) ? parsed : null;
-          }
-          
-          let weightKg = null;
-          if (healthData?.weight) {
-            const parsed = parseFloat(healthData.weight);
-            weightKg = !isNaN(parsed) ? parsed : null;
-          }
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('User creation failed');
 
-          console.log("Creating user record with null values for array fields");
-          
-          // IMPORTANT: All array fields MUST be explicitly null for PostgreSQL compatibility
-          const { error: insertError } = await supabase
-            .from('users')
-            .insert({
-              id: data.user.id,
-              email: email,
-              name: displayName,
-              activity_level: healthData?.activityLevel || 'moderate',
-              dietary_preferences: null, // Explicitly null, not empty array
-              sleep_goal: '8 hours', 
-              height_cm: heightCm,
-              weight_kg: weightKg,
-              blood_type: healthData?.bloodType || null,
-              medical_conditions: null, // Explicitly null, not empty array
-              current_medications: null, // Explicitly null, not empty array
-              allergies: null // Explicitly null, not empty array
-            });
-            
-          if (insertError) {
-            console.error('Error creating user record:', insertError);
-            throw new Error('Database error saving new user: ' + insertError.message);
-          }
-        } catch (dbError) {
-          console.error('Detailed error creating user record:', dbError);
-          throw dbError; // Re-throw to be caught by the outer catch
-        }
-      }
-      
+      // Create user profile
+      const { error: dbError } = await supabase.from('users').insert({
+        id: authData.user.id,
+        email,
+        name: displayName,
+        activity_level: healthData?.activityLevel || 'moderate',
+        dietary_preferences: null,
+        sleep_goal: '8 hours',
+        height_cm: healthData?.height ? parseFloat(healthData.height) : null,
+        weight_kg: healthData?.weight ? parseFloat(healthData.weight) : null,
+        blood_type: healthData?.bloodType || null,
+        medical_conditions: null,
+        current_medications: null,
+        allergies: null
+      });
+
+      if (dbError) throw new Error('Database error: ' + dbError.message);
+
       toast({
         title: 'Account created!',
-        description: `Welcome to VibeFlow, ${displayName}!`,
+        description: `Welcome ${displayName}!`
       });
     } catch (error) {
-      console.error('Registration error details:', error);
-      
-      let errorMessage = 'Failed to create account';
+      console.error('Signup error:', error);
+      let message = 'Failed to create account';
       if (error instanceof Error) {
-        errorMessage = error.message;
+        message = error.message.includes('Database') ? 
+          'System error. Please try again.' : 
+          error.message;
       }
-      
-      toast({
-        variant: 'destructive',
-        title: 'Registration failed',
-        description: errorMessage,
-      });
-      throw error;
+      throw new Error(message);
     } finally {
       setLoading(false);
     }
@@ -304,133 +176,66 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    toast({
-      title: 'Signed out',
-      description: 'You have been signed out successfully.',
-    });
+    toast({ title: 'Signed out successfully' });
   };
 
   const updateProfile = async (data: Partial<User>) => {
     try {
-      if (!user) throw new Error('No authenticated user');
+      if (!user) throw new Error('Not authenticated');
       
-      // Update user metadata in Supabase auth
-      const { error: authError } = await supabase.auth.updateUser({
-        data: {
-          ...data,
-        }
+      await supabase.auth.updateUser({
+        data: { displayName: data.displayName }
       });
-      
-      if (authError) throw authError;
-      
-      // Update user profile in users table
-      if (data.preferences || data.displayName) {
-        // Convert empty arrays to null for PostgreSQL compatibility
-        const dietaryRestrictions = data.preferences?.dietaryRestrictions?.length ? 
-          data.preferences.dietaryRestrictions : null;
-        
-        const { error: dbError } = await supabase
-          .from('users')
-          .update({
-            name: data.displayName || user.displayName,
-            activity_level: data.preferences?.activityLevel || user.preferences?.activityLevel,
-            dietary_preferences: dietaryRestrictions,
-            sleep_goal: data.preferences?.sleepGoals || user.preferences?.sleepGoals,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', user.id);
-        
-        if (dbError) throw dbError;
-      }
-      
-      // Update local state
+
+      await supabase.from('users').update({
+        name: data.displayName,
+        updated_at: new Date().toISOString()
+      }).eq('id', user.id);
+
       setUser(prev => prev ? { ...prev, ...data } : null);
-      
-      toast({
-        title: 'Profile updated',
-        description: 'Your profile has been updated successfully.',
-      });
-      return Promise.resolve();
+      toast({ title: 'Profile updated' });
     } catch (error) {
       toast({
         variant: 'destructive',
         title: 'Update failed',
-        description: error instanceof Error ? error.message : 'Failed to update profile',
+        description: error instanceof Error ? error.message : 'Failed to update'
       });
-      return Promise.reject(error);
+      throw error;
     }
   };
 
   const updateHealthProfile = async (data: HealthSurveyData) => {
     try {
-      if (!user) throw new Error('No authenticated user');
-
-      // Sanitize and validate arrays before sending
-      const sanitizedConditions = Array.isArray(data.conditions) && data.conditions.length > 0 
-        ? data.conditions.filter(Boolean).slice(0, 2) // Limit to 2 conditions maximum
-        : [];
-        
-      const sanitizedHealthGoals = Array.isArray(data.healthGoals) && data.healthGoals.length > 0 
-        ? data.healthGoals.filter(Boolean).slice(0, 3) // Limit to 3 goals maximum
-        : [];
-
-      const healthProfile: HealthProfile = {
-        height: data.height || '',
-        weight: data.weight || '',
-        bloodType: data.bloodType || '',
-        conditions: sanitizedConditions,
-        sleepHours: data.sleepHours || '',
-        activityLevel: data.activityLevel || 'moderate',
-        healthGoals: sanitizedHealthGoals,
-        lastUpdated: Date.now(),
-      };
+      if (!user) throw new Error('Not authenticated');
       
-      // Update user metadata in Supabase auth
-      const { error: authError } = await supabase.auth.updateUser({
-        data: {
-          healthProfile
+      await supabase.from('users').update({
+        height_cm: data.height ? parseFloat(data.height) : null,
+        weight_kg: data.weight ? parseFloat(data.weight) : null,
+        blood_type: data.bloodType || null,
+        activity_level: data.activityLevel,
+        updated_at: new Date().toISOString()
+      }).eq('id', user.id);
+
+      setUser(prev => prev ? {
+        ...prev,
+        healthProfile: {
+          ...prev.healthProfile,
+          height: data.height || '',
+          weight: data.weight || '',
+          bloodType: data.bloodType || '',
+          activityLevel: data.activityLevel,
+          lastUpdated: Date.now()
         }
-      });
-      
-      if (authError) throw authError;
-      
-      // Properly format arrays for PostgreSQL - convert empty arrays to null
-      const medical_conditions = sanitizedConditions.length > 0 ? 
-        sanitizedConditions : null;
-      
-      // Update corresponding fields in users table
-      const { error: dbError } = await supabase
-        .from('users')
-        .update({
-          height_cm: data.height ? parseFloat(data.height) : null,
-          weight_kg: data.weight ? parseFloat(data.weight) : null,
-          blood_type: data.bloodType || null,
-          medical_conditions: medical_conditions,
-          activity_level: data.activityLevel || 'moderate',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
-      
-      if (dbError) throw dbError;
-      
-      // Update local state
-      setUser(prev => prev ? { 
-        ...prev, 
-        healthProfile 
       } : null);
-      
-      toast({
-        title: 'Health profile updated',
-        description: 'Your health information has been updated successfully.',
-      });
-      return Promise.resolve();
+
+      toast({ title: 'Health profile updated' });
     } catch (error) {
       toast({
         variant: 'destructive',
         title: 'Update failed',
-        description: error instanceof Error ? error.message : 'Failed to update health profile',
+        description: error instanceof Error ? error.message : 'Failed to update health data'
       });
-      return Promise.reject(error);
+      throw error;
     }
   };
 
@@ -442,17 +247,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     signOut,
     updateProfile,
     updateHealthProfile,
-    fetchUserProfile,
+    fetchUserProfile
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Custom hook for using auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 };

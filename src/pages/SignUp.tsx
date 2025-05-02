@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { AuthForm } from '@/components/auth/AuthForm';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,16 +19,23 @@ const SignUp = () => {
   };
 
   const handleError = (message: string) => {
-    // Log the full error message for debugging
-    console.error('Registration error:', message);
+    console.error('Signup error:', message);
     
-    // Simplified user-friendly error message
-    setError('Unable to create your account. Please try using the "Skip" button on the health survey.');
+    let userMessage = 'Registration failed. Please try again.';
+    if (message.includes('Database')) {
+      userMessage = 'System error. Please try again or contact support.';
+    } else if (message.includes('auth')) {
+      userMessage = 'Authentication error. Please check your email and password.';
+    }
+
+    setError(userMessage);
     
     toast({
       variant: 'destructive',
       title: 'Registration failed',
-      description: 'Please try again using the "Skip & Continue" button.',
+      description: message.includes('skip') ? 
+        'Please try skipping the health survey' : 
+        userMessage
     });
   };
 
@@ -50,9 +56,11 @@ const SignUp = () => {
               <AlertCircle className="h-4 w-4" />
               <span className="font-medium">{error}</span>
             </div>
-            <p className="mt-1 text-xs pl-6 font-bold">
-              Skip the health survey to create your account, then update your profile later.
-            </p>
+            {error.includes('System') && (
+              <p className="mt-1 text-xs pl-6">
+                If this persists, please contact support@vibeflow.com
+              </p>
+            )}
           </div>
         )}
       </div>

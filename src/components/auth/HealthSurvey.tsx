@@ -1,11 +1,10 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
 
 type HealthSurveyProps = {
-  onComplete: (data: HealthSurveyData) => void;
+  onComplete: (data: HealthSurveyData | null) => void;
   onBack: () => void;
 };
 
@@ -20,21 +19,8 @@ export type HealthSurveyData = {
 };
 
 export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
-  // Handle skipping health survey and continuing with minimal data
   const handleSkip = () => {
-    // Create a minimal health data object with only required fields
-    // IMPORTANT: Use null instead of empty arrays to avoid PostgreSQL formatting issues
-    const minimalData: HealthSurveyData = {
-      conditions: [], // Empty array will be converted to null in AuthContext
-      sleepHours: '7-8',
-      activityLevel: 'moderate',
-      healthGoals: [] // Empty array will be converted to null in AuthContext
-    };
-    
-    console.log("Skipping health survey with minimal data:", minimalData);
-    
-    // Pass the minimally required data to continue registration
-    onComplete(minimalData);
+    onComplete(null);
   };
 
   return (
@@ -43,18 +29,15 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
         <CardTitle className="text-2xl font-bold text-center">Health Profile</CardTitle>
         <CardDescription className="text-center">
           <div className="mt-2 text-lg font-bold text-amber-600">
-            IMPORTANT: Use the "Skip & Continue" button below to create your account
-          </div>
-          <div className="mt-2 text-sm">
-            You can complete your health profile after registration
+            You can complete this later in your profile settings
           </div>
         </CardDescription>
         
         <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-800 rounded-md text-sm">
           <div className="flex items-center gap-2">
             <AlertCircle className="h-4 w-4" />
-            <div className="font-bold">
-              Click the "Skip & Continue" button below to create your account
+            <div>
+              <strong>Having issues?</strong> Skip this step and complete it later.
             </div>
           </div>
         </div>
@@ -79,5 +62,3 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
     </Card>
   );
 };
-
-export default HealthSurvey;

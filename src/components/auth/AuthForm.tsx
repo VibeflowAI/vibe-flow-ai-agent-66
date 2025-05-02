@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -56,25 +55,28 @@ export const AuthForm = ({ type, onSuccess, onError }: AuthFormProps) => {
         if (onError) onError(errorMessage);
       }
     } else if (type === 'signup') {
-      // For signup, show health survey instead of immediately creating account
       setShowHealthSurvey(true);
     }
   };
 
-  const handleHealthSurveyComplete = async (healthData: HealthSurveyData) => {
+  const handleHealthSurveyComplete = async (healthData: HealthSurveyData | null) => {
     try {
-      console.log("Health survey complete, registering user with data:", healthData);
+      const submissionData = healthData || {
+        conditions: [],
+        sleepHours: '7-8',
+        activityLevel: 'moderate',
+        healthGoals: []
+      };
       
-      // Call signup with clean data
-      await signUp(email, password, displayName, healthData);
+      await signUp(email, password, displayName, submissionData);
       if (onSuccess) onSuccess();
     } catch (error) {
       console.error('Registration error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create account';
+      const errorMessage = error instanceof Error ? 
+        error.message.includes('Database') ? 'System error. Please try again.' : error.message
+        : 'Failed to create account';
       setSubmissionError(errorMessage);
-      // Pass the error to the parent component
       if (onError) onError(errorMessage);
-      // Go back to signup form on error
       setShowHealthSurvey(false);
     }
   };
