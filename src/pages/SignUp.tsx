@@ -32,7 +32,7 @@ const SignUp = () => {
       message.includes('ERROR: malformed array') ||
       message.toLowerCase().includes('error with health data')
     ) {
-      userFriendlyMessage = 'There was a problem with your health data. Please try again with different selections or leave some fields empty.';
+      userFriendlyMessage = 'There was a problem with your health data. Try again with minimal selections or just continue with empty selections.';
     }
     
     setError(userFriendlyMessage);
@@ -61,7 +61,7 @@ const SignUp = () => {
               <p className="font-medium">{error}</p>
             </div>
             <p className="mt-1 text-xs pl-6">
-              Tip: Try leaving some fields empty or selecting different options.
+              Tip: You can leave the health fields empty and update your profile later.
             </p>
           </div>
         )}

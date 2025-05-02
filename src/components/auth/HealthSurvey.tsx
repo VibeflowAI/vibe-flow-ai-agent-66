@@ -67,41 +67,49 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
     },
   });
 
-  // Ensure arrays are never empty in the final data - use null instead for PostgreSQL
-  const validateArrays = (data: HealthSurveyData): HealthSurveyData => {
-    // For conditions: ensure it's a valid array or empty array (will be converted to null later)
-    let sanitizedConditions = Array.isArray(data.conditions) ? 
-      data.conditions.filter(Boolean) : 
-      [];
+  // Ensure arrays are properly formatted for PostgreSQL
+  const validateAndFormatData = (data: HealthSurveyData): HealthSurveyData => {
+    // For conditions: ensure it's a valid array
+    let sanitizedConditions: string[] = [];
+    
+    if (Array.isArray(data.conditions)) {
+      sanitizedConditions = data.conditions.filter(item => 
+        item && typeof item === 'string' && item.trim() !== ''
+      );
+    }
+    
+    // If "None" is selected for conditions, clear any other selections
+    if (sanitizedConditions.includes("None")) {
+      sanitizedConditions = ["None"];
+    }
     
     // Limit to max 2 conditions
     if (sanitizedConditions.length > 2) {
       sanitizedConditions = sanitizedConditions.slice(0, 2);
       toast({
         title: "Selection limited",
-        description: "Maximum 2 medical conditions allowed. Only the first 2 selections will be saved.",
+        description: "Maximum 2 medical conditions allowed. Only the first 2 selections saved.",
         variant: "default"
       });
     }
     
-    // For healthGoals: ensure it's a valid array or empty array
-    let sanitizedHealthGoals = Array.isArray(data.healthGoals) ? 
-      data.healthGoals.filter(Boolean) : 
-      [];
+    // For healthGoals: ensure it's a valid array
+    let sanitizedHealthGoals: string[] = [];
+    
+    if (Array.isArray(data.healthGoals)) {
+      sanitizedHealthGoals = data.healthGoals.filter(item => 
+        item && typeof item === 'string' && item.trim() !== ''
+      );
+    }
       
     // Limit goals to maximum 3
     if (sanitizedHealthGoals.length > 3) {
       sanitizedHealthGoals = sanitizedHealthGoals.slice(0, 3);
       toast({
         title: "Selection limited",
-        description: "Maximum 3 health goals allowed. Only the first 3 selections will be saved.",
+        description: "Maximum 3 health goals allowed. Only the first 3 selections saved.",
         variant: "default"
       });
-    }
-    
-    // If "None" is selected for conditions, clear any other selections
-    if (sanitizedConditions.includes("None")) {
-      sanitizedConditions = ["None"];
     }
 
     return {
@@ -123,7 +131,7 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
       console.log("Raw form data before validation:", JSON.stringify(data));
       
       // Format and validate data before sending
-      const formattedData = validateArrays(data);
+      const formattedData = validateAndFormatData(data);
       
       // Log detailed information for debugging
       console.log("Submitting health data (validated):", JSON.stringify(formattedData));
@@ -138,7 +146,7 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
       console.error("Error in health survey submission:", error);
       toast({
         title: "Submission error",
-        description: "There was a problem with your health data. Please try again with fewer selections.",
+        description: "There was a problem with your health data. Try leaving fields empty.",
         variant: "destructive"
       });
     }
@@ -151,7 +159,7 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
         <CardDescription className="text-center">
           Tell us about your health to get personalized recommendations
           <p className="mt-2 text-sm font-medium text-amber-600">
-            Please select no more than 2 conditions and 3 health goals
+            Optional: You can leave all fields empty and update later
           </p>
         </CardDescription>
       </CardHeader>
@@ -221,7 +229,7 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                   <div className="mb-2">
                     <FormLabel>Medical Conditions</FormLabel>
                     <FormDescription>
-                      <span className="text-amber-600 font-medium">Select up to 2 conditions</span> that apply to you
+                      <span className="text-amber-600 font-medium">Optional: Select up to 2 conditions</span>
                     </FormDescription>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -257,7 +265,6 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                                   toast({
                                     title: "Selection limit reached",
                                     description: "Maximum 2 medical conditions allowed.",
-                                    // Changed from "warning" to "default" as "warning" isn't a valid variant
                                     variant: "default"
                                   });
                                   return field.onChange(filteredValue);
@@ -351,7 +358,7 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                   <div className="mb-2">
                     <FormLabel>Health Goals</FormLabel>
                     <FormDescription>
-                      <span className="text-amber-600 font-medium">Select up to 3 goals</span> for your health journey
+                      <span className="text-amber-600 font-medium">Optional: Select up to 3 goals</span>
                     </FormDescription>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -381,11 +388,9 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                                             : [...currentValue, goal]
                                         );
                                       } else {
-                                        // Show warning toast if trying to select more than 3 goals
                                         toast({
                                           title: "Selection limit reached",
                                           description: "Maximum 3 health goals allowed.",
-                                          // Changed from "warning" to "default" as "warning" isn't a valid variant
                                           variant: "default"
                                         });
                                         return field.onChange(currentValue);
