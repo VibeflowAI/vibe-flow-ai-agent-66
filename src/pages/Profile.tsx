@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { UserProfile } from '@/components/profile/UserProfile';
-import { HealthHistoryForm } from '@/components/profile/HealthHistoryForm';
+import { HealthHistoryForm } from '@/components/profile/health-history';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
