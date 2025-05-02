@@ -176,12 +176,12 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('Fetching recommendations for mood:', moodToUse.mood, 'and energy:', moodToUse.energy);
       
-      // Fix: Use proper array format for PostgreSQL array columns (using the ANY operator)
+      // Updated query: Use array_contains operator which works better with PostgreSQL arrays
       const { data, error } = await supabase
         .from('recommendations')
         .select('*')
-        .filter('mood_types', 'cs', `{${moodToUse.mood}}`)
-        .filter('energy_levels', 'cs', `{${moodToUse.energy}}`);
+        .contains('mood_types', [moodToUse.mood])
+        .contains('energy_levels', [moodToUse.energy]);
       
       if (error) {
         console.error('Error fetching recommendations:', error);
@@ -210,7 +210,7 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
           .select('*')
           .limit(5);
           
-        if (!fallbackError && fallbackData) {
+        if (!fallbackError && fallbackData && fallbackData.length > 0) {
           console.log('Found fallback recommendations:', fallbackData.length);
           // Map the snake_case fields from Supabase to camelCase for our app
           const formattedRecommendations: Recommendation[] = fallbackData.map(rec => ({
@@ -225,7 +225,7 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
           
           setRecommendations(formattedRecommendations);
         } else {
-          console.log('No recommendations available at all');
+          console.log('No recommendations available at all, using defaults');
           // Create some default recommendations
           setRecommendations([
             {

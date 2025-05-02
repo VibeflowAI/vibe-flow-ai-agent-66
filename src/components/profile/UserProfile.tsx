@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth, UserPreferences } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -51,7 +50,7 @@ export const UserProfile = () => {
   useEffect(() => {
     if (user) {
       form.reset({
-        displayName: user.displayName,
+        displayName: user.displayName || '',
         activityLevel: user.preferences?.activityLevel || 'moderate',
         dietaryRestrictions: user.preferences?.dietaryRestrictions || [],
         sleepGoals: user.preferences?.sleepGoals || '8 hours',
@@ -75,19 +74,22 @@ export const UserProfile = () => {
     setIsLoading(true);
     
     try {
+      console.log('Form data before processing:', data);
+      
       // FIXED: Handle empty arrays properly for PostgreSQL
-      const dietaryRestrictions = data.dietaryRestrictions && data.dietaryRestrictions.length > 0
+      const dietaryRestrictions = Array.isArray(data.dietaryRestrictions) && data.dietaryRestrictions.length > 0
         ? data.dietaryRestrictions
         : null;
         
       const preferences: UserPreferences = {
         activityLevel: data.activityLevel as 'low' | 'moderate' | 'high',
-        dietaryRestrictions: data.dietaryRestrictions || [],
+        dietaryRestrictions: Array.isArray(data.dietaryRestrictions) ? data.dietaryRestrictions : [],
         sleepGoals: data.sleepGoals,
         notificationsEnabled: user.preferences?.notificationsEnabled || false
       };
       
       console.log('Updating profile with preferences:', preferences);
+      console.log('Dietary restrictions to send to DB:', dietaryRestrictions);
       
       // Update Supabase user data - FIXED: properly format data for PostgreSQL
       const { error } = await supabase
@@ -117,11 +119,12 @@ export const UserProfile = () => {
         description: "Your profile has been updated successfully.",
       });
       
-      // FIXED: Wait briefly before disabling edit mode to allow state updates to complete
+      // FIXED: Wait a bit longer before disabling edit mode to ensure state updates complete
       setTimeout(() => {
         setIsEditing(false);
-      }, 100);
+      }, 300);
     } catch (error) {
+      console.error('Profile update error:', error);
       toast({
         variant: "destructive",
         title: "Failed to update profile",
@@ -138,10 +141,10 @@ export const UserProfile = () => {
         <Avatar className="h-24 w-24 border-4 border-white shadow-sm">
           <AvatarImage src={user.photoURL || ''} alt={user.displayName} />
           <AvatarFallback className="bg-vibe-primary text-white text-xl">
-            {user.displayName.charAt(0)}
+            {user.displayName ? user.displayName.charAt(0) : 'U'}
           </AvatarFallback>
         </Avatar>
-        <CardTitle className="mt-4 text-2xl">{user.displayName}</CardTitle>
+        <CardTitle className="mt-4 text-2xl">{user.displayName || 'User'}</CardTitle>
         <p className="text-gray-500">{user.email}</p>
       </CardHeader>
       
@@ -205,7 +208,7 @@ export const UserProfile = () => {
                               <Checkbox
                                 checked={field.value?.includes(option)}
                                 onCheckedChange={(checked) => {
-                                  const currentValue = field.value || [];
+                                  const currentValue = Array.isArray(field.value) ? field.value : [];
                                   return checked
                                     ? field.onChange([...currentValue, option])
                                     : field.onChange(

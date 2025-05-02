@@ -28,50 +28,12 @@ const Profile = () => {
         // If no recommendations exist, add some default ones
         if (count === 0) {
           console.log('No recommendations found, adding defaults');
-          const defaultRecommendations = [
-            {
-              title: 'Take a 10-minute walk',
-              description: 'Even a short walk can boost your mood and energy levels.',
-              category: 'activity',
-              mood_types: ['tired', 'stressed', 'sad'],
-              energy_levels: ['low', 'medium']
-            },
-            {
-              title: 'Drink a glass of water',
-              description: 'Staying hydrated is essential for maintaining energy levels.',
-              category: 'food',
-              mood_types: ['tired'],
-              energy_levels: ['low', 'medium', 'high']
-            },
-            {
-              title: 'Practice deep breathing',
-              description: 'Take 5 deep breaths, inhaling for 4 counts and exhaling for 6.',
-              category: 'mindfulness',
-              mood_types: ['stressed', 'sad'],
-              energy_levels: ['low', 'medium', 'high']
-            },
-            {
-              title: 'Have a fruit snack',
-              description: 'Natural sugars in fruits provide a gentle energy boost.',
-              category: 'food',
-              mood_types: ['tired'],
-              energy_levels: ['low', 'medium']
-            },
-            {
-              title: 'Quick meditation session',
-              description: 'A 5-minute meditation can help reset your stress levels.',
-              category: 'mindfulness',
-              mood_types: ['stressed'],
-              energy_levels: ['medium', 'high']
-            }
-          ];
           
-          const { error: insertError } = await supabase
-            .from('recommendations')
-            .insert(defaultRecommendations);
-            
-          if (insertError) {
-            console.error('Error adding default recommendations:', insertError);
+          // Enable RLS bypass for this operation (requires auth)
+          const { data: rpcResult, error: rpcError } = await supabase.rpc('add_default_recommendations');
+          
+          if (rpcError) {
+            console.error('Error adding default recommendations via RPC:', rpcError);
           } else {
             console.log('Added default recommendations successfully');
           }
