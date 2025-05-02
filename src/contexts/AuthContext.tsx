@@ -30,6 +30,25 @@ export type HealthProfile = {
   activityLevel: string;
   healthGoals: string[];
   lastUpdated: number;
+  lastCheckupDate?: string;
+  medications?: string[];
+  allergies?: string[];
+};
+
+export type DbUserProfile = {
+  id: string;
+  email: string;
+  name: string;
+  activity_level?: string;
+  dietary_preferences?: string[];
+  sleep_goal?: string;
+  height_cm?: number;
+  weight_kg?: number;
+  blood_type?: string;
+  last_checkup_date?: string;
+  medical_conditions?: string[];
+  current_medications?: string[];
+  allergies?: string[];
 };
 
 type AuthContextType = {
@@ -40,34 +59,8 @@ type AuthContextType = {
   signOut: () => void;
   updateProfile: (data: Partial<User>) => Promise<void>;
   updateHealthProfile: (data: HealthSurveyData) => Promise<void>;
+  fetchUserProfile: () => Promise<void>;
 };
-
-// Mock data for demo purposes (will be replaced by Supabase data)
-const MOCK_USERS = [
-  {
-    id: '1',
-    email: 'demo@example.com',
-    password: 'password',
-    displayName: 'Demo User',
-    photoURL: 'https://api.dicebear.com/6.x/avataaars/svg?seed=Felix',
-    preferences: {
-      dietaryRestrictions: ['vegetarian'],
-      activityLevel: 'moderate' as const,
-      sleepGoals: '8 hours',
-      notificationsEnabled: true,
-    },
-    healthProfile: {
-      height: '175',
-      weight: '70',
-      bloodType: 'O+',
-      conditions: ['None'],
-      sleepHours: '7-8',
-      activityLevel: 'moderate',
-      healthGoals: ['Reduce Stress', 'Improve Sleep'],
-      lastUpdated: Date.now(),
-    },
-  },
-];
 
 // Create context
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -77,20 +70,79 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Convert DB user profile to our app's User type
+  const convertDbProfileToUser = (dbProfile: DbUserProfile): User => {
+    return {
+      id: dbProfile.id,
+      email: dbProfile.email,
+      displayName: dbProfile.name,
+      photoURL: `https://api.dicebear.com/6.x/avataaars/svg?seed=${dbProfile.name}`,
+      preferences: {
+        dietaryRestrictions: dbProfile.dietary_preferences || [],
+        activityLevel: (dbProfile.activity_level as 'low' | 'moderate' | 'high') || 'moderate',
+        sleepGoals: dbProfile.sleep_goal || '8 hours',
+        notificationsEnabled: true,
+      },
+      healthProfile: {
+        height: dbProfile.height_cm?.toString() || '',
+        weight: dbProfile.weight_kg?.toString() || '',
+        bloodType: dbProfile.blood_type || '',
+        conditions: dbProfile.medical_conditions || [],
+        sleepHours: '7-8', // Default value
+        activityLevel: dbProfile.activity_level || 'moderate',
+        healthGoals: [],
+        lastUpdated: Date.now(),
+        lastCheckupDate: dbProfile.last_checkup_date,
+        medications: dbProfile.current_medications,
+        allergies: dbProfile.allergies,
+      },
+    };
+  };
+
+  // Fetch user profile from Supabase
+  const fetchUserProfile = async () => {
+    try {
+      const { data: authUser } = await supabase.auth.getUser();
+      if (!authUser.user) return;
+      
+      const { data: profile, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authUser.user.id)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        return;
+      }
+      
+      if (profile) {
+        const userData = convertDbProfileToUser(profile as DbUserProfile);
+        setUser(userData);
+      }
+    } catch (error) {
+      console.error('Error in fetchUserProfile:', error);
+    }
+  };
+
   useEffect(() => {
     // Set up the Supabase auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         if (session && session.user) {
-          // Convert Supabase user to our User type
-          const convertedUser: User = {
+          // First just set basic user info to avoid delays
+          const basicUser: User = {
             id: session.user.id,
             email: session.user.email || '',
             displayName: session.user.user_metadata.displayName || session.user.email?.split('@')[0] || 'User',
             photoURL: session.user.user_metadata.photoURL,
-            // We'll fetch preferences and health profile separately if needed
           };
-          setUser(convertedUser);
+          setUser(basicUser);
+          
+          // Then fetch full profile asynchronously
+          setTimeout(() => {
+            fetchUserProfile();
+          }, 0);
         } else {
           setUser(null);
         }
@@ -102,14 +154,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session && session.user) {
-        // Convert Supabase user to our User type
-        const convertedUser: User = {
+        // Set basic user info immediately
+        const basicUser: User = {
           id: session.user.id,
           email: session.user.email || '',
           displayName: session.user.user_metadata.displayName || session.user.email?.split('@')[0] || 'User',
           photoURL: session.user.user_metadata.photoURL,
         };
-        setUser(convertedUser);
+        setUser(basicUser);
+        
+        // Then fetch full profile
+        fetchUserProfile();
       }
       setLoading(false);
     };
@@ -214,13 +269,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       if (!user) throw new Error('No authenticated user');
       
-      const { error } = await supabase.auth.updateUser({
+      // Update user metadata in Supabase auth
+      const { error: authError } = await supabase.auth.updateUser({
         data: {
           ...data,
         }
       });
       
-      if (error) throw error;
+      if (authError) throw authError;
+      
+      // Update user profile in users table
+      if (data.preferences || data.displayName) {
+        const { error: dbError } = await supabase
+          .from('users')
+          .update({
+            name: data.displayName || user.displayName,
+            activity_level: data.preferences?.activityLevel || user.preferences?.activityLevel,
+            dietary_preferences: data.preferences?.dietaryRestrictions || user.preferences?.dietaryRestrictions,
+            sleep_goal: data.preferences?.sleepGoals || user.preferences?.sleepGoals,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id);
+        
+        if (dbError) throw dbError;
+      }
       
       // Update local state
       setUser(prev => prev ? { ...prev, ...data } : null);
@@ -255,14 +327,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         lastUpdated: Date.now(),
       };
       
-      // Update user metadata in Supabase
-      const { error } = await supabase.auth.updateUser({
+      // Update user metadata in Supabase auth
+      const { error: authError } = await supabase.auth.updateUser({
         data: {
           healthProfile
         }
       });
       
-      if (error) throw error;
+      if (authError) throw authError;
+      
+      // Update corresponding fields in users table
+      const { error: dbError } = await supabase
+        .from('users')
+        .update({
+          height_cm: healthData.height ? parseFloat(healthData.height) : null,
+          weight_kg: healthData.weight ? parseFloat(healthData.weight) : null,
+          blood_type: healthData.bloodType || null,
+          medical_conditions: healthData.conditions || [],
+          activity_level: healthData.activityLevel || 'moderate',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+      
+      if (dbError) throw dbError;
       
       // Update local state
       setUser(prev => prev ? { 
@@ -293,6 +380,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     signOut,
     updateProfile,
     updateHealthProfile,
+    fetchUserProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

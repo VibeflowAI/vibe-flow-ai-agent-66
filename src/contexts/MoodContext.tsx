@@ -1,7 +1,6 @@
 
-import React, { createContext, useState, useContext, useCallback, ReactNode, useEffect } from 'react';
-import { toast } from '@/hooks/use-toast';
-import { useAuth, User } from './AuthContext';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
 // Types
@@ -10,20 +9,20 @@ export type EnergyLevel = 'low' | 'medium' | 'high';
 
 export type MoodEntry = {
   id: string;
-  timestamp: number;
   mood: MoodType;
   energy: EnergyLevel;
   note?: string;
+  timestamp: number;
 };
 
-export type Recommendation = {
+type Recommendation = {
   id: string;
   title: string;
   description: string;
-  category: 'food' | 'activity' | 'mindfulness';
-  imageUrl?: string;
+  category: string;
   moodTypes: MoodType[];
   energyLevels: EnergyLevel[];
+  imageUrl?: string;
 };
 
 type MoodContextType = {
@@ -38,261 +37,165 @@ type MoodContextType = {
   energyDescriptions: Record<EnergyLevel, string>;
 };
 
-// Create context
+// Create the context
 export const MoodContext = createContext<MoodContextType | undefined>(undefined);
-
-// Mock recommendations data (will be replaced by Supabase data in production)
-const MOCK_RECOMMENDATIONS: Recommendation[] = [
-  {
-    id: '1',
-    title: 'Morning Smoothie Bowl',
-    description: 'Start your day with a nutritious smoothie bowl topped with fresh fruits and granola.',
-    category: 'food',
-    imageUrl: 'https://images.unsplash.com/photo-1494597564530-871f2b93ac55?auto=format&fit=crop&q=80&w=2013&ixlib=rb-4.0.3',
-    moodTypes: ['tired', 'sad'],
-    energyLevels: ['low', 'medium'],
-  },
-  {
-    id: '2',
-    title: 'Gentle Yoga Session',
-    description: 'A 15-minute gentle yoga session to help you relax and recharge.',
-    category: 'activity',
-    imageUrl: 'https://images.unsplash.com/photo-1575052814086-f385e2e2ad1b?auto=format&fit=crop&q=80&w=2070&ixlib=rb-4.0.3',
-    moodTypes: ['stressed', 'tired'],
-    energyLevels: ['low', 'medium'],
-  },
-  {
-    id: '3',
-    title: 'Guided Meditation',
-    description: 'A 10-minute guided meditation to help clear your mind and reduce stress.',
-    category: 'mindfulness',
-    imageUrl: 'https://images.unsplash.com/photo-1474418397713-2f1761efc8d4?auto=format&fit=crop&q=80&w=2036&ixlib=rb-4.0.3',
-    moodTypes: ['stressed', 'sad'],
-    energyLevels: ['low', 'medium', 'high'],
-  },
-  {
-    id: '4',
-    title: 'High-Energy Workout',
-    description: 'A quick high-intensity workout to boost your energy and mood.',
-    category: 'activity',
-    imageUrl: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&q=80&w=2070&ixlib=rb-4.0.3',
-    moodTypes: ['happy', 'calm'],
-    energyLevels: ['medium', 'high'],
-  },
-  {
-    id: '5',
-    title: 'Veggie-Packed Meal',
-    description: 'A colorful, nutrient-dense meal filled with seasonal vegetables.',
-    category: 'food',
-    imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=2070&ixlib=rb-4.0.3',
-    moodTypes: ['happy', 'calm', 'tired'],
-    energyLevels: ['medium', 'high'],
-  },
-  {
-    id: '6',
-    title: 'Gratitude Journaling',
-    description: "Take a few minutes to write down things you're grateful for to shift your perspective.",
-    category: 'mindfulness',
-    imageUrl: 'https://images.unsplash.com/photo-1506784365847-bbad939e9335?auto=format&fit=crop&q=80&w=2068&ixlib=rb-4.0.3',
-    moodTypes: ['sad', 'stressed'],
-    energyLevels: ['low', 'medium'],
-  },
-];
 
 // Provider component
 export const MoodProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth();
   const [currentMood, setCurrentMood] = useState<MoodEntry | null>(null);
   const [moodHistory, setMoodHistory] = useState<MoodEntry[]>([]);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
 
-  // Helper objects for UI
-  const moodEmojis = {
+  // Emoji mapping for each mood type
+  const moodEmojis: Record<MoodType, string> = {
     happy: '😊',
     calm: '😌',
     tired: '😴',
-    stressed: '😓',
+    stressed: '😰',
     sad: '😞'
   };
-
-  const moodDescriptions = {
-    happy: 'Feeling positive and optimistic',
-    calm: 'Feeling peaceful and centered',
-    tired: 'Feeling low on energy',
-    stressed: 'Feeling tense and overwhelmed',
-    sad: 'Feeling down or blue'
+  
+  // Descriptions for each mood
+  const moodDescriptions: Record<MoodType, string> = {
+    happy: 'You feel joyful, content, and optimistic about your day.',
+    calm: 'You feel relaxed, at peace, and mentally clear.',
+    tired: 'You feel physically or mentally fatigued and need rest.',
+    stressed: 'You feel overwhelmed, tense, or anxious about demands.',
+    sad: 'You feel down, low in spirits, or emotionally heavy.'
+  };
+  
+  // Descriptions for energy levels
+  const energyDescriptions: Record<EnergyLevel, string> = {
+    low: 'You have minimal energy, feeling drained or exhausted.',
+    medium: 'You have moderate energy, able to function but not at peak.',
+    high: 'You have abundant energy, feeling vibrant and ready to go.'
   };
 
-  const energyDescriptions = {
-    low: 'Minimal energy available',
-    medium: 'Moderate energy levels',
-    high: 'Full of energy and ready to go'
-  };
-
-  // Fetch mood history from Supabase when user changes
-  useEffect(() => {
-    const fetchMoodHistory = async () => {
-      if (!user) {
-        setMoodHistory([]);
-        setCurrentMood(null);
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        
-        // Fetch mood data from Supabase
-        const { data, error } = await supabase
-          .from('moods')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('timestamp', { ascending: false });
-          
-        if (error) {
-          console.error('Error fetching mood history:', error);
-          toast({
-            variant: 'destructive',
-            title: 'Failed to load mood history',
-            description: error.message,
-          });
-          return;
-        }
-        
-        // Format the data
-        const formattedData = data.map(entry => ({
-          id: entry.id,
-          timestamp: new Date(entry.timestamp).getTime(),
-          mood: entry.mood as MoodType,
-          energy: entry.energy as EnergyLevel,
-          note: entry.note || undefined,
-        }));
-        
-        setMoodHistory(formattedData);
-        if (formattedData.length > 0) {
-          setCurrentMood(formattedData[0]);
-        }
-      } catch (error) {
-        console.error('Failed to fetch mood history:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchMoodHistory();
-  }, [user]);
-
-  // Log a new mood entry
-  const logMood = useCallback(async (mood: MoodType, energy: EnergyLevel, note?: string) => {
-    if (!user) return Promise.reject(new Error('User not authenticated'));
-    
-    setIsLoading(true);
+  // Fetch mood history from Supabase
+  const fetchMoodHistory = useCallback(async () => {
+    if (!user) return;
     
     try {
-      // Create new mood entry
-      const newMoodEntry: MoodEntry = {
-        id: crypto.randomUUID(),
-        timestamp: Date.now(),
-        mood,
-        energy,
-        note
-      };
-      
-      // Save to Supabase
-      const { error } = await supabase
-        .from('moods')
-        .insert({
-          user_id: user.id,
-          mood,
-          energy,
-          note,
-          timestamp: new Date().toISOString(),
-        });
+      const { data, error } = await supabase
+        .from('mood_entries')
+        .select('id, mood, energy_level, note, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
         
       if (error) {
-        throw error;
+        console.error('Error fetching mood history:', error);
+        return;
       }
       
+      if (data) {
+        const formattedHistory: MoodEntry[] = data.map(entry => ({
+          id: entry.id,
+          mood: entry.mood as MoodType,
+          energy: entry.energy_level as EnergyLevel,
+          note: entry.note || undefined,
+          timestamp: new Date(entry.created_at).getTime()
+        }));
+        
+        setMoodHistory(formattedHistory);
+        
+        // Set current mood as the most recent entry
+        if (formattedHistory.length > 0) {
+          setCurrentMood(formattedHistory[0]);
+        }
+      }
+    } catch (error) {
+      console.error('Error in fetchMoodHistory:', error);
+    }
+  }, [user]);
+  
+  // Initial fetch of mood history when user changes
+  useEffect(() => {
+    if (user) {
+      fetchMoodHistory();
+    } else {
+      setMoodHistory([]);
+      setCurrentMood(null);
+    }
+  }, [user, fetchMoodHistory]);
+
+  // Log a new mood entry
+  const logMood = async (mood: MoodType, energy: EnergyLevel, note?: string) => {
+    setIsLoading(true);
+    try {
+      const timestamp = Date.now();
+      const newEntry: MoodEntry = {
+        id: `mood-${timestamp}`,
+        mood,
+        energy,
+        note,
+        timestamp
+      };
+      
       // Update state
-      const updatedHistory = [newMoodEntry, ...moodHistory];
-      setCurrentMood(newMoodEntry);
-      setMoodHistory(updatedHistory);
+      setCurrentMood(newEntry);
+      setMoodHistory(prev => [newEntry, ...prev]);
       
-      toast({
-        title: 'Mood logged',
-        description: `Your ${mood} mood has been recorded.`,
-      });
-      
-      // Get recommendations based on the new mood
-      getRecommendationsForMood(newMoodEntry);
+      // After adding to database, refresh the mood history
+      if (user) {
+        // We're handling the Supabase insert in the MoodTracker component
+        await fetchMoodHistory();
+      }
       
       return Promise.resolve();
     } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Failed to log mood',
-        description: error instanceof Error ? error.message : 'An error occurred',
-      });
+      console.error('Error logging mood:', error);
       return Promise.reject(error);
     } finally {
       setIsLoading(false);
     }
-  }, [moodHistory, user]);
+  };
 
-  // Get recommendations based on current mood and energy level
-  const getRecommendationsForMood = useCallback(async (moodEntry: MoodEntry) => {
-    setIsLoading(true);
+  // Get personalized recommendations based on current mood
+  const getRecommendations = useCallback(async () => {
+    if (!currentMood) return;
     
+    setIsLoading(true);
     try {
-      // Fetch recommendations from Supabase
+      // Get recommendations from Supabase
       const { data, error } = await supabase
         .from('recommendations')
-        .select('*');
-        
+        .select('*')
+        .contains('mood_types', [currentMood.mood])
+        .contains('energy_levels', [currentMood.energy]);
+      
       if (error) {
-        throw error;
+        console.error('Error fetching recommendations:', error);
+        return;
       }
       
       if (data && data.length > 0) {
-        // Filter recommendations based on mood and energy
-        const filteredRecommendations = data.filter((rec) => 
-          rec.mood_types.includes(moodEntry.mood) && 
-          rec.energy_levels.includes(moodEntry.energy)
-        ).map(rec => ({
-          id: rec.id,
-          title: rec.title,
-          description: rec.description,
-          category: rec.category as 'food' | 'activity' | 'mindfulness',
-          imageUrl: rec.image_url || undefined,
-          moodTypes: rec.mood_types as MoodType[],
-          energyLevels: rec.energy_levels as EnergyLevel[],
-        }));
-        
-        if (filteredRecommendations.length > 0) {
-          setRecommendations(filteredRecommendations);
-        } else {
-          // Fallback to mock data if no matching recommendations
-          setRecommendations(MOCK_RECOMMENDATIONS.slice(0, 3));
-        }
+        setRecommendations(data as Recommendation[]);
       } else {
-        // Fallback to mock data if API returns no data
-        setRecommendations(MOCK_RECOMMENDATIONS);
+        // Fallback to get any recommendations if none match the specific mood/energy
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('recommendations')
+          .select('*')
+          .limit(5);
+          
+        if (!fallbackError && fallbackData) {
+          setRecommendations(fallbackData as Recommendation[]);
+        }
       }
     } catch (error) {
-      console.error('Failed to fetch recommendations:', error);
-      // Fallback to mock recommendations in case of error
-      setRecommendations(MOCK_RECOMMENDATIONS.slice(0, 3));
+      console.error('Error getting recommendations:', error);
     } finally {
       setIsLoading(false);
     }
-  }, []);
-
-  // Get recommendations (to be called from outside)
-  const getRecommendations = useCallback(() => {
+  }, [currentMood]);
+  
+  // Get recommendations when current mood changes
+  useEffect(() => {
     if (currentMood) {
-      getRecommendationsForMood(currentMood);
+      getRecommendations();
     }
-  }, [currentMood, getRecommendationsForMood]);
+  }, [currentMood, getRecommendations]);
 
   const value = {
     currentMood,
@@ -303,13 +206,13 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
     getRecommendations,
     moodEmojis,
     moodDescriptions,
-    energyDescriptions
+    energyDescriptions,
   };
 
   return <MoodContext.Provider value={value}>{children}</MoodContext.Provider>;
 };
 
-// Custom hook for using mood context
+// Custom hook for using the mood context
 export const useMood = () => {
   const context = useContext(MoodContext);
   if (context === undefined) {

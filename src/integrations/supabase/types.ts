@@ -57,6 +57,41 @@ export type Database = {
         }
         Relationships: []
       }
+      mood_entries: {
+        Row: {
+          created_at: string
+          energy_level: string
+          id: string
+          mood: string
+          note: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          energy_level: string
+          id?: string
+          mood: string
+          note?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          energy_level?: string
+          id?: string
+          mood?: string
+          note?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mood_entries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       moods: {
         Row: {
           energy: string
@@ -105,6 +140,48 @@ export type Database = {
         }
         Relationships: []
       }
+      recommendation_ratings: {
+        Row: {
+          completed: boolean | null
+          created_at: string
+          id: string
+          rating: number | null
+          recommendation_id: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean | null
+          created_at?: string
+          id?: string
+          rating?: number | null
+          recommendation_id: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean | null
+          created_at?: string
+          id?: string
+          rating?: number | null
+          recommendation_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommendation_ratings_recommendation_id_fkey"
+            columns: ["recommendation_id"]
+            isOneToOne: false
+            referencedRelation: "recommendations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recommendation_ratings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recommendations: {
         Row: {
           category: string
@@ -137,6 +214,92 @@ export type Database = {
           title?: string
         }
         Relationships: []
+      }
+      users: {
+        Row: {
+          activity_level: string | null
+          allergies: string[] | null
+          blood_type: string | null
+          created_at: string
+          current_medications: string[] | null
+          dietary_preferences: string[] | null
+          email: string
+          height_cm: number | null
+          id: string
+          last_checkup_date: string | null
+          medical_conditions: string[] | null
+          name: string
+          sleep_goal: string | null
+          updated_at: string
+          weight_kg: number | null
+        }
+        Insert: {
+          activity_level?: string | null
+          allergies?: string[] | null
+          blood_type?: string | null
+          created_at?: string
+          current_medications?: string[] | null
+          dietary_preferences?: string[] | null
+          email: string
+          height_cm?: number | null
+          id: string
+          last_checkup_date?: string | null
+          medical_conditions?: string[] | null
+          name: string
+          sleep_goal?: string | null
+          updated_at?: string
+          weight_kg?: number | null
+        }
+        Update: {
+          activity_level?: string | null
+          allergies?: string[] | null
+          blood_type?: string | null
+          created_at?: string
+          current_medications?: string[] | null
+          dietary_preferences?: string[] | null
+          email?: string
+          height_cm?: number | null
+          id?: string
+          last_checkup_date?: string | null
+          medical_conditions?: string[] | null
+          name?: string
+          sleep_goal?: string | null
+          updated_at?: string
+          weight_kg?: number | null
+        }
+        Relationships: []
+      }
+      wellness_stats: {
+        Row: {
+          activity_completion: number | null
+          last_updated: string
+          mindfulness_goals: number | null
+          mood_consistency: number | null
+          user_id: string
+        }
+        Insert: {
+          activity_completion?: number | null
+          last_updated?: string
+          mindfulness_goals?: number | null
+          mood_consistency?: number | null
+          user_id: string
+        }
+        Update: {
+          activity_completion?: number | null
+          last_updated?: string
+          mindfulness_goals?: number | null
+          mood_consistency?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wellness_stats_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

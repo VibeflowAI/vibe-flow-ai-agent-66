@@ -4,21 +4,60 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useMood, MoodType, EnergyLevel } from '@/contexts/MoodContext';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 export const MoodTracker = () => {
   const { logMood, isLoading, moodEmojis, moodDescriptions, energyDescriptions } = useMood();
+  const { user } = useAuth();
   const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
   const [selectedEnergy, setSelectedEnergy] = useState<EnergyLevel | null>(null);
   const [note, setNote] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const moods: MoodType[] = ['happy', 'calm', 'tired', 'stressed', 'sad'];
   const energyLevels: EnergyLevel[] = ['low', 'medium', 'high'];
 
   const handleSubmit = async () => {
     if (selectedMood && selectedEnergy) {
-      await logMood(selectedMood, selectedEnergy, note);
-      // Reset form after submission
-      setNote('');
+      setIsSaving(true);
+      try {
+        // Log mood in context
+        await logMood(selectedMood, selectedEnergy, note);
+        
+        // Save to Supabase if user is authenticated
+        if (user) {
+          const { error } = await supabase.from('mood_entries').insert({
+            user_id: user.id,
+            mood: selectedMood,
+            energy_level: selectedEnergy,
+            note: note || null
+          });
+          
+          if (error) {
+            console.error('Error saving mood to Supabase:', error);
+            throw error;
+          }
+        }
+        
+        // Reset form after submission
+        setNote('');
+        
+        toast({
+          title: 'Mood tracked successfully',
+          description: 'Your mood has been recorded and will be used for personalized recommendations.',
+        });
+      } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Failed to track mood',
+          description: 'There was a problem saving your mood. Please try again.',
+        });
+        console.error('Error in handleSubmit:', error);
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -111,10 +150,10 @@ export const MoodTracker = () => {
         >
           <Button
             onClick={handleSubmit}
-            disabled={!selectedMood || !selectedEnergy || isLoading}
+            disabled={!selectedMood || !selectedEnergy || isLoading || isSaving}
             className="w-full py-6 text-lg font-medium bg-gradient-to-r from-vibe-primary to-vibe-dark hover:from-vibe-dark hover:to-vibe-primary text-white shadow-lg shadow-vibe-primary/30 transition-all duration-300"
           >
-            {isLoading ? 
+            {isLoading || isSaving ? 
               <span className="flex items-center">
                 <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

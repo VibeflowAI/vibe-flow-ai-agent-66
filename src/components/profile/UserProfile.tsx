@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth, UserPreferences } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,11 +24,19 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { useForm } from 'react-hook-form';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export const UserProfile = () => {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, fetchUserProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Fetch the latest user profile when the component mounts
+  useEffect(() => {
+    if (user) {
+      fetchUserProfile();
+    }
+  }, [fetchUserProfile, user]);
   
   const form = useForm({
     defaultValues: {
@@ -38,6 +46,18 @@ export const UserProfile = () => {
       sleepGoals: user?.preferences?.sleepGoals || '8 hours',
     }
   });
+
+  // Update form values when user changes
+  useEffect(() => {
+    if (user) {
+      form.reset({
+        displayName: user.displayName,
+        activityLevel: user.preferences?.activityLevel || 'moderate',
+        dietaryRestrictions: user.preferences?.dietaryRestrictions || [],
+        sleepGoals: user.preferences?.sleepGoals || '8 hours',
+      });
+    }
+  }, [form, user]);
 
   if (!user) return null;
 
@@ -62,6 +82,7 @@ export const UserProfile = () => {
         notificationsEnabled: user.preferences?.notificationsEnabled || false
       };
       
+      // Update profile in auth context and in Supabase
       await updateProfile({
         displayName: data.displayName,
         preferences

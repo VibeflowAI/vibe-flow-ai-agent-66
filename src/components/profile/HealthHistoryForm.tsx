@@ -1,10 +1,12 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 import {
   Form,
@@ -59,6 +61,8 @@ const conditions = [
 type HealthHistoryFormData = z.infer<typeof healthHistorySchema>;
 
 export const HealthHistoryForm = () => {
+  const { user, updateHealthProfile } = useAuth();
+  
   const form = useForm<HealthHistoryFormData>({
     resolver: zodResolver(healthHistorySchema),
     defaultValues: {
@@ -67,13 +71,119 @@ export const HealthHistoryForm = () => {
       allergies: "",
     },
   });
+  
+  // Load user health data when component mounts
+  useEffect(() => {
+    const loadHealthData = async () => {
+      if (!user || !user.id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('height_cm, weight_kg, blood_type, last_checkup_date, medical_conditions, current_medications, allergies')
+          .eq('id', user.id)
+          .single();
+          
+        if (error) {
+          console.error('Error loading health data:', error);
+          return;
+        }
+        
+        if (data) {
+          form.setValue('height', data.height_cm?.toString() || '');
+          form.setValue('weight', data.weight_kg?.toString() || '');
+          form.setValue('bloodType', data.blood_type || '');
+          
+          if (data.last_checkup_date) {
+            form.setValue('lastCheckup', new Date(data.last_checkup_date));
+          }
+          
+          if (data.medical_conditions && Array.isArray(data.medical_conditions)) {
+            form.setValue('conditions', data.medical_conditions);
+          }
+          
+          if (data.current_medications) {
+            form.setValue('medications', Array.isArray(data.current_medications) 
+              ? data.current_medications.join(', ')
+              : data.current_medications);
+          }
+          
+          if (data.allergies) {
+            form.setValue('allergies', Array.isArray(data.allergies) 
+              ? data.allergies.join(', ')
+              : data.allergies);
+          }
+        }
+      } catch (error) {
+        console.error('Error in loadHealthData:', error);
+      }
+    };
+    
+    loadHealthData();
+  }, [user, form]);
 
-  const onSubmit = (data: HealthHistoryFormData) => {
-    console.log('Health History Data:', data);
-    toast({
-      title: "Health history updated",
-      description: "Your health information has been saved successfully.",
-    });
+  const onSubmit = async (data: HealthHistoryFormData) => {
+    if (!user || !user.id) {
+      toast({
+        variant: "destructive",
+        title: "Authentication required",
+        description: "You need to be signed in to update your health history.",
+      });
+      return;
+    }
+    
+    try {
+      // Format medications and allergies as arrays
+      const medications = data.medications 
+        ? data.medications.split(',').map(item => item.trim())
+        : [];
+      
+      const allergies = data.allergies
+        ? data.allergies.split(',').map(item => item.trim())
+        : [];
+      
+      // Update health data in Supabase
+      const { error } = await supabase
+        .from('users')
+        .update({
+          height_cm: parseFloat(data.height),
+          weight_kg: parseFloat(data.weight),
+          blood_type: data.bloodType,
+          last_checkup_date: data.lastCheckup.toISOString().split('T')[0],
+          medical_conditions: data.conditions,
+          current_medications: medications,
+          allergies: allergies,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+        
+      if (error) {
+        console.error('Error updating health history:', error);
+        throw error;
+      }
+      
+      // Also update in auth context
+      await updateHealthProfile({
+        height: data.height,
+        weight: data.weight,
+        bloodType: data.bloodType,
+        conditions: data.conditions,
+        healthGoals: [],
+        sleepHours: user.healthProfile?.sleepHours || '7-8',
+        activityLevel: user.healthProfile?.activityLevel || 'moderate',
+      });
+      
+      toast({
+        title: "Health history updated",
+        description: "Your health information has been saved successfully.",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Update failed",
+        description: error instanceof Error ? error.message : "Failed to update health history",
+      });
+    }
   };
 
   return (
@@ -246,7 +356,7 @@ export const HealthHistoryForm = () => {
                     />
                   </FormControl>
                   <FormDescription>
-                    Include any regular medications or supplements
+                    Include any regular medications or supplements, separated by commas
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -265,12 +375,15 @@ export const HealthHistoryForm = () => {
                       {...field}
                     />
                   </FormControl>
+                  <FormDescription>
+                    Separate multiple allergies by commas
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <Button type="submit" className="w-full md:w-auto">
+            <Button type="submit" className="w-full md:w-auto bg-vibe-primary hover:bg-vibe-dark">
               Save Health History
             </Button>
           </form>
