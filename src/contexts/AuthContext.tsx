@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { HealthSurveyData } from '@/components/auth/HealthSurvey';
@@ -245,23 +244,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // After successful signup, manually create the user record in the users table
       if (data.user) {
-        // FIX: Format arrays properly for PostgreSQL
-        // Completely remove the array format when sending to Postgres to prevent malformed array literals
-        const medical_conditions = Array.isArray(healthData?.conditions) && healthData.conditions.length > 0 ? 
-          healthData.conditions : null;
+        // FIX: Send conditions as a simple array rather than a stringified JSON array
+        // This is the key fix for the Postgres array formatting issue
+        const healthConditions = Array.isArray(healthData?.conditions) && healthData.conditions.length > 0 
+          ? healthData.conditions 
+          : null;
           
-        console.log("Creating user record with properly formatted data:", {
-          id: data.user.id,
-          email,
-          name: displayName,
-          activity_level: healthData?.activityLevel || 'moderate',
-          height_cm: healthData?.height ? parseFloat(healthData.height) : null,
-          weight_kg: healthData?.weight ? parseFloat(healthData.weight) : null,
-          blood_type: healthData?.bloodType || null,
-          medical_conditions
-        });
+        console.log("Creating user record with properly formatted conditions:", healthConditions);
 
-        // CRITICAL FIX: Handle arrays properly for PostgreSQL
+        // CRITICAL FIX: Send arrays directly to PostgreSQL without any JSON stringification
         const { error: insertError } = await supabase
           .from('users')
           .insert({
@@ -274,7 +265,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             height_cm: healthData?.height ? parseFloat(healthData.height) : null,
             weight_kg: healthData?.weight ? parseFloat(healthData.weight) : null,
             blood_type: healthData?.bloodType || null,
-            medical_conditions: medical_conditions, // Send as plain array or null
+            medical_conditions: healthConditions, // Send as plain array or null
             current_medications: null,
             allergies: null
           });

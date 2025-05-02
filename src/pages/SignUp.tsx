@@ -24,12 +24,14 @@ const SignUp = () => {
     
     // Improved error message handling for PostgreSQL array format issues
     let userFriendlyMessage = message;
+    
     if (
       message.includes('malformed array literal') || 
       message.includes('Database error saving new user') ||
-      message.includes('ERROR: malformed array')
+      message.includes('ERROR: malformed array') ||
+      message.toLowerCase().includes('error with health data')
     ) {
-      userFriendlyMessage = 'There was a problem with your health data. Please try again with different options or select fewer conditions.';
+      userFriendlyMessage = 'There was a problem with your health data. Please try selecting fewer conditions or a different combination of options.';
     }
     
     setError(userFriendlyMessage);

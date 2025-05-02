@@ -68,14 +68,14 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
 
   // Improved validation for arrays to ensure proper formatting before submission
   const validateArrays = (data: HealthSurveyData): HealthSurveyData => {
-    // Ensure conditions is always an initialized array
+    // Ensure conditions is always a properly formatted array
     const sanitizedConditions = Array.isArray(data.conditions) ? 
-      data.conditions.filter(item => item !== undefined && item !== null) : 
+      data.conditions.filter(item => item !== undefined && item !== null && item !== "") : 
       [];
     
-    // Ensure healthGoals is always an initialized array
+    // Ensure healthGoals is always a properly formatted array
     const sanitizedHealthGoals = Array.isArray(data.healthGoals) ? 
-      data.healthGoals.filter(item => item !== undefined && item !== null) : 
+      data.healthGoals.filter(item => item !== undefined && item !== null && item !== "") : 
       [];
     
     // If "None" is selected for conditions, clear any other selections
