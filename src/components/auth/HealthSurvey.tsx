@@ -80,7 +80,8 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
       toast({
         title: "Selection limited",
         description: "Maximum 2 medical conditions allowed. Only the first 2 selections will be saved.",
-        variant: "warning"
+        // Changed from "warning" to "default" as "warning" isn't a valid variant
+        variant: "default"
       });
     }
     
@@ -95,7 +96,8 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
       toast({
         title: "Selection limited",
         description: "Maximum 3 health goals allowed. Only the first 3 selections will be saved.",
-        variant: "warning"
+        // Changed from "warning" to "default" as "warning" isn't a valid variant
+        variant: "default"
       });
     }
     
@@ -250,7 +252,8 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                                   toast({
                                     title: "Selection limit reached",
                                     description: "Maximum 2 medical conditions allowed.",
-                                    variant: "warning"
+                                    // Changed from "warning" to "default" as "warning" isn't a valid variant
+                                    variant: "default"
                                   });
                                   return field.onChange(filteredValue);
                                 }
@@ -377,7 +380,8 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                                         toast({
                                           title: "Selection limit reached",
                                           description: "Maximum 3 health goals allowed.",
-                                          variant: "warning"
+                                          // Changed from "warning" to "default" as "warning" isn't a valid variant
+                                          variant: "default"
                                         });
                                         return field.onChange(currentValue);
                                       }
