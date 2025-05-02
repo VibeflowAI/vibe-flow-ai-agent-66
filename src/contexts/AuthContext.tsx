@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { HealthSurveyData } from '@/components/auth/HealthSurvey';
@@ -207,34 +206,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log("Received health data for signup:", healthData);
       
-      // Format arrays properly for PostgreSQL
-      let medicalConditions = null;
-      if (healthData?.conditions && Array.isArray(healthData.conditions) && healthData.conditions.length > 0) {
-        // For PostgreSQL, we need to properly format the array with quotes and brackets
-        // This is critical for avoiding the "malformed array literal" error
-        const validConditions = healthData.conditions.filter(item => item && typeof item === 'string' && item.trim() !== '');
-        if (validConditions.length > 0) {
-          medicalConditions = validConditions;
-        }
-      }
-      
-      let healthGoals = null;
-      if (healthData?.healthGoals && Array.isArray(healthData.healthGoals) && healthData.healthGoals.length > 0) {
-        const validGoals = healthData.healthGoals.filter(item => item && typeof item === 'string' && item.trim() !== '');
-        if (validGoals.length > 0) {
-          healthGoals = validGoals;
-        }
-      }
-      
-      // Process health data if available
+      // Create health profile object
       const healthProfile: HealthProfile = healthData ? {
         height: healthData.height || '',
         weight: healthData.weight || '',
         bloodType: healthData.bloodType || '',
-        conditions: healthData.conditions || [],
+        conditions: Array.isArray(healthData.conditions) ? healthData.conditions : [],
         sleepHours: healthData.sleepHours || '',
         activityLevel: healthData.activityLevel || 'moderate',
-        healthGoals: healthData.healthGoals || [],
+        healthGoals: Array.isArray(healthData.healthGoals) ? healthData.healthGoals : [],
         lastUpdated: Date.now(),
       } : {
         height: '',
@@ -246,11 +226,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         healthGoals: [],
         lastUpdated: Date.now()
       };
-      
-      // Extra debug logs before signup
-      console.log("Health profile for auth metadata:", JSON.stringify(healthProfile));
-      console.log("Medical conditions prepared for DB:", medicalConditions);
-      console.log("Health goals prepared for DB:", healthGoals);
       
       // Sign up with Supabase, including metadata
       const { data, error } = await supabase.auth.signUp({
@@ -273,9 +248,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const heightCm = healthData?.height ? parseFloat(healthData.height) : null;
         const weightKg = healthData?.weight ? parseFloat(healthData.weight) : null;
         
-        // Log what we're inserting into the database
-        console.log("Creating user record with:");
-        console.log("- medical_conditions:", medicalConditions);
+        // Important: When creating the user record, ensure arrays are either properly formatted or null
+        // PostgreSQL requires special formatting for arrays, so we'll use null for empty arrays
+        const medical_conditions = 
+          Array.isArray(healthData?.conditions) && 
+          healthData.conditions.length > 0 ? 
+          healthData.conditions : null;
+        
+        console.log("Creating user record with formatted data:");
+        console.log("- medical_conditions:", medical_conditions);
         console.log("- height_cm:", heightCm);
         console.log("- weight_kg:", weightKg);
         console.log("- blood_type:", healthData?.bloodType || null);
@@ -293,14 +274,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             height_cm: heightCm,
             weight_kg: weightKg,
             blood_type: healthData?.bloodType || null,
-            medical_conditions: medicalConditions, // Use our properly formatted version
+            medical_conditions: medical_conditions,
             current_medications: null,
             allergies: null
           });
           
         if (insertError) {
           console.error('Error creating user record:', insertError);
-          throw new Error('Failed to create user record: ' + insertError.message);
+          throw new Error('Database error saving new user: ' + insertError.message);
         }
       }
       
@@ -320,7 +301,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           errorMessage.includes('ERROR: malformed array') ||
           errorMessage.includes('Database error saving new user')
         ) {
-          errorMessage = 'Error with health data format. Please try again with fewer selections or different values.';
+          errorMessage = 'Error with health data format. Please try again without selecting any health conditions or goals.';
         }
       }
       

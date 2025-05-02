@@ -23,7 +23,7 @@ const SignUp = () => {
     // Log the full error message for debugging
     console.error('Registration error:', message);
     
-    // Improved error message handling for PostgreSQL array format issues
+    // Provide a very helpful error message for array format issues
     let userFriendlyMessage = message;
     
     if (
@@ -32,7 +32,7 @@ const SignUp = () => {
       message.includes('ERROR: malformed array') ||
       message.toLowerCase().includes('error with health data')
     ) {
-      userFriendlyMessage = 'There was a problem with your health data. Try again with minimal selections or just continue with empty selections.';
+      userFriendlyMessage = 'We encountered an issue with your health data. Please try again using the "Skip" button at the health survey screen to create your account without health information. You can add it later in your profile.';
     }
     
     setError(userFriendlyMessage);
@@ -60,8 +60,8 @@ const SignUp = () => {
               <AlertCircle className="h-4 w-4" />
               <p className="font-medium">{error}</p>
             </div>
-            <p className="mt-1 text-xs pl-6">
-              Tip: You can leave the health fields empty and update your profile later.
+            <p className="mt-1 text-xs pl-6 font-bold">
+              Tip: Skip the health survey to create your account, then update your profile later.
             </p>
           </div>
         )}

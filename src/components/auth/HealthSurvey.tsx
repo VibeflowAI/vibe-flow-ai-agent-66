@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
+import { AlertCircle } from 'lucide-react';
 
 type HealthSurveyProps = {
   onComplete: (data: HealthSurveyData) => void;
@@ -66,6 +67,22 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
       healthGoals: [],
     },
   });
+  
+  const [showWarning, setShowWarning] = useState(false);
+
+  // Handle skipping health survey and continuing with minimal data
+  const handleSkip = () => {
+    // Create an empty health data object with only required fields
+    const minimalData: HealthSurveyData = {
+      conditions: [],
+      sleepHours: '7-8',
+      activityLevel: 'moderate',
+      healthGoals: []
+    };
+    
+    console.log("Skipping health survey with minimal data:", minimalData);
+    onComplete(minimalData);
+  };
 
   // Ensure arrays are properly formatted for PostgreSQL
   const validateAndFormatData = (data: HealthSurveyData): HealthSurveyData => {
@@ -89,7 +106,6 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
       toast({
         title: "Selection limited",
         description: "Maximum 2 medical conditions allowed. Only the first 2 selections saved.",
-        variant: "default"
       });
     }
     
@@ -108,14 +124,14 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
       toast({
         title: "Selection limited",
         description: "Maximum 3 health goals allowed. Only the first 3 selections saved.",
-        variant: "default"
       });
     }
 
-    return {
+    // If all arrays are empty, convert to empty arrays
+    const finalData = {
       ...data,
-      conditions: sanitizedConditions,
-      healthGoals: sanitizedHealthGoals,
+      conditions: sanitizedConditions.length > 0 ? sanitizedConditions : [],
+      healthGoals: sanitizedHealthGoals.length > 0 ? sanitizedHealthGoals : [],
       // Ensure other fields are properly formatted
       height: data.height?.trim() || undefined,
       weight: data.weight?.trim() || undefined,
@@ -123,6 +139,13 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
       sleepHours: data.sleepHours || '7-8',
       activityLevel: data.activityLevel || 'moderate'
     };
+    
+    // Show warning if user has selected conditions or goals
+    if (finalData.conditions.length > 0 || finalData.healthGoals.length > 0) {
+      setShowWarning(true);
+    }
+    
+    return finalData;
   };
 
   const handleSubmit = (data: HealthSurveyData) => {
@@ -146,7 +169,7 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
       console.error("Error in health survey submission:", error);
       toast({
         title: "Submission error",
-        description: "There was a problem with your health data. Try leaving fields empty.",
+        description: "There was a problem with your health data. Try leaving fields empty or use the Skip button.",
         variant: "destructive"
       });
     }
@@ -159,9 +182,20 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
         <CardDescription className="text-center">
           Tell us about your health to get personalized recommendations
           <p className="mt-2 text-sm font-medium text-amber-600">
-            Optional: You can leave all fields empty and update later
+            Optional: You can leave all fields empty or skip this step entirely
           </p>
         </CardDescription>
+        
+        {showWarning && (
+          <div className="mt-4 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-md text-sm">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              <p>
+                <span className="font-bold">Note:</span> We're experiencing some technical issues with health data. If you encounter errors, please try using the Skip button below.
+              </p>
+            </div>
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -172,7 +206,7 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                 name="height"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Height (cm)</FormLabel>
+                    <FormLabel>Height (cm) <span className="text-xs text-gray-500">(optional)</span></FormLabel>
                     <FormControl>
                       <Input type="number" placeholder="175" {...field} />
                     </FormControl>
@@ -186,7 +220,7 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                 name="weight"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Weight (kg)</FormLabel>
+                    <FormLabel>Weight (kg) <span className="text-xs text-gray-500">(optional)</span></FormLabel>
                     <FormControl>
                       <Input type="number" placeholder="70" {...field} />
                     </FormControl>
@@ -201,7 +235,7 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
               name="bloodType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Blood Type (if known)</FormLabel>
+                  <FormLabel>Blood Type <span className="text-xs text-gray-500">(optional)</span></FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -227,9 +261,9 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
               render={() => (
                 <FormItem>
                   <div className="mb-2">
-                    <FormLabel>Medical Conditions</FormLabel>
+                    <FormLabel>Medical Conditions <span className="text-xs text-gray-500">(optional)</span></FormLabel>
                     <FormDescription>
-                      <span className="text-amber-600 font-medium">Optional: Select up to 2 conditions</span>
+                      <span className="text-amber-600 font-medium">Select up to 2 conditions</span>
                     </FormDescription>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -265,7 +299,6 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                                   toast({
                                     title: "Selection limit reached",
                                     description: "Maximum 2 medical conditions allowed.",
-                                    variant: "default"
                                   });
                                   return field.onChange(filteredValue);
                                 }
@@ -356,9 +389,9 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
               render={() => (
                 <FormItem>
                   <div className="mb-2">
-                    <FormLabel>Health Goals</FormLabel>
+                    <FormLabel>Health Goals <span className="text-xs text-gray-500">(optional)</span></FormLabel>
                     <FormDescription>
-                      <span className="text-amber-600 font-medium">Optional: Select up to 3 goals</span>
+                      <span className="text-amber-600 font-medium">Select up to 3 goals</span>
                     </FormDescription>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -391,7 +424,6 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                                         toast({
                                           title: "Selection limit reached",
                                           description: "Maximum 3 health goals allowed.",
-                                          variant: "default"
                                         });
                                         return field.onChange(currentValue);
                                       }
@@ -417,10 +449,20 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
               )}
             />
 
-            <div className="flex justify-between pt-4">
+            <div className="flex justify-between pt-4 space-x-2">
               <Button type="button" variant="outline" onClick={onBack}>
                 Back
               </Button>
+              
+              <Button 
+                type="button" 
+                variant="secondary" 
+                onClick={handleSkip}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-700"
+              >
+                Skip
+              </Button>
+              
               <Button type="submit">
                 Complete Registration
               </Button>

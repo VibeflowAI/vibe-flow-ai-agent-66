@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -65,23 +64,25 @@ export const AuthForm = ({ type, onSuccess, onError }: AuthFormProps) => {
     try {
       console.log("Health survey complete, registering user with data:", healthData);
       
-      // Extra validation to make sure arrays are properly formatted to avoid database issues
-      const validatedHealthData: HealthSurveyData = {
+      // Ensure we pass empty arrays as empty arrays, not as undefined or stringified arrays
+      const finalHealthData: HealthSurveyData = {
         ...healthData,
-        // Make sure we filter out any null/undefined/empty values and limit array sizes
-        conditions: Array.isArray(healthData.conditions) ? 
-          healthData.conditions.filter(item => item && item.trim() !== '').slice(0, 2) : 
-          [],
-        healthGoals: Array.isArray(healthData.healthGoals) ? 
-          healthData.healthGoals.filter(item => item && item.trim() !== '').slice(0, 3) : 
-          []
+        // Important: Ensure these are proper arrays, not stringified arrays which cause issues
+        conditions: Array.isArray(healthData.conditions) ? healthData.conditions : [],
+        healthGoals: Array.isArray(healthData.healthGoals) ? healthData.healthGoals : [],
+        // Sanitize other fields
+        height: healthData.height || undefined,
+        weight: healthData.weight || undefined,
+        bloodType: healthData.bloodType || undefined,
+        sleepHours: healthData.sleepHours || '7-8',
+        activityLevel: healthData.activityLevel || 'moderate'
       };
 
       // Additional debug logging
-      console.log("Validated health data for registration:", JSON.stringify(validatedHealthData));
-      console.log("Conditions:", JSON.stringify(validatedHealthData.conditions));  
+      console.log("Validated health data for registration:", JSON.stringify(finalHealthData));
+      console.log("Conditions:", JSON.stringify(finalHealthData.conditions));  
       
-      await signUp(email, password, displayName, validatedHealthData);
+      await signUp(email, password, displayName, finalHealthData);
       if (onSuccess) onSuccess();
     } catch (error) {
       console.error('Registration error:', error);
