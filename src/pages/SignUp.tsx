@@ -23,8 +23,8 @@ const SignUp = () => {
     // Log the full error message for debugging
     console.error('Registration error:', message);
     
-    // Always provide a helpful error message
-    let userFriendlyMessage = 'We encountered an issue creating your account. Please try again using the "Skip" button at the health survey screen.';
+    // User-friendly error message
+    let userFriendlyMessage = 'Account creation failed. Please try again using the "Skip" button.';
     
     setError(userFriendlyMessage);
     toast({
@@ -49,7 +49,7 @@ const SignUp = () => {
           <div className="mt-4 p-4 bg-red-50 border border-red-200 text-red-800 rounded-md text-sm">
             <div className="flex items-center gap-2 mb-1">
               <AlertCircle className="h-4 w-4" />
-              <p className="font-medium">{error}</p>
+              <span className="font-medium">{error}</span>
             </div>
             <p className="mt-1 text-xs pl-6 font-bold">
               Tip: Skip the health survey to create your account, then update your profile later.

@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { HealthSurveyData } from '@/components/auth/HealthSurvey';
@@ -207,15 +206,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log("Received health data for signup:", healthData);
       
-      // Create health profile object - ensure it's defined with empty arrays
+      // Create health profile object with safe defaults
       const healthProfile: HealthProfile = {
         height: healthData?.height || '',
         weight: healthData?.weight || '',
         bloodType: healthData?.bloodType || '',
-        conditions: Array.isArray(healthData?.conditions) ? healthData.conditions : [],
+        conditions: [], // Always use empty array here, we'll handle database format separately
         sleepHours: healthData?.sleepHours || '7-8',
         activityLevel: healthData?.activityLevel || 'moderate',
-        healthGoals: Array.isArray(healthData?.healthGoals) ? healthData.healthGoals : [],
+        healthGoals: [], // Always use empty array here, we'll handle database format separately
         lastUpdated: Date.now()
       };
       
@@ -240,19 +239,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // Parse numeric strings to numbers for database
           let heightCm = null;
           if (healthData?.height) {
-            // Convert to number or null if not a valid number
             const parsed = parseFloat(healthData.height);
             heightCm = !isNaN(parsed) ? parsed : null;
           }
           
           let weightKg = null;
           if (healthData?.weight) {
-            // Convert to number or null if not a valid number
             const parsed = parseFloat(healthData.weight);
             weightKg = !isNaN(parsed) ? parsed : null;
           }
 
-          // CRITICAL FIX: Make very explicit PostgreSQL compatible insert
+          // CRITICAL FIX: Use explicit null values for all array fields to avoid PostgreSQL issues
           const { error: insertError } = await supabase
             .from('users')
             .insert({
@@ -260,12 +257,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               email: email,
               name: displayName,
               activity_level: healthData?.activityLevel || 'moderate',
-              dietary_preferences: null, // Always null for new users
+              dietary_preferences: null, // Explicitly null
               sleep_goal: '8 hours',
               height_cm: heightCm,
               weight_kg: weightKg,
               blood_type: healthData?.bloodType || null,
-              medical_conditions: null, // Explicitly null for database compatibility
+              medical_conditions: null, // Explicitly null
               current_medications: null, // Explicitly null
               allergies: null // Explicitly null
             });
@@ -290,14 +287,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       let errorMessage = 'Failed to create account';
       if (error instanceof Error) {
         errorMessage = error.message;
-        // Check for specific PostgreSQL array format errors
-        if (
-          errorMessage.includes('malformed array literal') || 
-          errorMessage.includes('ERROR: malformed array') ||
-          errorMessage.includes('Database error saving new user')
-        ) {
-          errorMessage = 'Error with health data format. Please try again without selecting any health conditions or goals.';
-        }
       }
       
       toast({

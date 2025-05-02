@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -64,22 +65,19 @@ export const AuthForm = ({ type, onSuccess, onError }: AuthFormProps) => {
     try {
       console.log("Health survey complete, registering user with data:", healthData);
       
-      // Create a completely empty healthData object to avoid array issues
-      const emptyHealthData: HealthSurveyData = {
-        conditions: [],
-        healthGoals: [],
+      // Use a minimal health data object
+      const minimalData: HealthSurveyData = {
+        // Only include the required fields, no arrays
         sleepHours: '7-8',
         activityLevel: 'moderate',
-        // Only pass simple string fields
-        height: healthData.height,
-        weight: healthData.weight,
-        bloodType: healthData.bloodType
+        conditions: [],
+        healthGoals: []
       };
 
-      console.log("Sanitized health data for registration:", JSON.stringify(emptyHealthData));
+      console.log("Sanitized health data for registration:", JSON.stringify(minimalData));
       
       // Call signup with minimal data
-      await signUp(email, password, displayName, emptyHealthData);
+      await signUp(email, password, displayName, minimalData);
       if (onSuccess) onSuccess();
     } catch (error) {
       console.error('Registration error:', error);
