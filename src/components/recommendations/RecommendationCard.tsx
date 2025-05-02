@@ -1,21 +1,35 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Recommendation } from '@/contexts/MoodContext';
 import { toast } from '@/hooks/use-toast';
 
 export const RecommendationCard = ({ recommendation }: { recommendation: Recommendation }) => {
+  const [liked, setLiked] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
   const handleFeedback = (isPositive: boolean) => {
     toast({
       title: 'Feedback Received',
       description: `Thank you for your ${isPositive ? 'positive' : 'negative'} feedback!`,
     });
   };
+  
+  const handleLike = () => {
+    setLiked(!liked);
+    toast({
+      title: liked ? 'Removed from favorites' : 'Added to favorites',
+      description: liked 
+        ? 'Recommendation removed from your favorites' 
+        : 'Recommendation saved to your favorites',
+    });
+  };
 
-  // Default image if none is provided
-  const imageUrl = recommendation.imageUrl || '/placeholder.svg';
+  // Get image URL, use recommendation.imageUrl if available
+  // If imageUrl is present but had an error loading, use placeholder
+  const imageUrl = imageError ? '/placeholder.svg' : (recommendation.imageUrl || '/placeholder.svg');
 
   const item = {
     hidden: { opacity: 0, y: 20 },
@@ -25,16 +39,24 @@ export const RecommendationCard = ({ recommendation }: { recommendation: Recomme
   return (
     <motion.div variants={item} className="group">
       <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow">
-        <div className="h-36 overflow-hidden">
+        <div className="h-36 overflow-hidden relative">
           <img 
             src={imageUrl} 
             alt={recommendation.title} 
             className="w-full h-full object-cover transition-transform group-hover:scale-105"
-            onError={(e) => {
-              // Fallback to placeholder if image fails to load
-              (e.target as HTMLImageElement).src = '/placeholder.svg';
-            }}
+            onError={() => setImageError(true)}
           />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className={`absolute top-2 right-2 rounded-full ${
+              liked ? 'bg-red-50 text-red-600' : 'bg-white/80 text-gray-500 hover:text-red-600'
+            }`}
+            onClick={handleLike}
+          >
+            <Heart className={`h-5 w-5 ${liked ? 'fill-current' : ''}`} />
+            <span className="sr-only">{liked ? 'Unlike' : 'Like'}</span>
+          </Button>
         </div>
         <div className="p-4">
           <h3 className="font-semibold text-lg text-gray-800">{recommendation.title}</h3>
