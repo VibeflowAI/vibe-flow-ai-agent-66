@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { HealthSurveyData } from '@/components/auth/HealthSurvey';
@@ -39,15 +40,15 @@ export type DbUserProfile = {
   email: string;
   name: string;
   activity_level?: string;
-  dietary_preferences?: string[];
+  dietary_preferences?: string[] | null;
   sleep_goal?: string;
   height_cm?: number;
   weight_kg?: number;
   blood_type?: string;
   last_checkup_date?: string;
-  medical_conditions?: string[];
-  current_medications?: string[];
-  allergies?: string[];
+  medical_conditions?: string[] | null;
+  current_medications?: string[] | null;
+  allergies?: string[] | null;
 };
 
 type AuthContextType = {
@@ -249,7 +250,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             weightKg = !isNaN(parsed) ? parsed : null;
           }
 
-          // CRITICAL FIX: Use explicit null values for all array fields to avoid PostgreSQL issues
+          // IMPORTANT: For arrays, explicitly use null - never send empty arrays to the DB
           const { error: insertError } = await supabase
             .from('users')
             .insert({

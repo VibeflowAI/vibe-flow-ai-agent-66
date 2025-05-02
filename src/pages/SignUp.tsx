@@ -24,7 +24,7 @@ const SignUp = () => {
     console.error('Registration error:', message);
     
     // User-friendly error message
-    let userFriendlyMessage = 'Account creation failed. Please try again using the "Skip" button.';
+    let userFriendlyMessage = 'Please try again using the "Skip" button.';
     
     setError(userFriendlyMessage);
     toast({
@@ -52,7 +52,7 @@ const SignUp = () => {
               <span className="font-medium">{error}</span>
             </div>
             <p className="mt-1 text-xs pl-6 font-bold">
-              Tip: Skip the health survey to create your account, then update your profile later.
+              Skip the health survey to create your account, then update your profile later.
             </p>
           </div>
         )}

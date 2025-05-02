@@ -65,19 +65,16 @@ export const AuthForm = ({ type, onSuccess, onError }: AuthFormProps) => {
     try {
       console.log("Health survey complete, registering user with data:", healthData);
       
-      // Use a minimal health data object
-      const minimalData: HealthSurveyData = {
-        // Only include the required fields, no arrays
-        sleepHours: '7-8',
-        activityLevel: 'moderate',
+      // Ensure we don't pass any arrays with content
+      const safeHealthData: HealthSurveyData = {
+        sleepHours: healthData.sleepHours,
+        activityLevel: healthData.activityLevel,
         conditions: [],
         healthGoals: []
       };
 
-      console.log("Sanitized health data for registration:", JSON.stringify(minimalData));
-      
-      // Call signup with minimal data
-      await signUp(email, password, displayName, minimalData);
+      // Call signup with safe data
+      await signUp(email, password, displayName, safeHealthData);
       if (onSuccess) onSuccess();
     } catch (error) {
       console.error('Registration error:', error);
