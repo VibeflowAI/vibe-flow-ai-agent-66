@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { HealthSurveyData } from '@/components/auth/HealthSurvey';
@@ -248,6 +249,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // After successful signup, manually create the user record in the users table
       if (data.user) {
+        // CRITICAL FIX: Use null for empty arrays to prevent PostgreSQL format errors
+        // This ensures proper array formatting for PostgreSQL
+        const medicalConditions = Array.isArray(healthData?.conditions) && healthData.conditions.length > 0 
+          ? healthData.conditions 
+          : null;
+          
         // Create user with properly formatted arrays to prevent PostgreSQL errors
         const { error: insertError } = await supabase
           .from('users')
@@ -261,9 +268,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             height_cm: healthData?.height ? parseFloat(healthData.height) : null,
             weight_kg: healthData?.weight ? parseFloat(healthData.weight) : null,
             blood_type: healthData?.bloodType || null,
-            medical_conditions: Array.isArray(healthData?.conditions) && healthData.conditions.length > 0 
-              ? healthData.conditions.filter(Boolean) 
-              : null,
+            medical_conditions: medicalConditions,
             current_medications: null,
             allergies: null
           });

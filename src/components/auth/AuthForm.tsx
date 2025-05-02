@@ -1,9 +1,11 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { HealthSurvey, HealthSurveyData } from './HealthSurvey';
+import { toast } from '@/hooks/use-toast';
 
 type AuthFormProps = {
   type: 'signin' | 'signup';
@@ -74,6 +76,10 @@ export const AuthForm = ({ type, onSuccess, onError }: AuthFormProps) => {
           healthData.healthGoals.filter(item => item && item.trim() !== '').slice(0, 3) : 
           []
       };
+
+      // Additional debug logging
+      console.log("Validated health data for registration:", JSON.stringify(validatedHealthData));
+      console.log("Conditions:", JSON.stringify(validatedHealthData.conditions));  
       
       await signUp(email, password, displayName, validatedHealthData);
       if (onSuccess) onSuccess();

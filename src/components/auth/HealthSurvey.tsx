@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import {
@@ -80,7 +80,6 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
       toast({
         title: "Selection limited",
         description: "Maximum 2 medical conditions allowed. Only the first 2 selections will be saved.",
-        // Changed from "warning" to "default" as "warning" isn't a valid variant
         variant: "default"
       });
     }
@@ -96,7 +95,6 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
       toast({
         title: "Selection limited",
         description: "Maximum 3 health goals allowed. Only the first 3 selections will be saved.",
-        // Changed from "warning" to "default" as "warning" isn't a valid variant
         variant: "default"
       });
     }
@@ -121,11 +119,16 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
 
   const handleSubmit = (data: HealthSurveyData) => {
     try {
+      // Additional debugging - log raw form data
+      console.log("Raw form data before validation:", JSON.stringify(data));
+      
       // Format and validate data before sending, with more restrictive limits
       const formattedData = validateArrays(data);
       
       // Log detailed information for debugging
       console.log("Submitting health data (validated):", formattedData);
+      console.log("Conditions array:", JSON.stringify(formattedData.conditions));
+      console.log("Health goals array:", JSON.stringify(formattedData.healthGoals));
       
       // Pass the validated data to parent component
       onComplete(formattedData);
