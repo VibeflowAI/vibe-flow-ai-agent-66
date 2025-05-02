@@ -219,17 +219,35 @@ async function useHuggingFaceAPI(message: string, userContext: any) {
       }
     });
     
-    console.log("Hugging Face API response received:", result);
+    console.log("Hugging Face API response received");
     
     // Clean up the response to remove any formatting or system text
     let aiResponse = result.generated_text || "";
     
-    // Remove any common prefixes that models sometimes add
-    aiResponse = aiResponse
-      .replace(/^(AI:|Assistant:|VibeFlow AI:|Response:)/i, "")
-      .trim();
+    // Extract only the actual response part by removing the prompt and system instructions
+    const promptLines = prompt.trim().split('\n');
+    const lastPromptLine = promptLines[promptLines.length - 1];
     
-    console.log("Processed response:", aiResponse);
+    // Find where the last line of the prompt ends in the response
+    const lastPromptIndex = aiResponse.indexOf(lastPromptLine);
+    
+    if (lastPromptIndex !== -1) {
+      // Get everything after the last prompt line
+      aiResponse = aiResponse.substring(lastPromptIndex + lastPromptLine.length).trim();
+      
+      // Remove any common prefixes that models sometimes add
+      aiResponse = aiResponse
+        .replace(/^(\s*(\n|\\n))+/, '')  // Remove leading newlines
+        .replace(/^(AI:|Assistant:|VibeFlow AI:|Response:)/i, '')
+        .trim();
+      
+      // If the response starts with the user's message again, remove it
+      if (aiResponse.startsWith(message)) {
+        aiResponse = aiResponse.substring(message.length).trim();
+      }
+    }
+    
+    console.log("Processed response:", aiResponse.substring(0, 100) + "...");
     
     return {
       response: aiResponse
