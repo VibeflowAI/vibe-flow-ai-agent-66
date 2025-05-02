@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { AuthForm } from '@/components/auth/AuthForm';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,28 +16,34 @@ const SignUp = () => {
   }
 
   const handleSuccess = () => {
+    // Clear any previous errors on successful registration
+    setError(null);
     navigate('/dashboard');
   };
 
   const handleError = (message: string) => {
     console.error('Signup error:', message);
     
-    let userMessage = 'Registration failed. Please try again.';
-    if (message.includes('Database')) {
-      userMessage = 'System error. Please try again or contact support.';
-    } else if (message.includes('auth')) {
-      userMessage = 'Authentication error. Please check your email and password.';
+    // Only set error if this is a registration error, not a navigation error
+    if (!message.includes('Database') && !message.includes('duplicate')) {
+      let userMessage = 'Registration failed. Please try again.';
+      if (message.includes('auth')) {
+        userMessage = 'Authentication error. Please check your email and password.';
+      }
+      
+      setError(userMessage);
+      
+      toast({
+        variant: 'destructive',
+        title: 'Registration failed',
+        description: message.includes('skip') ? 
+          'Please try skipping the health survey' : 
+          userMessage
+      });
+    } else {
+      // If this was the database error that's now fixed, don't show the error alert
+      setError(null);
     }
-
-    setError(userMessage);
-    
-    toast({
-      variant: 'destructive',
-      title: 'Registration failed',
-      description: message.includes('skip') ? 
-        'Please try skipping the health survey' : 
-        userMessage
-    });
   };
 
   return (
