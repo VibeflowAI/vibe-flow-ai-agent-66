@@ -5,9 +5,17 @@ import type { HealthHistoryFormData } from './schema';
 
 export const useHealthHistoryData = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [dataCache, setDataCache] = useState<Record<string, any> | null>(null);
 
   const loadHealthData = async (userId: string) => {
     try {
+      // Return cached data if available
+      if (dataCache) {
+        console.log('Using cached health data');
+        return dataCache;
+      }
+
+      console.log('Fetching health data from database');
       const { data, error } = await supabase
         .from('users')
         .select('height_cm, weight_kg, blood_type, last_checkup_date, medical_conditions, current_medications, allergies')
@@ -19,6 +27,8 @@ export const useHealthHistoryData = () => {
         throw error;
       }
       
+      // Cache the loaded data
+      setDataCache(data);
       return data;
     } catch (error) {
       console.error('Error in loadHealthData:', error);
@@ -74,6 +84,17 @@ export const useHealthHistoryData = () => {
         console.error('Error updating health history:', error);
         throw error;
       }
+
+      // Update the cache with new data
+      setDataCache({
+        height_cm: parseFloat(data.height),
+        weight_kg: parseFloat(data.weight),
+        blood_type: data.bloodType,
+        last_checkup_date: data.lastCheckup.toISOString().split('T')[0],
+        medical_conditions: medical_conditions,
+        current_medications: medications,
+        allergies: allergies
+      });
       
       return true;
     } catch (error) {
@@ -87,9 +108,14 @@ export const useHealthHistoryData = () => {
     }
   };
 
+  const clearCache = () => {
+    setDataCache(null);
+  };
+
   return {
     loadHealthData,
     saveHealthData,
+    clearCache,
     isLoading
   };
 };

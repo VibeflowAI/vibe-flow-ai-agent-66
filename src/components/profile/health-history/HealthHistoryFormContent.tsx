@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,6 +18,7 @@ export const HealthHistoryFormContent = () => {
   const { user, updateHealthProfile } = useAuth();
   const { loadHealthData, saveHealthData, isLoading } = useHealthHistoryData();
   const [isFormLoading, setIsFormLoading] = useState(true);
+  const [isDataFetched, setIsDataFetched] = useState(false);
   
   const form = useForm<HealthHistoryFormData>({
     resolver: zodResolver(HealthHistorySchema),
@@ -33,59 +34,62 @@ export const HealthHistoryFormContent = () => {
   });
   
   // Load user health data when component mounts
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!user || !user.id) return;
-      
-      try {
-        setIsFormLoading(true);
-        const healthData = await loadHealthData(user.id);
-        
-        if (healthData) {
-          // Set all form values with explicit type handling
-          form.setValue('height', healthData.height_cm?.toString() || '');
-          form.setValue('weight', healthData.weight_kg?.toString() || '');
-          
-          // Explicitly handle blood type field - this was the issue
-          if (healthData.blood_type) {
-            console.log('Setting blood type:', healthData.blood_type);
-            form.setValue('bloodType', healthData.blood_type);
-          }
-          
-          if (healthData.last_checkup_date) {
-            form.setValue('lastCheckup', new Date(healthData.last_checkup_date));
-          }
-          
-          if (healthData.medical_conditions && Array.isArray(healthData.medical_conditions)) {
-            form.setValue('conditions', healthData.medical_conditions);
-          }
-          
-          if (healthData.current_medications) {
-            form.setValue('medications', Array.isArray(healthData.current_medications) 
-              ? healthData.current_medications.join(', ')
-              : healthData.current_medications);
-          }
-          
-          if (healthData.allergies) {
-            form.setValue('allergies', Array.isArray(healthData.allergies) 
-              ? healthData.allergies.join(', ')
-              : healthData.allergies);
-          }
-        }
-      } catch (error) {
-        console.error('Error in loadHealthData:', error);
-        toast({
-          variant: "destructive",
-          title: "Failed to load health data",
-          description: "Please try again later or contact support.",
-        });
-      } finally {
-        setIsFormLoading(false);
-      }
-    };
+  const fetchData = useCallback(async () => {
+    if (!user || !user.id || isDataFetched) return;
     
+    try {
+      setIsFormLoading(true);
+      console.log('Loading health data for user:', user.id);
+      const healthData = await loadHealthData(user.id);
+      
+      if (healthData) {
+        // Set all form values with explicit type handling
+        form.setValue('height', healthData.height_cm?.toString() || '');
+        form.setValue('weight', healthData.weight_kg?.toString() || '');
+        
+        // Explicitly handle blood type field - this was the issue
+        if (healthData.blood_type) {
+          console.log('Setting blood type:', healthData.blood_type);
+          form.setValue('bloodType', healthData.blood_type);
+        }
+        
+        if (healthData.last_checkup_date) {
+          form.setValue('lastCheckup', new Date(healthData.last_checkup_date));
+        }
+        
+        if (healthData.medical_conditions && Array.isArray(healthData.medical_conditions)) {
+          form.setValue('conditions', healthData.medical_conditions);
+        }
+        
+        if (healthData.current_medications) {
+          form.setValue('medications', Array.isArray(healthData.current_medications) 
+            ? healthData.current_medications.join(', ')
+            : healthData.current_medications);
+        }
+        
+        if (healthData.allergies) {
+          form.setValue('allergies', Array.isArray(healthData.allergies) 
+            ? healthData.allergies.join(', ')
+            : healthData.allergies);
+        }
+      }
+      
+      setIsDataFetched(true);
+    } catch (error) {
+      console.error('Error in loadHealthData:', error);
+      toast({
+        variant: "destructive",
+        title: "Failed to load health data",
+        description: "Please try again later or contact support.",
+      });
+    } finally {
+      setIsFormLoading(false);
+    }
+  }, [user, form, loadHealthData, isDataFetched]);
+  
+  useEffect(() => {
     fetchData();
-  }, [user, form, loadHealthData]);
+  }, [fetchData]);
 
   const onSubmit = async (data: HealthHistoryFormData) => {
     if (!user || !user.id) {
