@@ -75,12 +75,36 @@ export const UserProfile = () => {
     setIsLoading(true);
     
     try {
+      const dietaryRestrictions = data.dietaryRestrictions && data.dietaryRestrictions.length > 0
+        ? data.dietaryRestrictions
+        : null;
+        
       const preferences: UserPreferences = {
         activityLevel: data.activityLevel as 'low' | 'moderate' | 'high',
         dietaryRestrictions: data.dietaryRestrictions || [],
         sleepGoals: data.sleepGoals,
         notificationsEnabled: user.preferences?.notificationsEnabled || false
       };
+      
+      console.log('Updating profile with preferences:', preferences);
+      console.log('Updating Supabase with dietary_preferences:', dietaryRestrictions);
+      
+      // Update Supabase user data
+      const { error } = await supabase
+        .from('users')
+        .update({
+          name: data.displayName,
+          activity_level: data.activityLevel,
+          dietary_preferences: dietaryRestrictions,
+          sleep_goal: data.sleepGoals,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+        
+      if (error) {
+        console.error('Error updating user in Supabase:', error);
+        throw error;
+      }
       
       // Update profile in auth context and in Supabase
       await updateProfile({

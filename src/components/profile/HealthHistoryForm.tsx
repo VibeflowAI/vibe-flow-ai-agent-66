@@ -133,14 +133,28 @@ export const HealthHistoryForm = () => {
     }
     
     try {
-      // Format medications and allergies as arrays
-      const medications = data.medications 
+      // Ensure proper array handling - never send empty arrays as []
+      const medications = data.medications && data.medications.trim() !== ''
         ? data.medications.split(',').map(item => item.trim())
-        : [];
+        : null;
       
-      const allergies = data.allergies
+      const allergies = data.allergies && data.allergies.trim() !== ''
         ? data.allergies.split(',').map(item => item.trim())
-        : [];
+        : null;
+      
+      const medical_conditions = data.conditions && data.conditions.length > 0
+        ? data.conditions
+        : null;
+      
+      console.log('Updating health profile with data:', {
+        height_cm: parseFloat(data.height),
+        weight_kg: parseFloat(data.weight),
+        blood_type: data.bloodType,
+        last_checkup_date: data.lastCheckup.toISOString().split('T')[0],
+        medical_conditions,
+        current_medications: medications,
+        allergies
+      });
       
       // Update health data in Supabase
       const { error } = await supabase
@@ -150,7 +164,7 @@ export const HealthHistoryForm = () => {
           weight_kg: parseFloat(data.weight),
           blood_type: data.bloodType,
           last_checkup_date: data.lastCheckup.toISOString().split('T')[0],
-          medical_conditions: data.conditions,
+          medical_conditions: medical_conditions,
           current_medications: medications,
           allergies: allergies,
           updated_at: new Date().toISOString()

@@ -28,12 +28,41 @@ export const MoodTracker = () => {
         
         // Save to Supabase if user is authenticated
         if (user) {
-          const { error } = await supabase.from('mood_entries').insert({
-            user_id: user.id,
-            mood: selectedMood,
-            energy_level: selectedEnergy,
-            note: note || null
-          });
+          console.log('Saving mood to Supabase for user:', user.id);
+          
+          // First check if the user exists in the users table
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('id')
+            .eq('id', user.id)
+            .single();
+          
+          if (userError) {
+            console.log('User not found, trying to create user record first');
+            // Create a basic user record if it doesn't exist
+            const { error: insertUserError } = await supabase
+              .from('users')
+              .insert({
+                id: user.id,
+                email: user.email,
+                name: user.displayName || user.email.split('@')[0]
+              });
+              
+            if (insertUserError) {
+              console.error('Error creating user record:', insertUserError);
+              throw new Error('Failed to create user record');
+            }
+          }
+          
+          // Now insert the mood entry
+          const { error } = await supabase
+            .from('mood_entries')
+            .insert({
+              user_id: user.id,
+              mood: selectedMood,
+              energy_level: selectedEnergy,
+              note: note || null
+            });
           
           if (error) {
             console.error('Error saving mood to Supabase:', error);
@@ -49,12 +78,12 @@ export const MoodTracker = () => {
           description: 'Your mood has been recorded and will be used for personalized recommendations.',
         });
       } catch (error) {
+        console.error('Error in handleSubmit:', error);
         toast({
           variant: 'destructive',
           title: 'Failed to track mood',
           description: 'There was a problem saving your mood. Please try again.',
         });
-        console.error('Error in handleSubmit:', error);
       } finally {
         setIsSaving(false);
       }
