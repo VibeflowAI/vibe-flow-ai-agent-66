@@ -76,7 +76,7 @@ export const UserProfile = () => {
     try {
       console.log('Form data before processing:', data);
       
-      // FIXED: Handle empty arrays properly for PostgreSQL
+      // Handle empty arrays properly for PostgreSQL
       const dietaryRestrictions = Array.isArray(data.dietaryRestrictions) && data.dietaryRestrictions.length > 0
         ? data.dietaryRestrictions
         : null;
@@ -89,9 +89,8 @@ export const UserProfile = () => {
       };
       
       console.log('Updating profile with preferences:', preferences);
-      console.log('Dietary restrictions to send to DB:', dietaryRestrictions);
       
-      // Update Supabase user data - FIXED: properly format data for PostgreSQL
+      // Update Supabase user data
       const { error } = await supabase
         .from('users')
         .update({
@@ -119,10 +118,10 @@ export const UserProfile = () => {
         description: "Your profile has been updated successfully.",
       });
       
-      // FIXED: Wait a bit longer before disabling edit mode to ensure state updates complete
+      // Wait longer before disabling edit mode to ensure state updates complete
       setTimeout(() => {
         setIsEditing(false);
-      }, 300);
+      }, 500);
     } catch (error) {
       console.error('Profile update error:', error);
       toast({

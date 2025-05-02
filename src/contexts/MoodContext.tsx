@@ -134,7 +134,7 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
         timestamp
       };
       
-      // Update state
+      // Update state immediately for better UX
       setCurrentMood(newEntry);
       setMoodHistory(prev => [newEntry, ...prev]);
       
@@ -158,8 +158,8 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
 
   // Get personalized recommendations based on current mood
   const getRecommendations = useCallback(async () => {
-    if (!currentMood && moodHistory.length === 0) {
-      console.log('No mood data available for recommendations');
+    if (!user) {
+      console.log('No user available for recommendations');
       setRecommendations([]);
       return;
     }
@@ -171,21 +171,37 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
       
       if (!moodToUse) {
         console.log('No mood available for recommendations');
+        setIsLoading(false);
         return;
       }
       
       console.log('Fetching recommendations for mood:', moodToUse.mood, 'and energy:', moodToUse.energy);
       
-      // Updated query: Use array_contains operator which works better with PostgreSQL arrays
-      const { data, error } = await supabase
+      // First try to get recommendations specific to the mood and energy
+      let { data, error } = await supabase
         .from('recommendations')
         .select('*')
         .contains('mood_types', [moodToUse.mood])
         .contains('energy_levels', [moodToUse.energy]);
       
       if (error) {
-        console.error('Error fetching recommendations:', error);
-        return;
+        console.error('Error fetching specific recommendations:', error);
+        
+        // Try to get any recommendations as fallback
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('recommendations')
+          .select('*')
+          .limit(5);
+          
+        if (!fallbackError && fallbackData && fallbackData.length > 0) {
+          console.log('Using fallback recommendations');
+          data = fallbackData;
+        } else {
+          console.error('Error fetching fallback recommendations:', fallbackError);
+          setRecommendations([]);
+          setIsLoading(false);
+          return;
+        }
       }
       
       if (data && data.length > 0) {
@@ -203,56 +219,61 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
         
         setRecommendations(formattedRecommendations);
       } else {
-        console.log('No specific recommendations found, fetching fallbacks');
-        // Fallback to get any recommendations if none match the specific mood/energy
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from('recommendations')
-          .select('*')
-          .limit(5);
-          
-        if (!fallbackError && fallbackData && fallbackData.length > 0) {
-          console.log('Found fallback recommendations:', fallbackData.length);
-          // Map the snake_case fields from Supabase to camelCase for our app
-          const formattedRecommendations: Recommendation[] = fallbackData.map(rec => ({
-            id: rec.id,
-            title: rec.title,
-            description: rec.description,
-            category: rec.category,
-            moodTypes: rec.mood_types as MoodType[],
-            energyLevels: rec.energy_levels as EnergyLevel[],
-            imageUrl: rec.image_url
-          }));
-          
-          setRecommendations(formattedRecommendations);
+        console.log('No recommendations found, adding defaults');
+        
+        // Try to add default recommendations
+        const { error: rpcError } = await supabase.rpc('add_default_recommendations');
+        
+        if (rpcError) {
+          console.error('Error adding default recommendations:', rpcError);
         } else {
-          console.log('No recommendations available at all, using defaults');
-          // Create some default recommendations
-          setRecommendations([
-            {
-              id: 'default-1',
-              title: 'Take a short walk',
-              description: 'Even a 10-minute walk can boost your mood and energy levels.',
-              category: 'activity',
-              moodTypes: ['tired', 'stressed', 'sad'],
-              energyLevels: ['low', 'medium']
-            },
-            {
-              id: 'default-2',
-              title: 'Drink water',
-              description: 'Staying hydrated is essential for maintaining energy levels.',
-              category: 'food',
-              moodTypes: ['tired'],
-              energyLevels: ['low', 'medium', 'high']
-            },
-            {
-              id: 'default-3',
-              title: 'Deep breathing exercise',
-              description: 'Take 5 deep breaths, inhaling for 4 counts and exhaling for 6.',
-              category: 'mindfulness',
-              moodTypes: ['stressed', 'sad'],
-              energyLevels: ['low', 'medium', 'high']
-            }
-          ]);
+          // Try fetching recommendations again after adding defaults
+          const { data: newData, error: newError } = await supabase
+            .from('recommendations')
+            .select('*')
+            .limit(5);
+            
+          if (!newError && newData && newData.length > 0) {
+            const formattedRecommendations: Recommendation[] = newData.map(rec => ({
+              id: rec.id,
+              title: rec.title,
+              description: rec.description,
+              category: rec.category,
+              moodTypes: rec.mood_types as MoodType[],
+              energyLevels: rec.energy_levels as EnergyLevel[],
+              imageUrl: rec.image_url
+            }));
+            
+            setRecommendations(formattedRecommendations);
+          } else {
+            // Use hardcoded defaults as last resort
+            setRecommendations([
+              {
+                id: 'default-1',
+                title: 'Take a short walk',
+                description: 'Even a 10-minute walk can boost your mood and energy levels.',
+                category: 'activity',
+                moodTypes: ['tired', 'stressed', 'sad'],
+                energyLevels: ['low', 'medium']
+              },
+              {
+                id: 'default-2',
+                title: 'Drink water',
+                description: 'Staying hydrated is essential for maintaining energy levels.',
+                category: 'food',
+                moodTypes: ['tired'],
+                energyLevels: ['low', 'medium', 'high']
+              },
+              {
+                id: 'default-3',
+                title: 'Deep breathing exercise',
+                description: 'Take 5 deep breaths, inhaling for 4 counts and exhaling for 6.',
+                category: 'mindfulness',
+                moodTypes: ['stressed', 'sad'],
+                energyLevels: ['low', 'medium', 'high']
+              }
+            ]);
+          }
         }
       }
     } catch (error) {
@@ -261,9 +282,9 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentMood, moodHistory]);
+  }, [currentMood, moodHistory, user]);
   
-  // Get recommendations when current mood changes
+  // Get recommendations when current mood changes or when user changes
   useEffect(() => {
     if (user) {
       getRecommendations();

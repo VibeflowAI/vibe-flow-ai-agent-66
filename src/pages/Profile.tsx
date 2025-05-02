@@ -29,13 +29,17 @@ const Profile = () => {
         if (count === 0) {
           console.log('No recommendations found, adding defaults');
           
-          // Enable RLS bypass for this operation (requires auth)
-          const { data: rpcResult, error: rpcError } = await supabase.rpc('add_default_recommendations');
+          // Call the RPC function to add default recommendations
+          const { data, error: rpcError } = await supabase.rpc('add_default_recommendations');
           
           if (rpcError) {
             console.error('Error adding default recommendations via RPC:', rpcError);
           } else {
             console.log('Added default recommendations successfully');
+            toast({
+              title: "Recommendations added",
+              description: "Default wellness recommendations have been added to your account.",
+            });
           }
         }
       } catch (err) {
