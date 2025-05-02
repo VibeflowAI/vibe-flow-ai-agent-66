@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { AuthForm } from '@/components/auth/AuthForm';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { toast } from '@/hooks/use-toast';
 import { AlertCircle } from 'lucide-react';
 
 const SignUp = () => {
@@ -24,26 +23,25 @@ const SignUp = () => {
   const handleError = (message: string) => {
     console.error('Signup error:', message);
     
-    // Only set error if this is a registration error, not a navigation error
-    if (!message.includes('Database') && !message.includes('duplicate')) {
-      let userMessage = 'Registration failed. Please try again.';
-      if (message.includes('auth')) {
-        userMessage = 'Authentication error. Please check your email and password.';
-      }
-      
-      setError(userMessage);
-      
-      toast({
-        variant: 'destructive',
-        title: 'Registration failed',
-        description: message.includes('skip') ? 
-          'Please try skipping the health survey' : 
-          userMessage
-      });
-    } else {
-      // If this was the database error that's now fixed, don't show the error alert
+    // Don't set error if this is a navigation event after successful registration
+    if (message.includes('Database') || message.includes('duplicate')) {
+      // If this was a database error that's now fixed, don't show the error alert
       setError(null);
+      return;
     }
+    
+    if (message.includes('skip')) {
+      setError(null); // Clear error if user is just skipping the health survey
+      return;
+    }
+    
+    // Only set error for actual registration failures
+    let userMessage = 'Registration failed. Please try again.';
+    if (message.includes('auth')) {
+      userMessage = 'Authentication error. Please check your email and password.';
+    }
+    
+    setError(userMessage);
   };
 
   return (

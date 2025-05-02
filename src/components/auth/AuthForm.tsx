@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -69,6 +70,7 @@ export const AuthForm = ({ type, onSuccess, onError }: AuthFormProps) => {
       };
       
       await signUp(email, password, displayName, submissionData);
+      setSubmissionError(null); // Clear any error message on success
       if (onSuccess) onSuccess();
     } catch (error) {
       console.error('Registration error:', error);
