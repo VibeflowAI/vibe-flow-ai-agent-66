@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -66,13 +65,14 @@ const Chat = () => {
             </p>
           </div>
           <div className="w-48">
-            <Select value={aiProvider} onValueChange={(value) => setAiProvider(value as 'gemini' | 'openai')}>
+            <Select value={aiProvider} onValueChange={(value) => setAiProvider(value as 'gemini' | 'openai' | 'huggingface')}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select AI Model" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="gemini">Google Gemini</SelectItem>
                 <SelectItem value="openai">OpenRouter GPT-4o</SelectItem>
+                <SelectItem value="huggingface">Hugging Face</SelectItem>
               </SelectContent>
             </Select>
           </div>

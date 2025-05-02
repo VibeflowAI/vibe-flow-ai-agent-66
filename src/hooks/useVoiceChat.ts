@@ -35,7 +35,7 @@ export const useVoiceChat = () => {
   const [inputText, setInputText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [aiProvider, setAiProvider] = useState<'gemini' | 'openai'>('gemini');
+  const [aiProvider, setAiProvider] = useState<'gemini' | 'openai' | 'huggingface'>('gemini');
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { currentMood, moodEmojis } = useMood();
   const { user } = useAuth();
@@ -237,7 +237,8 @@ export const useVoiceChat = () => {
       let alternativeResponses = [];
       let responseProvider = '';
       
-      if (aiProvider === 'gemini') {
+      if (aiProvider === 'gemini' || aiProvider === 'huggingface') {
+        // We'll use the edge function for both Gemini and Hugging Face
         const geminiResponse = await processWithGemini(text, userContext);
         aiResponse = geminiResponse.response;
         alternativeResponses = geminiResponse.alternatives;
@@ -380,7 +381,7 @@ export const useVoiceChat = () => {
       let alternativeResponses = [];
       let responseProvider = '';
       
-      if (aiProvider === 'gemini') {
+      if (aiProvider === 'gemini' || aiProvider === 'huggingface') {
         const geminiResponse = await processWithGemini(prompt, userContext);
         aiResponse = geminiResponse.response;
         alternativeResponses = geminiResponse.alternatives;

@@ -188,6 +188,7 @@ async function useGeminiAPI(message: string, userContext: any) {
 // Function to interact with Hugging Face API
 async function useHuggingFaceAPI(message: string, userContext: any) {
   try {
+    console.log("Creating HfInference with token:", HUGGING_FACE_TOKEN.substring(0, 5) + "...");
     const hf = new HfInference(HUGGING_FACE_TOKEN);
     
     // Construct the prompt with user context
@@ -203,9 +204,12 @@ async function useHuggingFaceAPI(message: string, userContext: any) {
       Your response should be encouraging and provide actionable suggestions.
     `;
     
+    console.log("Sending request to Hugging Face with prompt:", prompt.substring(0, 50) + "...");
+    
     // Call the Hugging Face API with a capable model
+    // Using text generation instead of chat completion for more reliable results
     const result = await hf.textGeneration({
-      model: "mistralai/Mixtral-8x7B-Instruct-v0.1",
+      model: "HuggingFaceH4/zephyr-7b-beta",
       inputs: prompt,
       parameters: {
         max_new_tokens: 200,
@@ -215,6 +219,8 @@ async function useHuggingFaceAPI(message: string, userContext: any) {
       }
     });
     
+    console.log("Hugging Face API response received:", result);
+    
     // Clean up the response to remove any formatting or system text
     let aiResponse = result.generated_text || "";
     
@@ -223,11 +229,13 @@ async function useHuggingFaceAPI(message: string, userContext: any) {
       .replace(/^(AI:|Assistant:|VibeFlow AI:|Response:)/i, "")
       .trim();
     
+    console.log("Processed response:", aiResponse);
+    
     return {
       response: aiResponse
     };
   } catch (error) {
-    console.error("Hugging Face API error:", error);
+    console.error("Hugging Face API error details:", error);
     throw new Error(`Hugging Face API error: ${error.message}`);
   }
 }
