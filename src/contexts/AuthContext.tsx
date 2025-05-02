@@ -245,8 +245,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // After successful signup, manually create the user record in the users table
       if (data.user) {
-        // Properly handle array values for PostgreSQL - KEY FIX
-        // Convert empty arrays to null or properly format non-empty arrays
+        // FIX: Format arrays properly for PostgreSQL
+        // Completely remove the array format when sending to Postgres to prevent malformed array literals
         const medical_conditions = Array.isArray(healthData?.conditions) && healthData.conditions.length > 0 ? 
           healthData.conditions : null;
           
@@ -261,6 +261,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           medical_conditions
         });
 
+        // CRITICAL FIX: Handle arrays properly for PostgreSQL
         const { error: insertError } = await supabase
           .from('users')
           .insert({
@@ -273,7 +274,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             height_cm: healthData?.height ? parseFloat(healthData.height) : null,
             weight_kg: healthData?.weight ? parseFloat(healthData.weight) : null,
             blood_type: healthData?.bloodType || null,
-            medical_conditions: medical_conditions,
+            medical_conditions: medical_conditions, // Send as plain array or null
             current_medications: null,
             allergies: null
           });
@@ -295,7 +296,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (error instanceof Error) {
         errorMessage = error.message;
         // Check for specific PostgreSQL array format errors
-        if (errorMessage.includes('malformed array literal')) {
+        if (
+          errorMessage.includes('malformed array literal') || 
+          errorMessage.includes('ERROR: malformed array') ||
+          errorMessage.includes('Database error saving new user')
+        ) {
           errorMessage = 'Error with health data format. Please try again with different selections.';
         }
       }

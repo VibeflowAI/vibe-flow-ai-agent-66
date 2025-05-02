@@ -22,10 +22,14 @@ const SignUp = () => {
     // Log the full error message for debugging
     console.error('Registration error:', message);
     
-    // Check for specific PostgreSQL errors related to array format
+    // Improved error message handling for PostgreSQL array format issues
     let userFriendlyMessage = message;
-    if (message.includes('malformed array literal') || message.includes('Database error saving new user')) {
-      userFriendlyMessage = 'There was a problem with your health data. Please try again with different options.';
+    if (
+      message.includes('malformed array literal') || 
+      message.includes('Database error saving new user') ||
+      message.includes('ERROR: malformed array')
+    ) {
+      userFriendlyMessage = 'There was a problem with your health data. Please try again with different options or select fewer conditions.';
     }
     
     setError(userFriendlyMessage);

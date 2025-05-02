@@ -64,11 +64,17 @@ export const AuthForm = ({ type, onSuccess, onError }: AuthFormProps) => {
     try {
       console.log("Health survey complete, registering user with data:", healthData);
       
-      // Ensure arrays are properly formatted before sending
+      // Ensure arrays are properly formatted before sending - this is critical
+      // Apply extra validation to ensure arrays are clean before sending to database
       const validatedHealthData: HealthSurveyData = {
         ...healthData,
-        conditions: Array.isArray(healthData.conditions) ? healthData.conditions : [],
-        healthGoals: Array.isArray(healthData.healthGoals) ? healthData.healthGoals : []
+        // Make sure we filter out any null/undefined values that could cause JSON parsing issues
+        conditions: Array.isArray(healthData.conditions) ? 
+          healthData.conditions.filter(Boolean) : 
+          [],
+        healthGoals: Array.isArray(healthData.healthGoals) ? 
+          healthData.healthGoals.filter(Boolean) : 
+          []
       };
       
       await signUp(email, password, displayName, validatedHealthData);

@@ -66,18 +66,33 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
     },
   });
 
-  // This ensures empty arrays are properly initialized
+  // Improved validation for arrays to ensure proper formatting before submission
   const validateArrays = (data: HealthSurveyData): HealthSurveyData => {
-    // Ensure conditions is always an array
-    const sanitizedConditions = Array.isArray(data.conditions) ? data.conditions : [];
+    // Ensure conditions is always an initialized array
+    const sanitizedConditions = Array.isArray(data.conditions) ? 
+      data.conditions.filter(item => item !== undefined && item !== null) : 
+      [];
     
-    // Ensure healthGoals is always an array
-    const sanitizedHealthGoals = Array.isArray(data.healthGoals) ? data.healthGoals : [];
+    // Ensure healthGoals is always an initialized array
+    const sanitizedHealthGoals = Array.isArray(data.healthGoals) ? 
+      data.healthGoals.filter(item => item !== undefined && item !== null) : 
+      [];
     
+    // If "None" is selected for conditions, clear any other selections
+    if (sanitizedConditions.includes("None")) {
+      sanitizedConditions.splice(0, sanitizedConditions.length, "None");
+    }
+
     return {
       ...data,
       conditions: sanitizedConditions,
-      healthGoals: sanitizedHealthGoals
+      healthGoals: sanitizedHealthGoals,
+      // Ensure other fields are properly formatted
+      height: data.height?.trim() || undefined,
+      weight: data.weight?.trim() || undefined,
+      bloodType: data.bloodType || undefined,
+      sleepHours: data.sleepHours || '7-8',
+      activityLevel: data.activityLevel || 'moderate'
     };
   };
 
@@ -180,8 +195,29 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                         control={form.control}
                         name="conditions"
                         render={({ field }) => {
-                          // Ensure field.value is always an array
+                          // Ensure field.value is always a valid array
                           const currentValue = Array.isArray(field.value) ? field.value : [];
+                          
+                          // Special handling for "None" option - deselect others if "None" is selected
+                          const handleConditionChange = (checked: boolean | string) => {
+                            if (checked) {
+                              if (condition === "None") {
+                                // If "None" is selected, clear all other selections
+                                return field.onChange(["None"]);
+                              } else {
+                                // If any other condition is selected, remove "None" if present
+                                const newValue = [...currentValue, condition];
+                                return field.onChange(
+                                  newValue.filter(value => value !== "None")
+                                );
+                              }
+                            } else {
+                              return field.onChange(
+                                currentValue.filter(value => value !== condition)
+                              );
+                            }
+                          };
+                          
                           return (
                             <FormItem
                               key={condition}
@@ -190,22 +226,14 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                               <FormControl>
                                 <Checkbox
                                   checked={currentValue.includes(condition)}
-                                  onCheckedChange={(checked) => {
-                                    return checked
-                                      ? field.onChange([...currentValue, condition])
-                                      : field.onChange(
-                                          currentValue.filter(
-                                            (value) => value !== condition
-                                          )
-                                        )
-                                  }}
+                                  onCheckedChange={handleConditionChange}
                                 />
                               </FormControl>
                               <FormLabel className="font-normal">
                                 {condition}
                               </FormLabel>
                             </FormItem>
-                          )
+                          );
                         }}
                       />
                     ))}
@@ -281,7 +309,7 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                         control={form.control}
                         name="healthGoals"
                         render={({ field }) => {
-                          // Ensure field.value is always an array
+                          // Ensure field.value is always a valid array
                           const currentValue = Array.isArray(field.value) ? field.value : [];
                           return (
                             <FormItem
@@ -298,7 +326,7 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                                           currentValue.filter(
                                             (value) => value !== goal
                                           )
-                                        )
+                                        );
                                   }}
                                 />
                               </FormControl>
@@ -306,7 +334,7 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                                 {goal}
                               </FormLabel>
                             </FormItem>
-                          )
+                          );
                         }}
                       />
                     ))}
