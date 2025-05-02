@@ -19,6 +19,9 @@ const SignUp = () => {
   };
 
   const handleError = (message: string) => {
+    // Log the full error message for debugging
+    console.error('Registration error:', message);
+    
     setError(message);
     toast({
       variant: 'destructive',

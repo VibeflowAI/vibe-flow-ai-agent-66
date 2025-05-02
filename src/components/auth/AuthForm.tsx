@@ -19,6 +19,7 @@ export const AuthForm = ({ type, onSuccess, onError }: AuthFormProps) => {
   const [displayName, setDisplayName] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showHealthSurvey, setShowHealthSurvey] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -39,6 +40,7 @@ export const AuthForm = ({ type, onSuccess, onError }: AuthFormProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmissionError(null);
     
     if (!validate()) return;
 
@@ -48,7 +50,9 @@ export const AuthForm = ({ type, onSuccess, onError }: AuthFormProps) => {
         if (onSuccess) onSuccess();
       } catch (error) {
         console.error('Authentication error:', error);
-        if (onError) onError(error instanceof Error ? error.message : 'Failed to sign in');
+        const errorMessage = error instanceof Error ? error.message : 'Failed to sign in';
+        setSubmissionError(errorMessage);
+        if (onError) onError(errorMessage);
       }
     } else if (type === 'signup') {
       // For signup, show health survey instead of immediately creating account
@@ -58,12 +62,23 @@ export const AuthForm = ({ type, onSuccess, onError }: AuthFormProps) => {
 
   const handleHealthSurveyComplete = async (healthData: HealthSurveyData) => {
     try {
-      await signUp(email, password, displayName, healthData);
+      console.log("Health survey complete, registering user with data:", healthData);
+      
+      // Ensure arrays are properly formatted before sending
+      const validatedHealthData: HealthSurveyData = {
+        ...healthData,
+        conditions: Array.isArray(healthData.conditions) ? healthData.conditions : [],
+        healthGoals: Array.isArray(healthData.healthGoals) ? healthData.healthGoals : []
+      };
+      
+      await signUp(email, password, displayName, validatedHealthData);
       if (onSuccess) onSuccess();
     } catch (error) {
       console.error('Registration error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create account';
+      setSubmissionError(errorMessage);
       // Pass the error to the parent component
-      if (onError) onError(error instanceof Error ? error.message : 'Failed to create account');
+      if (onError) onError(errorMessage);
       // Go back to signup form on error
       setShowHealthSurvey(false);
     }
@@ -89,6 +104,12 @@ export const AuthForm = ({ type, onSuccess, onError }: AuthFormProps) => {
             ? 'Enter your credentials to access your account' 
             : 'Fill in the information to create your account'}
         </CardDescription>
+        
+        {submissionError && (
+          <div className="mt-2 p-2 bg-red-50 border border-red-200 text-red-600 rounded text-sm">
+            {submissionError}
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">

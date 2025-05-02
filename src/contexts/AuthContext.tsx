@@ -207,7 +207,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log("Received health data:", healthData);
       
-      // Process health data if available - ensure consistent array handling
+      // Process health data if available
       const healthProfile: HealthProfile = healthData ? {
         height: healthData.height || '',
         weight: healthData.weight || '',
@@ -245,13 +245,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // After successful signup, manually create the user record in the users table
       if (data.user) {
-        // Prepare medical conditions array - must be properly formatted for PostgreSQL
-        const medical_conditions = healthData?.conditions?.length ? 
-          healthData.conditions : 
-          null;
+        // Properly format arrays for PostgreSQL - key fix
+        const medical_conditions = healthData?.conditions && healthData.conditions.length > 0 ? 
+          healthData.conditions : null;
           
-        // Log what we're trying to insert
-        console.log("Creating user record with data:", {
+        console.log("Creating user record with formatted data:", {
           id: data.user.id,
           email,
           name: displayName,
@@ -259,9 +257,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           height_cm: healthData?.height ? parseFloat(healthData.height) : null,
           weight_kg: healthData?.weight ? parseFloat(healthData.weight) : null,
           blood_type: healthData?.bloodType || null,
-          medical_conditions,
-          current_medications: null,
-          allergies: null
+          medical_conditions
         });
 
         const { error: insertError } = await supabase
@@ -271,19 +267,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             email: email,
             name: displayName,
             activity_level: healthData?.activityLevel || 'moderate',
-            dietary_preferences: null, // Initialize as null instead of empty array
-            sleep_goal: '8 hours', // Default value
+            dietary_preferences: null,
+            sleep_goal: '8 hours',
             height_cm: healthData?.height ? parseFloat(healthData.height) : null,
             weight_kg: healthData?.weight ? parseFloat(healthData.weight) : null,
             blood_type: healthData?.bloodType || null,
-            medical_conditions: medical_conditions, // Use prepared value
-            current_medications: null, // Initialize as null instead of empty array
-            allergies: null // Initialize as null instead of empty array
+            medical_conditions: medical_conditions,
+            current_medications: null,
+            allergies: null
           });
           
         if (insertError) {
           console.error('Error creating user record:', insertError);
-          throw new Error('Failed to create user record');
+          throw new Error('Failed to create user record: ' + insertError.message);
         }
       }
       
@@ -292,6 +288,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         description: `Welcome to VibeFlow, ${displayName}!`,
       });
     } catch (error) {
+      console.error('Registration error details:', error);
       toast({
         variant: 'destructive',
         title: 'Registration failed',
@@ -382,6 +379,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (authError) throw authError;
       
+      // Properly format arrays for PostgreSQL
+      const medical_conditions = Array.isArray(healthData.conditions) && healthData.conditions.length > 0 ? 
+        healthData.conditions : null;
+      
       // Update corresponding fields in users table
       const { error: dbError } = await supabase
         .from('users')
@@ -389,7 +390,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           height_cm: healthData.height ? parseFloat(healthData.height) : null,
           weight_kg: healthData.weight ? parseFloat(healthData.weight) : null,
           blood_type: healthData.bloodType || null,
-          medical_conditions: healthData.conditions?.length ? healthData.conditions : null,
+          medical_conditions: medical_conditions,
           activity_level: healthData.activityLevel || 'moderate',
           updated_at: new Date().toISOString()
         })

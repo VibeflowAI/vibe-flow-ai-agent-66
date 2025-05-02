@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -65,13 +66,18 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
     },
   });
 
-  const handleSubmit = (data: HealthSurveyData) => {
-    // Ensure conditions and healthGoals are properly formatted as arrays
-    const formattedData = {
+  // This ensures empty arrays are properly initialized
+  const validateArrays = (data: HealthSurveyData): HealthSurveyData => {
+    return {
       ...data,
       conditions: Array.isArray(data.conditions) ? data.conditions : [],
       healthGoals: Array.isArray(data.healthGoals) ? data.healthGoals : []
     };
+  };
+
+  const handleSubmit = (data: HealthSurveyData) => {
+    // Ensure conditions and healthGoals are properly formatted as arrays
+    const formattedData = validateArrays(data);
     
     // Log the formatted data for debugging
     console.log("Submitting health data:", formattedData);
@@ -162,6 +168,7 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                         control={form.control}
                         name="conditions"
                         render={({ field }) => {
+                          const currentValue = Array.isArray(field.value) ? field.value : [];
                           return (
                             <FormItem
                               key={condition}
@@ -169,10 +176,8 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                             >
                               <FormControl>
                                 <Checkbox
-                                  checked={field.value?.includes(condition)}
+                                  checked={currentValue.includes(condition)}
                                   onCheckedChange={(checked) => {
-                                    // Ensure field.value is always an array
-                                    const currentValue = Array.isArray(field.value) ? field.value : [];
                                     return checked
                                       ? field.onChange([...currentValue, condition])
                                       : field.onChange(
@@ -263,6 +268,7 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                         control={form.control}
                         name="healthGoals"
                         render={({ field }) => {
+                          const currentValue = Array.isArray(field.value) ? field.value : [];
                           return (
                             <FormItem
                               key={goal}
@@ -270,10 +276,8 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                             >
                               <FormControl>
                                 <Checkbox
-                                  checked={field.value?.includes(goal)}
+                                  checked={currentValue.includes(goal)}
                                   onCheckedChange={(checked) => {
-                                    // Ensure field.value is always an array
-                                    const currentValue = Array.isArray(field.value) ? field.value : [];
                                     return checked
                                       ? field.onChange([...currentValue, goal])
                                       : field.onChange(
