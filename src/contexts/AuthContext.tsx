@@ -366,21 +366,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!user) throw new Error('No authenticated user');
 
       // Sanitize and validate arrays before sending
-      const sanitizedConditions = Array.isArray(healthData.conditions) && healthData.conditions.length > 0 
-        ? healthData.conditions.filter(Boolean).slice(0, 2) // Limit to 2 conditions maximum
+      const sanitizedConditions = Array.isArray(data.conditions) && data.conditions.length > 0 
+        ? data.conditions.filter(Boolean).slice(0, 2) // Limit to 2 conditions maximum
         : [];
         
-      const sanitizedHealthGoals = Array.isArray(healthData.healthGoals) && healthData.healthGoals.length > 0 
-        ? healthData.healthGoals.filter(Boolean).slice(0, 3) // Limit to 3 goals maximum
+      const sanitizedHealthGoals = Array.isArray(data.healthGoals) && data.healthGoals.length > 0 
+        ? data.healthGoals.filter(Boolean).slice(0, 3) // Limit to 3 goals maximum
         : [];
 
       const healthProfile: HealthProfile = {
-        height: healthData.height || '',
-        weight: healthData.weight || '',
-        bloodType: healthData.bloodType || '',
+        height: data.height || '',
+        weight: data.weight || '',
+        bloodType: data.bloodType || '',
         conditions: sanitizedConditions,
-        sleepHours: healthData.sleepHours || '',
-        activityLevel: healthData.activityLevel || 'moderate',
+        sleepHours: data.sleepHours || '',
+        activityLevel: data.activityLevel || 'moderate',
         healthGoals: sanitizedHealthGoals,
         lastUpdated: Date.now(),
       };
@@ -402,11 +402,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { error: dbError } = await supabase
         .from('users')
         .update({
-          height_cm: healthData.height ? parseFloat(healthData.height) : null,
-          weight_kg: healthData.weight ? parseFloat(healthData.weight) : null,
-          blood_type: healthData.bloodType || null,
+          height_cm: data.height ? parseFloat(data.height) : null,
+          weight_kg: data.weight ? parseFloat(data.weight) : null,
+          blood_type: data.bloodType || null,
           medical_conditions: medical_conditions,
-          activity_level: healthData.activityLevel || 'moderate',
+          activity_level: data.activityLevel || 'moderate',
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
