@@ -23,13 +23,13 @@ export const MoodTracker = () => {
     if (selectedMood && selectedEnergy) {
       setIsSaving(true);
       try {
-        // Log mood in context
+        console.log('Saving mood to Supabase for user:', user?.id);
+        
+        // First log mood in context so UI updates immediately
         await logMood(selectedMood, selectedEnergy, note);
         
         // Save to Supabase if user is authenticated
         if (user) {
-          console.log('Saving mood to Supabase for user:', user.id);
-          
           // First check if the user exists in the users table
           const { data: userData, error: userError } = await supabase
             .from('users')

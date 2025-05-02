@@ -79,6 +79,9 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
     
     try {
+      setIsLoading(true);
+      console.log('Fetching mood history for user:', user.id);
+      
       const { data, error } = await supabase
         .from('mood_entries')
         .select('id, mood, energy_level, note, created_at')
@@ -91,6 +94,7 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (data) {
+        console.log('Found mood history entries:', data.length);
         const formattedHistory: MoodEntry[] = data.map(entry => ({
           id: entry.id,
           mood: entry.mood as MoodType,
@@ -108,6 +112,8 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error) {
       console.error('Error in fetchMoodHistory:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, [user]);
   
@@ -141,7 +147,10 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
       // After adding to database, refresh the mood history
       if (user) {
         // We're handling the Supabase insert in the MoodTracker component
-        await fetchMoodHistory();
+        // Wait a short delay to ensure the DB operation completes
+        setTimeout(() => {
+          fetchMoodHistory();
+        }, 1000);
       }
       
       // Get recommendations based on the new mood
