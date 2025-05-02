@@ -54,8 +54,11 @@ const SignUp = () => {
         <p className="text-gray-600">Create an account to start your wellness journey</p>
         
         {error && (
-          <div className="mt-4 p-3 bg-red-100 text-red-800 rounded-md">
+          <div className="mt-4 p-3 bg-red-100 text-red-800 rounded-md text-sm">
             {error}
+            <p className="mt-1 text-xs">
+              Tip: Try limiting your selection to 2 medical conditions and 3 health goals.
+            </p>
           </div>
         )}
       </div>

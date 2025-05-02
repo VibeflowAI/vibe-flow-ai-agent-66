@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -64,22 +63,17 @@ export const AuthForm = ({ type, onSuccess, onError }: AuthFormProps) => {
     try {
       console.log("Health survey complete, registering user with data:", healthData);
       
-      // Ensure arrays are properly formatted before sending - this is critical
+      // Extra validation to make sure arrays are properly formatted to avoid database issues
       const validatedHealthData: HealthSurveyData = {
         ...healthData,
-        // Make sure we filter out any null/undefined/empty values that could cause database issues
+        // Make sure we filter out any null/undefined/empty values and limit array sizes
         conditions: Array.isArray(healthData.conditions) ? 
-          healthData.conditions.filter(item => item && item.trim() !== '') : 
+          healthData.conditions.filter(item => item && item.trim() !== '').slice(0, 2) : 
           [],
         healthGoals: Array.isArray(healthData.healthGoals) ? 
-          healthData.healthGoals.filter(item => item && item.trim() !== '') : 
+          healthData.healthGoals.filter(item => item && item.trim() !== '').slice(0, 3) : 
           []
       };
-      
-      // Limit the number of conditions to avoid PostgreSQL array formatting issues
-      if (validatedHealthData.conditions.length > 3) {
-        validatedHealthData.conditions = validatedHealthData.conditions.slice(0, 3);
-      }
       
       await signUp(email, password, displayName, validatedHealthData);
       if (onSuccess) onSuccess();

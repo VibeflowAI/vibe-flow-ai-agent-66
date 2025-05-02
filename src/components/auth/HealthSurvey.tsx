@@ -66,21 +66,31 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
     },
   });
 
-  // Improved validation for arrays to ensure proper formatting before submission
+  // Enhanced validation for arrays to ensure proper formatting before submission
   const validateArrays = (data: HealthSurveyData): HealthSurveyData => {
-    // Ensure conditions is always a properly formatted array
-    const sanitizedConditions = Array.isArray(data.conditions) ? 
+    // Ensure conditions is always a properly formatted array with maximum 2 items to avoid PostgreSQL issues
+    let sanitizedConditions = Array.isArray(data.conditions) ? 
       data.conditions.filter(item => item !== undefined && item !== null && item !== "") : 
       [];
     
-    // Ensure healthGoals is always a properly formatted array
-    const sanitizedHealthGoals = Array.isArray(data.healthGoals) ? 
+    // Limit to max 2 conditions to avoid potential PostgreSQL array formatting issues
+    if (sanitizedConditions.length > 2) {
+      sanitizedConditions = sanitizedConditions.slice(0, 2);
+    }
+    
+    // Ensure healthGoals is always a properly formatted array with maximum 3 items
+    let sanitizedHealthGoals = Array.isArray(data.healthGoals) ? 
       data.healthGoals.filter(item => item !== undefined && item !== null && item !== "") : 
       [];
+      
+    // Limit goals to maximum 3 to avoid potential PostgreSQL array issues
+    if (sanitizedHealthGoals.length > 3) {
+      sanitizedHealthGoals = sanitizedHealthGoals.slice(0, 3);
+    }
     
     // If "None" is selected for conditions, clear any other selections
     if (sanitizedConditions.includes("None")) {
-      sanitizedConditions.splice(0, sanitizedConditions.length, "None");
+      sanitizedConditions = ["None"];
     }
 
     return {
@@ -98,11 +108,11 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
 
   const handleSubmit = (data: HealthSurveyData) => {
     try {
-      // Format and validate data before sending
+      // Format and validate data before sending, with more restrictive limits
       const formattedData = validateArrays(data);
       
       // Log detailed information for debugging
-      console.log("Submitting health data:", formattedData);
+      console.log("Submitting health data (validated):", formattedData);
       
       // Pass the validated data to parent component
       onComplete(formattedData);
@@ -117,6 +127,9 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
         <CardTitle className="text-2xl font-bold text-center">Health Profile</CardTitle>
         <CardDescription className="text-center">
           Tell us about your health to get personalized recommendations
+          <p className="mt-2 text-sm text-amber-600">
+            Please select no more than 2 conditions and 3 health goals
+          </p>
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -185,7 +198,7 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                   <div className="mb-2">
                     <FormLabel>Medical Conditions</FormLabel>
                     <FormDescription>
-                      Select any conditions that apply to you
+                      Select up to 2 conditions that apply to you
                     </FormDescription>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -201,15 +214,22 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                           // Special handling for "None" option - deselect others if "None" is selected
                           const handleConditionChange = (checked: boolean | string) => {
                             if (checked) {
+                              // Limit selections to maximum 2 items unless "None" is selected
                               if (condition === "None") {
                                 // If "None" is selected, clear all other selections
                                 return field.onChange(["None"]);
                               } else {
                                 // If any other condition is selected, remove "None" if present
-                                const newValue = [...currentValue, condition];
-                                return field.onChange(
-                                  newValue.filter(value => value !== "None")
-                                );
+                                const filteredValue = currentValue.filter(value => value !== "None");
+                                const newValue = [...filteredValue, condition];
+                                
+                                // Limit to 2 conditions maximum
+                                if (newValue.length > 2) {
+                                  // If more than 2, remove the oldest selection
+                                  newValue.shift();
+                                }
+                                
+                                return field.onChange(newValue);
                               }
                             } else {
                               return field.onChange(
@@ -299,7 +319,7 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                   <div className="mb-2">
                     <FormLabel>Health Goals</FormLabel>
                     <FormDescription>
-                      Select your primary health and wellness goals
+                      Select up to 3 primary health and wellness goals
                     </FormDescription>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -320,13 +340,21 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                                 <Checkbox
                                   checked={currentValue.includes(goal)}
                                   onCheckedChange={(checked) => {
-                                    return checked
-                                      ? field.onChange([...currentValue, goal])
-                                      : field.onChange(
-                                          currentValue.filter(
-                                            (value) => value !== goal
-                                          )
-                                        );
+                                    if (checked) {
+                                      // Limit to maximum 3 goals
+                                      if (currentValue.length >= 3) {
+                                        // If already at max, replace the oldest one
+                                        const newValue = [...currentValue];
+                                        newValue.shift(); // Remove the oldest
+                                        newValue.push(goal); // Add the new one
+                                        return field.onChange(newValue);
+                                      }
+                                      return field.onChange([...currentValue, goal]);
+                                    } else {
+                                      return field.onChange(
+                                        currentValue.filter(value => value !== goal)
+                                      );
+                                    }
                                   }}
                                 />
                               </FormControl>

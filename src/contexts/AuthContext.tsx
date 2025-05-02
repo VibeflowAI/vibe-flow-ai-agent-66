@@ -211,10 +211,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         height: healthData.height || '',
         weight: healthData.weight || '',
         bloodType: healthData.bloodType || '',
-        conditions: Array.isArray(healthData.conditions) ? healthData.conditions : [],
+        conditions: Array.isArray(healthData.conditions) && healthData.conditions.length > 0 
+          ? healthData.conditions.slice(0, 2) // Limit to maximum 2 conditions
+          : [],
         sleepHours: healthData.sleepHours || '',
         activityLevel: healthData.activityLevel || 'moderate',
-        healthGoals: Array.isArray(healthData.healthGoals) ? healthData.healthGoals : [],
+        healthGoals: Array.isArray(healthData.healthGoals) && healthData.healthGoals.length > 0
+          ? healthData.healthGoals.slice(0, 3) // Limit to maximum 3 goals
+          : [],
         lastUpdated: Date.now(),
       } : {
         height: '',
@@ -244,15 +248,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // After successful signup, manually create the user record in the users table
       if (data.user) {
-        // FIX: Send conditions as a simple array rather than a stringified JSON array
-        // This is the key fix for the Postgres array formatting issue
+        // Ensure conditions is either a small array or null to avoid PostgreSQL formatting issues
         const healthConditions = Array.isArray(healthData?.conditions) && healthData.conditions.length > 0 
-          ? healthData.conditions 
+          ? healthData.conditions.slice(0, 2) // Limit to maximum 2 conditions
           : null;
           
         console.log("Creating user record with properly formatted conditions:", healthConditions);
 
-        // CRITICAL FIX: Send arrays directly to PostgreSQL without any JSON stringification
+        // CRITICAL FIX: Send arrays directly to PostgreSQL with proper formatting and size limits
         const { error: insertError } = await supabase
           .from('users')
           .insert({
@@ -265,7 +268,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             height_cm: healthData?.height ? parseFloat(healthData.height) : null,
             weight_kg: healthData?.weight ? parseFloat(healthData.weight) : null,
             blood_type: healthData?.bloodType || null,
-            medical_conditions: healthConditions, // Send as plain array or null
+            medical_conditions: healthConditions, // Send as plain array (limited to 2 items) or null
             current_medications: null,
             allergies: null
           });
