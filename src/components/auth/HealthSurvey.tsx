@@ -67,7 +67,15 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
   });
 
   const handleSubmit = (data: HealthSurveyData) => {
-    onComplete(data);
+    // Ensure conditions and healthGoals are properly formatted as arrays
+    const formattedData = {
+      ...data,
+      conditions: Array.isArray(data.conditions) ? data.conditions : [],
+      healthGoals: Array.isArray(data.healthGoals) ? data.healthGoals : []
+    };
+    
+    console.log("Submitting health data:", formattedData);
+    onComplete(formattedData);
   };
 
   return (
@@ -163,10 +171,12 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                                 <Checkbox
                                   checked={field.value?.includes(condition)}
                                   onCheckedChange={(checked) => {
+                                    // Ensure field.value is always an array
+                                    const currentValue = Array.isArray(field.value) ? field.value : [];
                                     return checked
-                                      ? field.onChange([...field.value, condition])
+                                      ? field.onChange([...currentValue, condition])
                                       : field.onChange(
-                                          field.value?.filter(
+                                          currentValue.filter(
                                             (value) => value !== condition
                                           )
                                         )
@@ -262,10 +272,12 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
                                 <Checkbox
                                   checked={field.value?.includes(goal)}
                                   onCheckedChange={(checked) => {
+                                    // Ensure field.value is always an array
+                                    const currentValue = Array.isArray(field.value) ? field.value : [];
                                     return checked
-                                      ? field.onChange([...field.value, goal])
+                                      ? field.onChange([...currentValue, goal])
                                       : field.onChange(
-                                          field.value?.filter(
+                                          currentValue.filter(
                                             (value) => value !== goal
                                           )
                                         )

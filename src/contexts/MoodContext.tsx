@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -144,6 +143,9 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
         await fetchMoodHistory();
       }
       
+      // Get recommendations based on the new mood
+      await getRecommendations();
+      
       return Promise.resolve();
     } catch (error) {
       console.error('Error logging mood:', error);
@@ -155,16 +157,30 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
 
   // Get personalized recommendations based on current mood
   const getRecommendations = useCallback(async () => {
-    if (!currentMood) return;
+    if (!currentMood && moodHistory.length === 0) {
+      console.log('No mood data available for recommendations');
+      setRecommendations([]);
+      return;
+    }
     
     setIsLoading(true);
     try {
+      // Use current mood if available, otherwise use the most recent from history
+      const moodToUse = currentMood || (moodHistory.length > 0 ? moodHistory[0] : null);
+      
+      if (!moodToUse) {
+        console.log('No mood available for recommendations');
+        return;
+      }
+      
+      console.log('Fetching recommendations for mood:', moodToUse.mood, 'and energy:', moodToUse.energy);
+      
       // Get recommendations from Supabase
       const { data, error } = await supabase
         .from('recommendations')
         .select('*')
-        .contains('mood_types', [currentMood.mood])
-        .contains('energy_levels', [currentMood.energy]);
+        .contains('mood_types', [moodToUse.mood])
+        .contains('energy_levels', [moodToUse.energy]);
       
       if (error) {
         console.error('Error fetching recommendations:', error);
@@ -172,6 +188,7 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (data && data.length > 0) {
+        console.log('Found recommendations:', data.length);
         // Map the snake_case fields from Supabase to camelCase for our app
         const formattedRecommendations: Recommendation[] = data.map(rec => ({
           id: rec.id,
@@ -185,6 +202,7 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
         
         setRecommendations(formattedRecommendations);
       } else {
+        console.log('No specific recommendations found, fetching fallbacks');
         // Fallback to get any recommendations if none match the specific mood/energy
         const { data: fallbackData, error: fallbackError } = await supabase
           .from('recommendations')
@@ -192,6 +210,7 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
           .limit(5);
           
         if (!fallbackError && fallbackData) {
+          console.log('Found fallback recommendations:', fallbackData.length);
           // Map the snake_case fields from Supabase to camelCase for our app
           const formattedRecommendations: Recommendation[] = fallbackData.map(rec => ({
             id: rec.id,
@@ -204,21 +223,25 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
           }));
           
           setRecommendations(formattedRecommendations);
+        } else {
+          console.log('No recommendations available at all');
+          setRecommendations([]);
         }
       }
     } catch (error) {
       console.error('Error getting recommendations:', error);
+      setRecommendations([]);
     } finally {
       setIsLoading(false);
     }
-  }, [currentMood]);
+  }, [currentMood, moodHistory]);
   
   // Get recommendations when current mood changes
   useEffect(() => {
-    if (currentMood) {
+    if (user) {
       getRecommendations();
     }
-  }, [currentMood, getRecommendations]);
+  }, [user, currentMood, getRecommendations]);
 
   const value = {
     currentMood,

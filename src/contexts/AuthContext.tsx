@@ -205,7 +205,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signUp = async (email: string, password: string, displayName: string, healthData?: HealthSurveyData) => {
     setLoading(true);
     try {
-      // Process health data if available - fix array handling for conditions, healthGoals, etc.
+      console.log("Received health data:", healthData);
+      
+      // Process health data if available - ensure consistent array handling
       const healthProfile: HealthProfile = healthData ? {
         height: healthData.height || '',
         weight: healthData.weight || '',
@@ -250,14 +252,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             email: email,
             name: displayName,
             activity_level: healthData?.activityLevel || 'moderate',
-            dietary_preferences: healthData?.dietaryPreferences || null,
-            sleep_goal: healthData?.sleepGoals || '8 hours',
+            dietary_preferences: [], // Initialize as empty array
+            sleep_goal: '8 hours', // Default value
             height_cm: healthData?.height ? parseFloat(healthData.height) : null,
             weight_kg: healthData?.weight ? parseFloat(healthData.weight) : null,
             blood_type: healthData?.bloodType || null,
-            medical_conditions: healthData?.conditions || null,
-            current_medications: healthData?.medications || null,
-            allergies: healthData?.allergies || null
+            medical_conditions: healthData?.conditions?.length ? healthData.conditions : null,
+            current_medications: [], // Initialize as empty array
+            allergies: [] // Initialize as empty array
           });
           
         if (insertError) {
@@ -310,7 +312,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           .update({
             name: data.displayName || user.displayName,
             activity_level: data.preferences?.activityLevel || user.preferences?.activityLevel,
-            dietary_preferences: data.preferences?.dietaryRestrictions || null,
+            dietary_preferences: data.preferences?.dietaryRestrictions?.length ? data.preferences.dietaryRestrictions : null,
             sleep_goal: data.preferences?.sleepGoals || user.preferences?.sleepGoals,
             updated_at: new Date().toISOString()
           })
@@ -368,7 +370,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           height_cm: healthData.height ? parseFloat(healthData.height) : null,
           weight_kg: healthData.weight ? parseFloat(healthData.weight) : null,
           blood_type: healthData.bloodType || null,
-          medical_conditions: healthData.conditions || null,
+          medical_conditions: healthData.conditions?.length ? healthData.conditions : null,
           activity_level: healthData.activityLevel || 'moderate',
           updated_at: new Date().toISOString()
         })
