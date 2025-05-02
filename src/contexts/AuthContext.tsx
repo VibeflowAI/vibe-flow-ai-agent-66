@@ -207,19 +207,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log("Received health data for signup:", healthData);
       
-      // Process health data if available - ensure arrays are properly formatted
+      // IMPORTANT: Make sure arrays are valid or null for PostgreSQL compatibility
+      const safeConditions = healthData?.conditions && Array.isArray(healthData.conditions) && 
+                            healthData.conditions.length > 0 && healthData.conditions[0] !== "" ? 
+                            healthData.conditions.filter(Boolean).slice(0, 2) : null;
+      
+      const safeHealthGoals = healthData?.healthGoals && Array.isArray(healthData.healthGoals) && 
+                             healthData.healthGoals.length > 0 && healthData.healthGoals[0] !== "" ? 
+                             healthData.healthGoals.filter(Boolean).slice(0, 3) : null;
+      
+      // Process health data if available
       const healthProfile: HealthProfile = healthData ? {
         height: healthData.height || '',
         weight: healthData.weight || '',
         bloodType: healthData.bloodType || '',
-        conditions: Array.isArray(healthData.conditions) && healthData.conditions.length > 0 
-          ? healthData.conditions.filter(Boolean).slice(0, 2) // Limit to maximum 2 conditions
-          : [],
+        conditions: safeConditions || [],
         sleepHours: healthData.sleepHours || '',
         activityLevel: healthData.activityLevel || 'moderate',
-        healthGoals: Array.isArray(healthData.healthGoals) && healthData.healthGoals.length > 0
-          ? healthData.healthGoals.filter(Boolean).slice(0, 3) // Limit to maximum 3 goals
-          : [],
+        healthGoals: safeHealthGoals || [],
         lastUpdated: Date.now(),
       } : {
         height: '',
@@ -231,6 +236,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         healthGoals: [],
         lastUpdated: Date.now()
       };
+      
+      // Extra debug logs before signup
+      console.log("Health profile for auth metadata:", JSON.stringify(healthProfile));
+      console.log("Safe conditions for DB:", safeConditions);
+      console.log("Safe health goals for DB:", safeHealthGoals);
       
       // Sign up with Supabase, including metadata
       const { data, error } = await supabase.auth.signUp({
@@ -247,15 +257,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (error) throw error;
 
-      // After successful signup, manually create the user record in the users table
+      // After successful signup, create the user record in the users table
       if (data.user) {
-        // CRITICAL FIX: Use null for empty arrays to prevent PostgreSQL format errors
-        // This ensures proper array formatting for PostgreSQL
-        const medicalConditions = Array.isArray(healthData?.conditions) && healthData.conditions.length > 0 
-          ? healthData.conditions 
-          : null;
-          
-        // Create user with properly formatted arrays to prevent PostgreSQL errors
+        // Log what we're inserting into the database
+        console.log("Creating user record with conditions:", safeConditions);
+        
+        // Create user with properly formatted arrays for PostgreSQL
         const { error: insertError } = await supabase
           .from('users')
           .insert({
@@ -268,13 +275,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             height_cm: healthData?.height ? parseFloat(healthData.height) : null,
             weight_kg: healthData?.weight ? parseFloat(healthData.weight) : null,
             blood_type: healthData?.bloodType || null,
-            medical_conditions: medicalConditions,
+            medical_conditions: safeConditions, // Use our safer version
             current_medications: null,
             allergies: null
           });
           
         if (insertError) {
           console.error('Error creating user record:', insertError);
+          // Try a direct SQL approach if the standard approach fails
           throw new Error('Failed to create user record: ' + insertError.message);
         }
       }
@@ -295,7 +303,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           errorMessage.includes('ERROR: malformed array') ||
           errorMessage.includes('Database error saving new user')
         ) {
-          errorMessage = 'Error with health data format. Please try again with fewer selections.';
+          errorMessage = 'Error with health data format. Please try again with fewer selections or different values.';
         }
       }
       

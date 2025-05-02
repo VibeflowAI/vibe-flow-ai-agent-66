@@ -67,14 +67,14 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
     },
   });
 
-  // Enhanced validation for arrays to ensure proper formatting before submission
+  // Ensure arrays are never empty in the final data - use null instead for PostgreSQL
   const validateArrays = (data: HealthSurveyData): HealthSurveyData => {
-    // Ensure conditions is always a properly formatted array with maximum 2 items to avoid PostgreSQL issues
+    // For conditions: ensure it's a valid array or empty array (will be converted to null later)
     let sanitizedConditions = Array.isArray(data.conditions) ? 
       data.conditions.filter(Boolean) : 
       [];
     
-    // Limit to max 2 conditions to avoid potential PostgreSQL array formatting issues
+    // Limit to max 2 conditions
     if (sanitizedConditions.length > 2) {
       sanitizedConditions = sanitizedConditions.slice(0, 2);
       toast({
@@ -84,12 +84,12 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
       });
     }
     
-    // Ensure healthGoals is always a properly formatted array with maximum 3 items
+    // For healthGoals: ensure it's a valid array or empty array
     let sanitizedHealthGoals = Array.isArray(data.healthGoals) ? 
       data.healthGoals.filter(Boolean) : 
       [];
       
-    // Limit goals to maximum 3 to avoid potential PostgreSQL array issues
+    // Limit goals to maximum 3
     if (sanitizedHealthGoals.length > 3) {
       sanitizedHealthGoals = sanitizedHealthGoals.slice(0, 3);
       toast({
@@ -119,16 +119,18 @@ export const HealthSurvey = ({ onComplete, onBack }: HealthSurveyProps) => {
 
   const handleSubmit = (data: HealthSurveyData) => {
     try {
-      // Additional debugging - log raw form data
+      // Log raw form data for debugging
       console.log("Raw form data before validation:", JSON.stringify(data));
       
-      // Format and validate data before sending, with more restrictive limits
+      // Format and validate data before sending
       const formattedData = validateArrays(data);
       
       // Log detailed information for debugging
-      console.log("Submitting health data (validated):", formattedData);
-      console.log("Conditions array:", JSON.stringify(formattedData.conditions));
-      console.log("Health goals array:", JSON.stringify(formattedData.healthGoals));
+      console.log("Submitting health data (validated):", JSON.stringify(formattedData));
+      console.log("Conditions array type:", typeof formattedData.conditions);
+      console.log("Conditions array value:", JSON.stringify(formattedData.conditions));
+      console.log("Health goals array type:", typeof formattedData.healthGoals);
+      console.log("Health goals array value:", JSON.stringify(formattedData.healthGoals));
       
       // Pass the validated data to parent component
       onComplete(formattedData);
