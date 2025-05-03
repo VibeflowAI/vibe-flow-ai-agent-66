@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,7 +20,7 @@ export const Navbar = () => {
   return (
     <nav className="bg-white border-b border-vibe-light/30 shadow-sm py-3">
       <div className="container mx-auto px-4 flex justify-between items-center">
-        <Link to="/" className="flex items-center space-x-2">
+        <Link to={user ? "/dashboard" : "/"} className="flex items-center space-x-2">
           <div className="h-8 w-8 rounded-full bg-vibe-primary flex items-center justify-center">
             <span className="text-white font-bold text-xl">V</span>
           </div>
