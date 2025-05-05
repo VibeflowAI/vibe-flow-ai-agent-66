@@ -1,15 +1,24 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ThumbsUp, ThumbsDown, Heart, Image, ImageOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Recommendation } from '@/contexts/MoodContext';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
-export const RecommendationCard = ({ recommendation }: { recommendation: Recommendation }) => {
+export const RecommendationCard = ({ 
+  recommendation,
+  onLikeChange
+}: { 
+  recommendation: Recommendation,
+  onLikeChange?: (liked: boolean) => void
+}) => {
   const [liked, setLiked] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
+  const { user } = useAuth();
 
   const handleFeedback = (isPositive: boolean) => {
     toast({
@@ -19,13 +28,40 @@ export const RecommendationCard = ({ recommendation }: { recommendation: Recomme
   };
   
   const handleLike = () => {
-    setLiked(!liked);
+    const newLikedState = !liked;
+    setLiked(newLikedState);
+    
+    // Call the callback if provided
+    if (onLikeChange) {
+      onLikeChange(newLikedState);
+    }
+    
     toast({
-      title: liked ? 'Removed from favorites' : 'Added to favorites',
-      description: liked 
-        ? 'Recommendation removed from your favorites' 
-        : 'Recommendation saved to your favorites',
+      title: newLikedState ? 'Added to favorites' : 'Removed from favorites',
+      description: newLikedState 
+        ? 'Recommendation saved to your favorites' 
+        : 'Recommendation removed from your favorites',
     });
+
+    // Optionally save like status to database if user is logged in
+    if (user) {
+      try {
+        const trackLike = async () => {
+          await supabase
+            .from('recommendation_ratings')
+            .upsert({
+              user_id: user.id,
+              recommendation_id: recommendation.id,
+              rating: newLikedState ? 5 : null,
+              completed: false
+            });
+        };
+        
+        trackLike();
+      } catch (error) {
+        console.error('Error tracking recommendation like:', error);
+      }
+    }
   };
 
   // Check if we actually have a valid image URL
@@ -53,6 +89,30 @@ export const RecommendationCard = ({ recommendation }: { recommendation: Recomme
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0 }
   };
+
+  // Check if this recommendation is already liked when component mounts
+  useEffect(() => {
+    if (user && recommendation.id) {
+      const checkLikedStatus = async () => {
+        try {
+          const { data } = await supabase
+            .from('recommendation_ratings')
+            .select('rating')
+            .eq('user_id', user.id)
+            .eq('recommendation_id', recommendation.id)
+            .maybeSingle();
+            
+          if (data && data.rating) {
+            setLiked(true);
+          }
+        } catch (error) {
+          console.error('Error checking liked status:', error);
+        }
+      };
+      
+      checkLikedStatus();
+    }
+  }, [user, recommendation.id]);
 
   return (
     <motion.div variants={item} className="group">

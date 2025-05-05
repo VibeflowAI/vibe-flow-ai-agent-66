@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import { MoodTracker } from '@/components/mood/MoodTracker';
 import { RecommendationsList } from '@/components/recommendations/RecommendationsList';
+import { LikedRecommendationsProgress } from '@/components/recommendations/LikedRecommendationsProgress';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMood } from '@/contexts/MoodContext';
 import { Button } from '@/components/ui/button';
@@ -83,6 +84,13 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
             </motion.div>
+            
+            {/* Add the new LikedRecommendationsProgress component */}
+            {currentMood && (
+              <motion.div variants={item}>
+                <LikedRecommendationsProgress />
+              </motion.div>
+            )}
             
             {currentMood && (
               <motion.div variants={item}>
