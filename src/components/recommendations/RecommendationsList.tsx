@@ -20,6 +20,7 @@ export const RecommendationsList = () => {
 
   // Force refresh recommendations on component mount
   useEffect(() => {
+    console.log("RecommendationsList mounted, refreshing recommendations");
     getRecommendations();
     // This ensures the recommendations are fresh when the component mounts
   }, [getRecommendations]);
@@ -45,6 +46,7 @@ export const RecommendationsList = () => {
   };
 
   const handleRefresh = () => {
+    console.log("Manually refreshing recommendations");
     getRecommendations();
     toast({
       title: "Refreshing recommendations",

@@ -169,6 +169,7 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
   // Function to ensure we have default recommendations if none exist
   const ensureDefaultRecommendations = useCallback(async () => {
     try {
+      console.log('Calling add-default-recommendations edge function');
       // Call the edge function to add default recommendations if none exist
       const { error } = await supabase.functions.invoke('add-default-recommendations');
       
@@ -281,7 +282,7 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
         const { data: generalData, error: generalError } = await supabase
           .from('recommendations')
           .select('*')
-          .limit(10);
+          .limit(20);
           
         if (!generalError && generalData && generalData.length > 0) {
           const formattedRecommendations: Recommendation[] = generalData.map(rec => ({
