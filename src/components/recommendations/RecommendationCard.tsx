@@ -1,5 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { ThumbsUp, ThumbsDown, Heart, Image, ImageOff, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Recommendation } from '@/contexts/MoodContext';
@@ -181,37 +183,43 @@ export const RecommendationCard = ({
           <h3 className="font-semibold text-lg text-gray-800">{recommendation.title}</h3>
           <p className="text-gray-600 text-sm mt-1">{recommendation.description}</p>
           
-          <div className="mt-4 pt-2 border-t border-gray-100 flex justify-between">
+          <div className="mt-4 pt-2 border-t border-gray-100 flex flex-col gap-2">
             <div className="flex items-center">
               <span className="inline-block bg-vibe-primary/10 text-vibe-primary text-xs px-2 py-1 rounded-full font-medium capitalize">
                 {recommendation.category}
               </span>
-              
-              {completed && (
-                <span className="inline-flex items-center ml-2 bg-green-50 text-green-600 text-xs px-2 py-1 rounded-full">
-                  <CheckCircle className="h-3 w-3 mr-1" /> Completed
-                </span>
-              )}
             </div>
-            <div className="flex space-x-1">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 w-8 p-0 text-gray-500 hover:text-green-600 hover:bg-green-50"
-                onClick={() => handleFeedback(true)}
-              >
-                <span className="sr-only">Helpful</span>
-                <ThumbsUp className="h-4 w-4" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50"
-                onClick={() => handleFeedback(false)}
-              >
-                <span className="sr-only">Not Helpful</span>
-                <ThumbsDown className="h-4 w-4" />
-              </Button>
+            
+            {completed && (
+              <div className="flex items-center">
+                <Badge variant="secondary" className="bg-green-50 text-green-600 hover:bg-green-100 flex items-center gap-1">
+                  <CheckCircle className="h-3 w-3" />
+                  Completed
+                </Badge>
+              </div>
+            )}
+
+            <div className="flex justify-end">
+              <div className="flex space-x-1">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0 text-gray-500 hover:text-green-600 hover:bg-green-50"
+                  onClick={() => handleFeedback(true)}
+                >
+                  <span className="sr-only">Helpful</span>
+                  <ThumbsUp className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                  onClick={() => handleFeedback(false)}
+                >
+                  <span className="sr-only">Not Helpful</span>
+                  <ThumbsDown className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
