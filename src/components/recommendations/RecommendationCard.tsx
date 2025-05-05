@@ -1,21 +1,25 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { ThumbsUp, ThumbsDown, Heart, Image, ImageOff } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Heart, Image, ImageOff, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Recommendation } from '@/contexts/MoodContext';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export const RecommendationCard = ({ 
   recommendation,
-  onLikeChange
+  onLikeChange,
+  onCompletionChange
 }: { 
   recommendation: Recommendation,
-  onLikeChange?: (liked: boolean) => void
+  onLikeChange?: (liked: boolean) => void,
+  onCompletionChange?: (completed: boolean) => void
 }) => {
   const [liked, setLiked] = useState(false);
+  const [completed, setCompleted] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
   const { user } = useAuth();
@@ -43,30 +47,77 @@ export const RecommendationCard = ({
         : 'Recommendation removed from your favorites',
     });
 
-    // Optionally save like status to database if user is logged in
+    // Track like status in database if user is logged in
+    saveRatingToDatabase(newLikedState, completed);
+  };
+
+  const handleCompletion = () => {
+    const newCompletedState = !completed;
+    setCompleted(newCompletedState);
+    
+    // Call the callback if provided
+    if (onCompletionChange) {
+      onCompletionChange(newCompletedState);
+    }
+    
+    toast({
+      title: newCompletedState ? 'Activity Completed' : 'Activity Marked Incomplete',
+      description: newCompletedState 
+        ? 'Great job completing this activity!' 
+        : 'Activity has been marked as incomplete',
+    });
+
+    // Track completion status in database if user is logged in
+    saveRatingToDatabase(liked, newCompletedState);
+  };
+
+  const saveRatingToDatabase = async (isLiked: boolean, isCompleted: boolean) => {
+    // Save like and completion status to database if user is logged in
     if (user) {
       try {
-        const trackLike = async () => {
-          await supabase
-            .from('recommendation_ratings')
-            .upsert({
-              user_id: user.id,
-              recommendation_id: recommendation.id,
-              rating: newLikedState ? 5 : null,
-              completed: false
-            });
-        };
-        
-        trackLike();
+        await supabase
+          .from('recommendation_ratings')
+          .upsert({
+            user_id: user.id,
+            recommendation_id: recommendation.id,
+            rating: isLiked ? 5 : null,
+            completed: isCompleted
+          });
       } catch (error) {
-        console.error('Error tracking recommendation like:', error);
+        console.error('Error saving recommendation rating:', error);
       }
     }
   };
 
-  // Check if we actually have a valid image URL
-  const hasImageUrl = recommendation.imageUrl && recommendation.imageUrl.trim() !== '';
-  
+  // Check if this recommendation is already liked when component mounts
+  useEffect(() => {
+    if (user && recommendation.id) {
+      const checkRatingStatus = async () => {
+        try {
+          const { data } = await supabase
+            .from('recommendation_ratings')
+            .select('rating, completed')
+            .eq('user_id', user.id)
+            .eq('recommendation_id', recommendation.id)
+            .maybeSingle();
+            
+          if (data) {
+            if (data.rating) {
+              setLiked(true);
+            }
+            if (data.completed) {
+              setCompleted(true);
+            }
+          }
+        } catch (error) {
+          console.error('Error checking rating status:', error);
+        }
+      };
+      
+      checkRatingStatus();
+    }
+  }, [user, recommendation.id]);
+
   // Category-specific placeholder images when no image is available or on error
   const getCategoryPlaceholder = () => {
     switch (recommendation.category) {
@@ -81,6 +132,8 @@ export const RecommendationCard = ({
     }
   };
   
+  // Check if we actually have a valid image URL
+  const hasImageUrl = recommendation.imageUrl && recommendation.imageUrl.trim() !== '';
   const imageUrl = hasImageUrl && !imageError 
     ? recommendation.imageUrl 
     : getCategoryPlaceholder();
@@ -89,30 +142,6 @@ export const RecommendationCard = ({
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0 }
   };
-
-  // Check if this recommendation is already liked when component mounts
-  useEffect(() => {
-    if (user && recommendation.id) {
-      const checkLikedStatus = async () => {
-        try {
-          const { data } = await supabase
-            .from('recommendation_ratings')
-            .select('rating')
-            .eq('user_id', user.id)
-            .eq('recommendation_id', recommendation.id)
-            .maybeSingle();
-            
-          if (data && data.rating) {
-            setLiked(true);
-          }
-        } catch (error) {
-          console.error('Error checking liked status:', error);
-        }
-      };
-      
-      checkLikedStatus();
-    }
-  }, [user, recommendation.id]);
 
   return (
     <motion.div variants={item} className="group">
@@ -142,27 +171,47 @@ export const RecommendationCard = ({
             </div>
           )}
           
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className={`absolute top-2 right-2 rounded-full ${
-              liked ? 'bg-red-50 text-red-600' : 'bg-white/80 text-gray-500 hover:text-red-600'
-            }`}
-            onClick={handleLike}
-          >
-            <Heart className={`h-5 w-5 ${liked ? 'fill-current' : ''}`} />
-            <span className="sr-only">{liked ? 'Unlike' : 'Like'}</span>
-          </Button>
+          <div className="absolute top-2 right-2 flex space-x-2">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className={`rounded-full ${
+                completed ? 'bg-green-50 text-green-600' : 'bg-white/80 text-gray-500 hover:text-green-600'
+              }`}
+              onClick={handleCompletion}
+            >
+              <CheckCircle className={`h-5 w-5 ${completed ? 'fill-current' : ''}`} />
+              <span className="sr-only">{completed ? 'Mark as incomplete' : 'Mark as completed'}</span>
+            </Button>
+          
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className={`rounded-full ${
+                liked ? 'bg-red-50 text-red-600' : 'bg-white/80 text-gray-500 hover:text-red-600'
+              }`}
+              onClick={handleLike}
+            >
+              <Heart className={`h-5 w-5 ${liked ? 'fill-current' : ''}`} />
+              <span className="sr-only">{liked ? 'Unlike' : 'Like'}</span>
+            </Button>
+          </div>
         </div>
         <div className="p-4">
           <h3 className="font-semibold text-lg text-gray-800">{recommendation.title}</h3>
           <p className="text-gray-600 text-sm mt-1">{recommendation.description}</p>
           
           <div className="mt-4 pt-2 border-t border-gray-100 flex justify-between">
-            <div>
+            <div className="flex items-center">
               <span className="inline-block bg-vibe-primary/10 text-vibe-primary text-xs px-2 py-1 rounded-full font-medium capitalize">
                 {recommendation.category}
               </span>
+              
+              {completed && (
+                <span className="inline-flex items-center ml-2 bg-green-50 text-green-600 text-xs px-2 py-1 rounded-full">
+                  <CheckCircle className="h-3 w-3 mr-1" /> Completed
+                </span>
+              )}
             </div>
             <div className="flex space-x-1">
               <Button 

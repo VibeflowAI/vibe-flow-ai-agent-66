@@ -41,6 +41,14 @@ export const RecommendationsList = () => {
     }
   };
 
+  const handleLikeChange = (recommendationId: string, liked: boolean) => {
+    console.log(`Recommendation ${recommendationId} ${liked ? 'liked' : 'unliked'}`);
+  };
+
+  const handleCompletionChange = (recommendationId: string, completed: boolean) => {
+    console.log(`Recommendation ${recommendationId} marked as ${completed ? 'completed' : 'incomplete'}`);
+  };
+
   return (
     <motion.div 
       className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
@@ -51,7 +59,9 @@ export const RecommendationsList = () => {
       {recommendations.map((recommendation) => (
         <RecommendationCard 
           key={recommendation.id} 
-          recommendation={recommendation} 
+          recommendation={recommendation}
+          onLikeChange={(liked) => handleLikeChange(recommendation.id, liked)}
+          onCompletionChange={(completed) => handleCompletionChange(recommendation.id, completed)}
         />
       ))}
     </motion.div>
