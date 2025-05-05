@@ -4,7 +4,7 @@ import { useMood } from '@/contexts/MoodContext';
 import { RecommendationCard } from './RecommendationCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Filter, ArrowUpDown, LayoutGrid, LayoutList, RefreshCw } from 'lucide-react';
+import { Filter, ArrowUpDown, LayoutGrid, LayoutList, RefreshCw, SquareCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from '@/hooks/use-toast';
 
@@ -24,10 +24,18 @@ export const RecommendationsList = () => {
     console.log("RecommendationsList mounted, refreshing recommendations");
     fetchRecommendations();
     // This ensures the recommendations are fresh when the component mounts
-  }, [getRecommendations]);
+  }, []);
 
   const fetchRecommendations = async () => {
-    await getRecommendations();
+    setRefreshing(true);
+    try {
+      await getRecommendations();
+      console.log(`Fetched ${recommendations.length} recommendations successfully`);
+    } catch (error) {
+      console.error("Error fetching recommendations:", error);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const sortRecommendations = (recs: any[]) => {
