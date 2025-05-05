@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -189,7 +190,7 @@ export const RecommendationCard = ({
               </span>
             </div>
             
-            {/* Always show completed badge when completed is true, regardless of liked status */}
+            {/* Completed badge - always displayed when completed is true, in its own row */}
             {completed && (
               <div className="flex items-center">
                 <Badge variant="secondary" className="bg-green-50 text-green-600 hover:bg-green-100 flex items-center gap-1">
