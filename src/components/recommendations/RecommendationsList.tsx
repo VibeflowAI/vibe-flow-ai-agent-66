@@ -4,7 +4,7 @@ import { useMood } from '@/contexts/MoodContext';
 import { RecommendationCard } from './RecommendationCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Filter, ArrowUpDown, LayoutGrid, LayoutList, RefreshCw, SquareCheck } from 'lucide-react';
+import { Filter, ArrowUpDown, LayoutGrid, LayoutList, RefreshCw, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from '@/hooks/use-toast';
 
@@ -15,9 +15,23 @@ export const RecommendationsList = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   
-  const foodRecommendations = recommendations.filter(rec => rec.category === 'food');
-  const activityRecommendations = recommendations.filter(rec => rec.category === 'activity');
-  const mindfulnessRecommendations = recommendations.filter(rec => rec.category === 'mindfulness');
+  // Filter and deduplicate recommendations by category
+  const uniqueRecommendations = React.useMemo(() => {
+    // Create a Map to track seen titles to avoid duplicates
+    const seenTitles = new Map();
+    return recommendations.filter(rec => {
+      if (seenTitles.has(rec.title)) {
+        return false;
+      }
+      seenTitles.set(rec.title, true);
+      return true;
+    });
+  }, [recommendations]);
+
+  // Now filter the deduplicated recommendations by category
+  const foodRecommendations = uniqueRecommendations.filter(rec => rec.category === 'food');
+  const activityRecommendations = uniqueRecommendations.filter(rec => rec.category === 'activity');
+  const mindfulnessRecommendations = uniqueRecommendations.filter(rec => rec.category === 'mindfulness');
 
   // Force refresh recommendations on component mount
   useEffect(() => {
@@ -226,7 +240,7 @@ export const RecommendationsList = () => {
             initial="hidden"
             animate="show"
           >
-            {sortRecommendations(recommendations).map(recommendation => (
+            {sortRecommendations(uniqueRecommendations).map(recommendation => (
               <RecommendationCard key={recommendation.id} recommendation={recommendation} />
             ))}
           </motion.div>
