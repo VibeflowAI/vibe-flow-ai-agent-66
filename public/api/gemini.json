@@ -84,6 +84,66 @@
     {
       "type": "morning_routine",
       "response": "A nourishing morning routine can set the tone for your entire day. Consider starting with a moment of gratitude, hydration with lemon water, and a few minutes of gentle movement. Based on your sleep habits of ${sleepHours} hours, what time would be realistic for you to incorporate these practices?"
+    },
+    {
+      "type": "happy_low",
+      "response": "I see you're feeling good but your energy is low. Perfect time for gentle nourishment! Consider having some yogurt with honey or a banana for sustained energy. A slow-paced walk or gentle stretching could maintain your positive mood without taxing your energy. Perhaps try mindful music appreciation - fully experiencing your favorite songs while resting."
+    },
+    {
+      "type": "happy_medium",
+      "response": "With your happy mood and moderate energy, this is a great time for moderate activity! How about preparing a nutritious smoothie bowl or enjoying some dark chocolate for a mood boost? A brisk walk or dance workout would be perfect right now. You might also benefit from writing a gratitude list to enhance your positive state."
+    },
+    {
+      "type": "happy_high",
+      "response": "Your combination of happiness and high energy is perfect for productive activities! Consider fueling with a fruit salad or hummus with veggies. This is an ideal time for a jog, cycling session, or HIIT workout to channel that energy. A mindful nature walk where you fully engage with your surroundings would also be beneficial."
+    },
+    {
+      "type": "calm_low",
+      "response": "Your calm, low-energy state is perfect for gentle self-care. Perhaps enjoy a bowl of oatmeal or chamomile tea for comfort. Light stretching or a soft walk would maintain your peaceful mood. This would also be an excellent time for mindful tea drinking - focusing fully on the preparation and experience."
+    },
+    {
+      "type": "calm_medium",
+      "response": "With your calm mood and moderate energy, it's a good time for balanced activities. Avocado toast or a bowl of berries would complement this state nicely. Consider a casual walk or a stretching flow, or perhaps organizing a small area of your home. A 5-senses check-in exercise would enhance your mindful state."
+    },
+    {
+      "type": "calm_high",
+      "response": "Your calm focus combined with high energy makes this perfect for sustained activities. Green tea and roasted almonds could help maintain this balance. A long walk or bodyweight exercises would be ideal physical outlets. You might also benefit from forest bathing or mindful cooking - using your focused energy with full awareness."
+    },
+    {
+      "type": "tired_low",
+      "response": "For your tired state with low energy, gentle nourishment is key. A bowl of warm soup or herbal tea requires little preparation. A slow-paced walk or deep breathing exercises might help without depleting you further. Consider a short 20-minute power nap or listening to ambient sounds to help you reset."
+    },
+    {
+      "type": "tired_medium",
+      "response": "Despite feeling tired, you have some energy to work with. Greek yogurt or peanut butter toast could help sustain you. Light cardio or active house chores might actually boost your energy. Progressive muscle relaxation or mindful stretching could help address the physical aspects of your tiredness."
+    },
+    {
+      "type": "tired_high",
+      "response": "It's interesting that you feel tired but have high energy - this could be mental fatigue. A protein shake or boiled eggs could help balance you. Jump rope or a brisk walk might help align your physical and mental states. Energizing affirmations or focused music listening could help reset your system."
+    },
+    {
+      "type": "stressed_low",
+      "response": "With stress and low energy, gentle comfort is important. Warm milk or oatmeal can be soothing. Deep breathing or using a foam roller requires minimal energy but can help reduce stress. A body scan meditation might help you release tension without requiring much from you right now."
+    },
+    {
+      "type": "stressed_medium",
+      "response": "For your stressed state with moderate energy, balanced activities can help. A piece of dark chocolate or green smoothie might offer comfort with nutrition. A mindful walk or light dancing could help process stress physically. Guided meditation or 4-7-8 breathing would be effective stress management techniques."
+    },
+    {
+      "type": "stressed_high",
+      "response": "Your high energy combined with stress suggests an outlet would be beneficial. Nutrient-dense foods like salmon or leafy greens can support your stress response. A HIIT workout or boxing drills would be excellent for channeling this energy. Cooldown meditation or nature grounding could help regulate your system afterward."
+    },
+    {
+      "type": "sad_low",
+      "response": "When feeling sad with low energy, gentle support is key. Comforting foods like lentil soup or herbal tea require little preparation. A slow walk or light chores provide gentle movement. Self-compassion meditation or an emotional check-in allows you to acknowledge feelings without judgment."
+    },
+    {
+      "type": "sad_medium",
+      "response": "With sadness but moderate energy, balanced activities may help shift your mood. Foods with mood-supporting nutrients like dark chocolate or pumpkin seeds could be beneficial. A home workout or walking with a friend combines physical and social support. Creating an uplifting playlist might help gradually shift your emotional state."
+    },
+    {
+      "type": "sad_high",
+      "response": "Your sadness with high energy suggests physical outlets might be helpful. Nutritious foods like sweet potatoes or a turkey sandwich provide sustained energy. Cardio bursts or a park run can help release mood-boosting endorphins. Emotional journaling or meditation with affirmations might help process your feelings constructively."
     }
   ]
 }
