@@ -4,7 +4,7 @@ import { useMood } from '@/contexts/MoodContext';
 import { RecommendationCard } from './RecommendationCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Filter, ArrowUpDown, LayoutGrid, LayoutList } from 'lucide-react';
+import { Filter, ArrowUpDown, LayoutGrid, LayoutList, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from '@/hooks/use-toast';
 
@@ -13,6 +13,7 @@ export const RecommendationsList = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'default' | 'rating' | 'alphabetical'>('default');
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   
   const foodRecommendations = recommendations.filter(rec => rec.category === 'food');
   const activityRecommendations = recommendations.filter(rec => rec.category === 'activity');
@@ -21,9 +22,13 @@ export const RecommendationsList = () => {
   // Force refresh recommendations on component mount
   useEffect(() => {
     console.log("RecommendationsList mounted, refreshing recommendations");
-    getRecommendations();
+    fetchRecommendations();
     // This ensures the recommendations are fresh when the component mounts
   }, [getRecommendations]);
+
+  const fetchRecommendations = async () => {
+    await getRecommendations();
+  };
 
   const sortRecommendations = (recs: any[]) => {
     if (sortBy === 'rating') {
@@ -45,16 +50,28 @@ export const RecommendationsList = () => {
     }
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     console.log("Manually refreshing recommendations");
-    getRecommendations();
-    toast({
-      title: "Refreshing recommendations",
-      description: "Getting the latest personalized suggestions for you."
-    });
+    setRefreshing(true);
+    try {
+      await getRecommendations();
+      toast({
+        title: "Recommendations updated",
+        description: "Got the latest personalized suggestions for you."
+      });
+    } catch (error) {
+      console.error("Error refreshing recommendations:", error);
+      toast({
+        title: "Update failed",
+        description: "Could not refresh recommendations. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setRefreshing(false);
+    }
   };
 
-  if (isLoading) {
+  if (isLoading && !refreshing) {
     return (
       <div className="py-10 text-center">
         <div className="animate-pulse flex flex-col items-center">
@@ -71,8 +88,18 @@ export const RecommendationsList = () => {
         <p className="text-lg text-gray-600 mb-4">
           No recommendations available. Log your mood to get personalized suggestions.
         </p>
-        <Button onClick={handleRefresh} variant="outline">
-          Refresh Recommendations
+        <Button onClick={handleRefresh} variant="outline" disabled={refreshing}>
+          {refreshing ? (
+            <>
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              Refreshing...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh Recommendations
+            </>
+          )}
         </Button>
       </div>
     );
@@ -140,9 +167,14 @@ export const RecommendationsList = () => {
             size="sm" 
             className="gap-1 border-gray-200 text-gray-700"
             onClick={handleRefresh}
+            disabled={refreshing}
           >
-            <Filter className="h-4 w-4" />
-            <span>Refresh</span>
+            {refreshing ? (
+              <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-1" />
+            )}
+            <span>{refreshing ? "Refreshing..." : "Refresh"}</span>
           </Button>
         </div>
       </div>

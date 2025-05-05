@@ -248,7 +248,7 @@ serve(async (req) => {
         energy_levels: ['low', 'medium', 'high']
       },
       
-      // Happy + Low energy recommendations
+      // New Happy + Low energy recommendations
       {
         title: 'Yogurt with Honey',
         description: 'A gentle, sweet treat that maintains your good mood without overloading your system.',
@@ -264,8 +264,29 @@ serve(async (req) => {
         energy_levels: ['low']
       },
       {
+        title: 'Banana Snack',
+        description: 'A simple, easy-to-digest fruit that provides gentle energy while maintaining mood.',
+        category: 'food',
+        mood_types: ['happy'],
+        energy_levels: ['low']
+      },
+      {
         title: 'Gentle Stretching Session',
         description: 'Easy stretching that honors your low energy while maintaining your happy state.',
+        category: 'activity',
+        mood_types: ['happy'],
+        energy_levels: ['low']
+      },
+      {
+        title: 'Foam Rolling',
+        description: 'A gentle self-massage technique that helps relax muscles without requiring much energy.',
+        category: 'activity',
+        mood_types: ['happy'],
+        energy_levels: ['low']
+      },
+      {
+        title: 'Slow-Paced Walk',
+        description: 'A leisurely stroll that keeps you moving without depleting your limited energy.',
         category: 'activity',
         mood_types: ['happy'],
         energy_levels: ['low']
@@ -280,6 +301,13 @@ serve(async (req) => {
       {
         title: 'Mindful Smiling Practice',
         description: 'A simple exercise where you consciously smile and notice how it affects your mood and body.',
+        category: 'mindfulness',
+        mood_types: ['happy'],
+        energy_levels: ['low']
+      },
+      {
+        title: 'Short Reflection',
+        description: 'A brief moment to appreciate your positive state and the good things in your life.',
         category: 'mindfulness',
         mood_types: ['happy'],
         energy_levels: ['low']
@@ -301,6 +329,13 @@ serve(async (req) => {
         energy_levels: ['medium']
       },
       {
+        title: 'Dark Chocolate Square',
+        description: 'A small piece of quality dark chocolate to enhance your already positive mood.',
+        category: 'food',
+        mood_types: ['happy'],
+        energy_levels: ['medium']
+      },
+      {
         title: 'Brisk Walk Outside',
         description: 'A moderate-paced walk to make the most of your positive mood and medium energy.',
         category: 'activity',
@@ -315,8 +350,29 @@ serve(async (req) => {
         energy_levels: ['medium']
       },
       {
+        title: 'Light Cardio Session',
+        description: 'A moderate exercise session that uses your energy while maintaining your good mood.',
+        category: 'activity',
+        mood_types: ['happy'],
+        energy_levels: ['medium']
+      },
+      {
         title: 'Gratitude List',
         description: 'Take a few minutes to write down what you're grateful for to amplify your positive mood.',
+        category: 'mindfulness',
+        mood_types: ['happy'],
+        energy_levels: ['medium']
+      },
+      {
+        title: 'Moment of Reflection',
+        description: 'A short period of mindful awareness to appreciate your current positive state.',
+        category: 'mindfulness',
+        mood_types: ['happy'],
+        energy_levels: ['medium']
+      },
+      {
+        title: 'Mindful Breathing',
+        description: 'Focus on your breath to enhance your present awareness while feeling good.',
         category: 'mindfulness',
         mood_types: ['happy'],
         energy_levels: ['medium']
@@ -338,6 +394,13 @@ serve(async (req) => {
         energy_levels: ['high']
       },
       {
+        title: 'Grilled Chicken Wrap',
+        description: 'A protein-rich meal to fuel your high energy while maintaining your good mood.',
+        category: 'food',
+        mood_types: ['happy'],
+        energy_levels: ['high']
+      },
+      {
         title: 'Energetic Jog',
         description: 'A higher-intensity run to make excellent use of your happy mood and abundant energy.',
         category: 'activity',
@@ -352,14 +415,35 @@ serve(async (req) => {
         energy_levels: ['high']
       },
       {
+        title: 'HIIT Workout',
+        description: 'A high-intensity interval training session to make the most of your energy and mood.',
+        category: 'activity',
+        mood_types: ['happy'],
+        energy_levels: ['high']
+      },
+      {
         title: 'Mindful Nature Walk',
         description: 'A walk in nature with complete presence - notice colors, textures, sounds, and smells.',
         category: 'mindfulness',
         mood_types: ['happy'],
         energy_levels: ['high']
       },
+      {
+        title: 'Music Engagement',
+        description: 'Actively listen to or play music that matches and enhances your positive energy.',
+        category: 'mindfulness',
+        mood_types: ['happy'],
+        energy_levels: ['high']
+      },
+      {
+        title: 'Laughter Meditation',
+        description: 'A practice of intentional laughter that amplifies your already positive mood.',
+        category: 'mindfulness',
+        mood_types: ['happy'],
+        energy_levels: ['high']
+      },
       
-      // Calm + Low energy recommendations
+      // New Calm + Low energy recommendations
       {
         title: 'Warm Oatmeal with Cinnamon',
         description: 'A comforting bowl of oatmeal that complements your calm state without demanding energy.',
@@ -375,8 +459,29 @@ serve(async (req) => {
         energy_levels: ['low']
       },
       {
+        title: 'Apple Slices',
+        description: 'A simple, wholesome snack that provides gentle nutrition without disruption.',
+        category: 'food',
+        mood_types: ['calm'],
+        energy_levels: ['low']
+      },
+      {
         title: 'Light Stretching',
         description: 'Gentle movement that respects your low energy while maintaining your calm state.',
+        category: 'activity',
+        mood_types: ['calm'],
+        energy_levels: ['low']
+      },
+      {
+        title: 'Soft Walk',
+        description: 'A very gentle, mindful walk that maintains your peaceful mood.',
+        category: 'activity',
+        mood_types: ['calm'],
+        energy_levels: ['low']
+      },
+      {
+        title: 'Gentle Foam Rolling',
+        description: 'Soft self-massage that enhances your relaxed physical state.',
         category: 'activity',
         mood_types: ['calm'],
         energy_levels: ['low']
@@ -395,11 +500,25 @@ serve(async (req) => {
         mood_types: ['calm'],
         energy_levels: ['low']
       },
+      {
+        title: 'Gentle Journaling',
+        description: 'Writing down thoughts and feelings in a relaxed, non-judgmental way.',
+        category: 'mindfulness',
+        mood_types: ['calm'],
+        energy_levels: ['low']
+      },
       
       // Calm + Medium energy recommendations
       {
         title: 'Avocado Toast',
         description: 'Nutritious, satisfying food with healthy fats to sustain your balanced energy.',
+        category: 'food',
+        mood_types: ['calm'],
+        energy_levels: ['medium']
+      },
+      {
+        title: 'Whole Grain Crackers',
+        description: 'A simple snack that provides steady energy without disrupting your calm state.',
         category: 'food',
         mood_types: ['calm'],
         energy_levels: ['medium']
@@ -419,9 +538,23 @@ serve(async (req) => {
         energy_levels: ['medium']
       },
       {
+        title: 'Stretching Flow',
+        description: 'A sequence of gentle stretches that use your energy while maintaining calm.',
+        category: 'activity',
+        mood_types: ['calm'],
+        energy_levels: ['medium']
+      },
+      {
         title: 'Organized Home Space',
         description: 'Channel your calm energy into creating an organized, peaceful environment.',
         category: 'activity',
+        mood_types: ['calm'],
+        energy_levels: ['medium']
+      },
+      {
+        title: 'Focused Breathing',
+        description: 'Intentional breathing patterns to maintain and deepen your calm state.',
+        category: 'mindfulness',
         mood_types: ['calm'],
         energy_levels: ['medium']
       },
@@ -432,11 +565,25 @@ serve(async (req) => {
         mood_types: ['calm'],
         energy_levels: ['medium']
       },
+      {
+        title: 'Calm Music Listening',
+        description: 'Engage with music that complements and enhances your peaceful state.',
+        category: 'mindfulness',
+        mood_types: ['calm'],
+        energy_levels: ['medium']
+      },
       
       // Calm + High energy recommendations
       {
         title: 'Green Tea',
         description: 'A beverage with a small amount of caffeine to complement your calm but energized state.',
+        category: 'food',
+        mood_types: ['calm'],
+        energy_levels: ['high']
+      },
+      {
+        title: 'Roasted Almonds',
+        description: 'A protein-rich snack that provides sustained energy without disrupting calm.',
         category: 'food',
         mood_types: ['calm'],
         energy_levels: ['high']
@@ -463,8 +610,29 @@ serve(async (req) => {
         energy_levels: ['high']
       },
       {
+        title: 'Calm Cycling Session',
+        description: 'A bike ride at a comfortable pace that uses energy while maintaining tranquility.',
+        category: 'activity',
+        mood_types: ['calm'],
+        energy_levels: ['high']
+      },
+      {
         title: 'Forest Bathing',
         description: 'Immerse yourself in nature with all your senses to deepen your calm, centered state.',
+        category: 'mindfulness',
+        mood_types: ['calm'],
+        energy_levels: ['high']
+      },
+      {
+        title: 'Mindful Cooking',
+        description: 'Prepare a meal with complete presence and attention to the process.',
+        category: 'mindfulness',
+        mood_types: ['calm'],
+        energy_levels: ['high']
+      },
+      {
+        title: 'Breath-Focused Meditation',
+        description: 'A longer meditation practice centered on breath awareness to maintain calm with high energy.',
         category: 'mindfulness',
         mood_types: ['calm'],
         energy_levels: ['high']
@@ -474,6 +642,13 @@ serve(async (req) => {
       {
         title: 'Warming Vegetable Soup',
         description: 'An easy-to-digest meal that provides nutrients without requiring much energy to consume.',
+        category: 'food',
+        mood_types: ['tired'],
+        energy_levels: ['low']
+      },
+      {
+        title: 'Banana',
+        description: 'A simple fruit with natural sugars for a gentle energy boost when very tired.',
         category: 'food',
         mood_types: ['tired'],
         energy_levels: ['low']
@@ -493,6 +668,13 @@ serve(async (req) => {
         energy_levels: ['low']
       },
       {
+        title: 'Gentle Foam Rolling',
+        description: 'A soft self-massage technique that helps increase blood flow without much exertion.',
+        category: 'activity',
+        mood_types: ['tired'],
+        energy_levels: ['low']
+      },
+      {
         title: 'Deep Breathing Session',
         description: 'Simple breath work that can help restore some energy without physical exertion.',
         category: 'activity',
@@ -500,8 +682,22 @@ serve(async (req) => {
         energy_levels: ['low']
       },
       {
+        title: '4-7-8 Breathing Technique',
+        description: 'A specific breathing pattern that can help reset your energy system when depleted.',
+        category: 'mindfulness',
+        mood_types: ['tired'],
+        energy_levels: ['low']
+      },
+      {
         title: 'Short Power Nap',
         description: 'A 15-20 minute nap that can help restore alertness when you're feeling tired.',
+        category: 'mindfulness',
+        mood_types: ['tired'],
+        energy_levels: ['low']
+      },
+      {
+        title: 'Ambient Sound Focus',
+        description: 'Listen to gentle background sounds like rainfall or waves to rest your mind.',
         category: 'mindfulness',
         mood_types: ['tired'],
         energy_levels: ['low']
@@ -523,8 +719,22 @@ serve(async (req) => {
         energy_levels: ['medium']
       },
       {
+        title: 'Green Tea',
+        description: 'A beverage with moderate caffeine that can provide a gentle energy boost.',
+        category: 'food',
+        mood_types: ['tired'],
+        energy_levels: ['medium']
+      },
+      {
         title: 'Light Cardio Session',
         description: 'A short, gentle aerobic workout that can help increase energy without exhaustion.',
+        category: 'activity',
+        mood_types: ['tired'],
+        energy_levels: ['medium']
+      },
+      {
+        title: 'Indoor Cycling',
+        description: 'A stationary bike session at a comfortable pace to raise energy without overtaxing your system.',
         category: 'activity',
         mood_types: ['tired'],
         energy_levels: ['medium']
@@ -539,6 +749,20 @@ serve(async (req) => {
       {
         title: 'Progressive Muscle Relaxation',
         description: 'Systematically tense and release muscle groups to reduce fatigue and increase awareness.',
+        category: 'mindfulness',
+        mood_types: ['tired'],
+        energy_levels: ['medium']
+      },
+      {
+        title: 'Tea Meditation',
+        description: 'Focus completely on preparing and drinking tea to bring mindful awareness.',
+        category: 'mindfulness',
+        mood_types: ['tired'],
+        energy_levels: ['medium']
+      },
+      {
+        title: 'Mindful Stretching',
+        description: 'Gentle stretches with complete awareness of bodily sensations to increase energy flow.',
         category: 'mindfulness',
         mood_types: ['tired'],
         energy_levels: ['medium']
@@ -560,8 +784,22 @@ serve(async (req) => {
         energy_levels: ['high']
       },
       {
+        title: 'Orange Slices',
+        description: 'Quick natural sugars and vitamin C to help maintain energy when fatigued.',
+        category: 'food',
+        mood_types: ['tired'],
+        energy_levels: ['high']
+      },
+      {
         title: 'Jump Rope Session',
         description: 'A quick, high-intensity activity that can help wake you up when needed.',
+        category: 'activity',
+        mood_types: ['tired'],
+        energy_levels: ['high']
+      },
+      {
+        title: 'Brisk Walking',
+        description: 'A faster-paced walk that gets blood flowing to help combat tiredness.',
         category: 'activity',
         mood_types: ['tired'],
         energy_levels: ['high']
@@ -580,11 +818,32 @@ serve(async (req) => {
         mood_types: ['tired'],
         energy_levels: ['high']
       },
+      {
+        title: 'Breath Reset',
+        description: 'A short, intense breathing pattern designed to quickly increase energy and alertness.',
+        category: 'mindfulness',
+        mood_types: ['tired'],
+        energy_levels: ['high']
+      },
+      {
+        title: 'Music Focus',
+        description: 'Listen to upbeat, energizing music to help overcome fatigue and maintain focus.',
+        category: 'mindfulness',
+        mood_types: ['tired'],
+        energy_levels: ['high']
+      },
       
       // Stressed + Low energy recommendations
       {
         title: 'Warm Milk with Honey',
         description: 'A soothing drink that can help calm your nervous system when stressed and low on energy.',
+        category: 'food',
+        mood_types: ['stressed'],
+        energy_levels: ['low']
+      },
+      {
+        title: 'Oatmeal',
+        description: 'A gentle complex carbohydrate that can help regulate stress hormones.',
         category: 'food',
         mood_types: ['stressed'],
         energy_levels: ['low']
@@ -611,8 +870,29 @@ serve(async (req) => {
         energy_levels: ['low']
       },
       {
+        title: 'Gentle Foam Rolling',
+        description: 'Soft pressure on tense muscles to help release physical stress with little energy required.',
+        category: 'activity',
+        mood_types: ['stressed'],
+        energy_levels: ['low']
+      },
+      {
         title: 'Body Scan Practice',
         description: 'A guided meditation where you progressively relax each part of your body.',
+        category: 'mindfulness',
+        mood_types: ['stressed'],
+        energy_levels: ['low']
+      },
+      {
+        title: 'Gratitude Journaling',
+        description: 'Writing down things you're thankful for to shift focus away from stressors.',
+        category: 'mindfulness',
+        mood_types: ['stressed'],
+        energy_levels: ['low']
+      },
+      {
+        title: 'Calming Sounds',
+        description: 'Listen to nature sounds or white noise to help calm an overactive stress response.',
         category: 'mindfulness',
         mood_types: ['stressed'],
         energy_levels: ['low']
@@ -622,6 +902,13 @@ serve(async (req) => {
       {
         title: 'Dark Chocolate Square',
         description: 'A small amount of dark chocolate that can help reduce stress hormones.',
+        category: 'food',
+        mood_types: ['stressed'],
+        energy_levels: ['medium']
+      },
+      {
+        title: 'Walnuts',
+        description: 'Omega-3 rich nuts that may help manage stress and support brain health.',
         category: 'food',
         mood_types: ['stressed'],
         energy_levels: ['medium']
@@ -648,6 +935,27 @@ serve(async (req) => {
         energy_levels: ['medium']
       },
       {
+        title: 'Stretching with Holds',
+        description: 'Gentle stretches where you hold positions to release deeper tension.',
+        category: 'activity',
+        mood_types: ['stressed'],
+        energy_levels: ['medium']
+      },
+      {
+        title: 'Guided Meditation',
+        description: 'A led meditation practice specifically designed to reduce anxiety and stress.',
+        category: 'mindfulness',
+        mood_types: ['stressed'],
+        energy_levels: ['medium']
+      },
+      {
+        title: '4-7-8 Breathing',
+        description: 'A specific breathing pattern that helps activate the relaxation response.',
+        category: 'mindfulness',
+        mood_types: ['stressed'],
+        energy_levels: ['medium']
+      },
+      {
         title: 'Stress Journaling',
         description: 'Writing down your stressors and potential solutions to gain perspective.',
         category: 'mindfulness',
@@ -659,6 +967,13 @@ serve(async (req) => {
       {
         title: 'Leafy Green Salad',
         description: 'Nutrient-dense greens that support your body while processing stress.',
+        category: 'food',
+        mood_types: ['stressed'],
+        energy_levels: ['high']
+      },
+      {
+        title: 'Grilled Salmon',
+        description: 'Omega-3 rich fish that provides protein and supports brain health during stress.',
         category: 'food',
         mood_types: ['stressed'],
         energy_levels: ['high']
@@ -685,6 +1000,27 @@ serve(async (req) => {
         energy_levels: ['high']
       },
       {
+        title: 'HIIT Workout',
+        description: 'High-intensity interval training that helps release intense stress energy.',
+        category: 'activity',
+        mood_types: ['stressed'],
+        energy_levels: ['high']
+      },
+      {
+        title: 'Cooldown Meditation',
+        description: 'A calming practice specifically designed to follow intense physical activity.',
+        category: 'mindfulness',
+        mood_types: ['stressed'],
+        energy_levels: ['high']
+      },
+      {
+        title: 'Body Awareness Practice',
+        description: 'A focused attention on physical sensations to reconnect mind and body.',
+        category: 'mindfulness',
+        mood_types: ['stressed'],
+        energy_levels: ['high']
+      },
+      {
         title: 'Nature Grounding Practice',
         description: 'Connect with natural elements to shift focus away from stressors.',
         category: 'mindfulness',
@@ -694,15 +1030,22 @@ serve(async (req) => {
       
       // Sad + Low energy recommendations
       {
-        title: 'Warming Herbal Tea',
+        title: 'Warming Lentil Soup',
+        description: 'A comforting, nutritious meal that's easy to prepare when feeling down.',
+        category: 'food',
+        mood_types: ['sad'],
+        energy_levels: ['low']
+      },
+      {
+        title: 'Herbal Tea',
         description: 'A comforting beverage that can provide gentle comfort when feeling down.',
         category: 'food',
         mood_types: ['sad'],
         energy_levels: ['low']
       },
       {
-        title: 'Whole Grain Toast',
-        description: 'Simple complex carbohydrates that can help stabilize mood.',
+        title: 'Banana',
+        description: 'A simple fruit containing tryptophan which can help with mood regulation.',
         category: 'food',
         mood_types: ['sad'],
         energy_levels: ['low']
@@ -722,8 +1065,29 @@ serve(async (req) => {
         energy_levels: ['low']
       },
       {
+        title: 'Slow Walk',
+        description: 'A very gentle, short walk to get minimal movement without overwhelming yourself.',
+        category: 'activity',
+        mood_types: ['sad'],
+        energy_levels: ['low']
+      },
+      {
         title: 'Self-Compassion Practice',
         description: 'Gentle words and actions toward yourself acknowledging your difficult emotions.',
+        category: 'mindfulness',
+        mood_types: ['sad'],
+        energy_levels: ['low']
+      },
+      {
+        title: 'Emotional Check-in',
+        description: 'A brief moment to acknowledge your feelings without judgment.',
+        category: 'mindfulness',
+        mood_types: ['sad'],
+        energy_levels: ['low']
+      },
+      {
+        title: 'Deep Breathing',
+        description: 'Simple breath awareness that can help regulate emotions when feeling down.',
         category: 'mindfulness',
         mood_types: ['sad'],
         energy_levels: ['low']
@@ -738,8 +1102,15 @@ serve(async (req) => {
         energy_levels: ['medium']
       },
       {
-        title: 'Trail Mix with Dark Chocolate',
-        description: 'Nuts, seeds, and a bit of dark chocolate to boost mood and provide energy.',
+        title: 'Pumpkin Seeds',
+        description: 'Rich in magnesium and zinc which can help support mood regulation.',
+        category: 'food',
+        mood_types: ['sad'],
+        energy_levels: ['medium']
+      },
+      {
+        title: 'Dark Chocolate',
+        description: 'A small amount of quality dark chocolate that may help improve mood.',
         category: 'food',
         mood_types: ['sad'],
         energy_levels: ['medium']
@@ -752,9 +1123,23 @@ serve(async (req) => {
         energy_levels: ['medium']
       },
       {
+        title: 'Dancing',
+        description: 'Moving to music that can help shift emotional states through physical expression.',
+        category: 'activity',
+        mood_types: ['sad'],
+        energy_levels: ['medium']
+      },
+      {
         title: 'Social Walk with a Friend',
         description: 'Combining gentle exercise with social connection to help lift your mood.',
         category: 'activity',
+        mood_types: ['sad'],
+        energy_levels: ['medium']
+      },
+      {
+        title: 'Gratitude Journaling',
+        description: 'Writing down things you appreciate to help counterbalance sad feelings.',
+        category: 'mindfulness',
         mood_types: ['sad'],
         energy_levels: ['medium']
       },
@@ -765,25 +1150,46 @@ serve(async (req) => {
         mood_types: ['sad'],
         energy_levels: ['medium']
       },
+      {
+        title: 'Mindful Breathing',
+        description: 'Focusing on your breath to help regulate emotions and create space.',
+        category: 'mindfulness',
+        mood_types: ['sad'],
+        energy_levels: ['medium']
+      },
       
       // Sad + High energy recommendations
       {
-        title: 'Colorful Vegetable Stir Fry',
-        description: 'A nutritious meal with a variety of vegetables to support your mood.',
+        title: 'Sweet Potatoes',
+        description: 'Complex carbohydrates that can help regulate blood sugar and stabilize mood.',
         category: 'food',
         mood_types: ['sad'],
         energy_levels: ['high']
       },
       {
-        title: 'Lean Protein Sandwich',
-        description: 'A balanced meal with protein to help stabilize mood and provide energy.',
+        title: 'Turkey Sandwich',
+        description: 'Lean protein containing tryptophan which can help with serotonin production.',
         category: 'food',
         mood_types: ['sad'],
         energy_levels: ['high']
       },
       {
-        title: 'Cardio Exercise',
-        description: 'A higher-intensity workout that can help release endorphins to improve mood.',
+        title: 'Spinach Salad',
+        description: 'Leafy greens rich in folate which may help alleviate depressed mood.',
+        category: 'food',
+        mood_types: ['sad'],
+        energy_levels: ['high']
+      },
+      {
+        title: 'Cardio Burst',
+        description: 'A short, intense exercise session to help release endorphins.',
+        category: 'activity',
+        mood_types: ['sad'],
+        energy_levels: ['high']
+      },
+      {
+        title: 'Jump Squats',
+        description: 'A high-energy movement that can help channel emotional energy physically.',
         category: 'activity',
         mood_types: ['sad'],
         energy_levels: ['high']
@@ -798,6 +1204,20 @@ serve(async (req) => {
       {
         title: 'Emotional Release Journaling',
         description: 'Writing out difficult emotions with the intent to process and release them.',
+        category: 'mindfulness',
+        mood_types: ['sad'],
+        energy_levels: ['high']
+      },
+      {
+        title: 'Breathwork',
+        description: 'Structured breathing exercises designed to help shift emotional states.',
+        category: 'mindfulness',
+        mood_types: ['sad'],
+        energy_levels: ['high']
+      },
+      {
+        title: 'Meditation with Affirmations',
+        description: 'A practice incorporating positive statements to help reframe negative thoughts.',
         category: 'mindfulness',
         mood_types: ['sad'],
         energy_levels: ['high']
