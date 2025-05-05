@@ -1,19 +1,8 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Link, Navigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { RecommendationsList } from '@/components/recommendations/RecommendationsList';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
 
 const Index = () => {
-  const { user } = useAuth();
-  
-  // If user is logged in, redirect to dashboard
-  if (user) {
-    return <Navigate to="/dashboard" />;
-  }
-
   return (
     <div className="min-h-screen flex flex-col bg-vibe-background">
       {/* Hero Section */}
@@ -65,46 +54,13 @@ const Index = () => {
               </div>
             </div>
             <div className="md:w-1/2 md:pl-10">
-              <Card className="bg-white shadow-xl border-0 overflow-hidden">
-                <CardHeader>
-                  <CardTitle>Preview the App</CardTitle>
-                  <CardDescription>See the types of recommendations you'll get</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="bg-white rounded-lg p-4">
-                    <h3 className="text-lg font-semibold mb-4">Sample Recommendations</h3>
-                    <div className="grid grid-cols-1 gap-4">
-                      {[
-                        {
-                          title: 'Morning Yoga Routine',
-                          description: 'Start your day with a 15-minute gentle yoga flow',
-                          category: 'activity'
-                        },
-                        {
-                          title: 'Mood-Boosting Smoothie',
-                          description: 'Blend bananas, berries, and spinach for a natural mood enhancer',
-                          category: 'food'
-                        },
-                        {
-                          title: '5-Minute Mindfulness Exercise',
-                          description: 'Take just 5 minutes to focus on your breathing and clear your mind',
-                          category: 'mindfulness'
-                        }
-                      ].map((item, index) => (
-                        <div key={index} className="p-4 border rounded-lg">
-                          <div className="flex items-center">
-                            <div className="bg-vibe-light text-vibe-primary text-xs px-2 py-1 rounded-full">
-                              {item.category}
-                            </div>
-                          </div>
-                          <h4 className="font-medium mt-2">{item.title}</h4>
-                          <p className="text-sm text-gray-600 mt-1">{item.description}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="bg-white rounded-lg shadow-xl overflow-hidden transform rotate-2 animate-float">
+                <img
+                  src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&auto=format&fit=crop&q=60"
+                  alt="Wellness lifestyle"
+                  className="w-full h-auto"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -117,39 +73,80 @@ const Index = () => {
             How VibeFlow Works
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="w-16 h-16 rounded-full bg-vibe-light flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl text-vibe-primary">1</span>
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-vibe-light flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl text-vibe-primary">1</span>
+              </div>
+              <h3 className="text-xl font-bold mb-3">Track Your Mood</h3>
+              <p className="text-gray-600">
+                Log how you're feeling through our simple interface. Take a moment to reflect on your emotions.
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-vibe-light flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl text-vibe-primary">2</span>
+              </div>
+              <h3 className="text-xl font-bold mb-3">Get Recommendations</h3>
+              <p className="text-gray-600">
+                Our AI analyzes your mood and provides personalized recommendations for food, activities, and mindfulness.
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-vibe-light flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl text-vibe-primary">3</span>
+              </div>
+              <h3 className="text-xl font-bold mb-3">Improve Well-being</h3>
+              <p className="text-gray-600">
+                Follow recommendations, provide feedback, and watch your wellness journey evolve over time.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="py-20 bg-vibe-gray">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
+            What Our Users Say
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <div className="flex items-center mb-4">
+                <div className="h-10 w-10 rounded-full bg-vibe-primary mr-3"></div>
+                <div>
+                  <h4 className="font-semibold">Sarah J.</h4>
+                  <p className="text-sm text-gray-500">Software Engineer</p>
                 </div>
-                <h3 className="text-xl font-bold mb-3 text-center">Track Your Mood</h3>
-                <p className="text-gray-600 text-center">
-                  Log how you're feeling through our simple interface. Take a moment to reflect on your emotions.
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="w-16 h-16 rounded-full bg-vibe-light flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl text-vibe-primary">2</span>
+              </div>
+              <p className="text-gray-600">
+                "VibeFlow has been a game-changer for my workday. It helps me take mindful breaks and choose the right foods when I'm stressed."
+              </p>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <div className="flex items-center mb-4">
+                <div className="h-10 w-10 rounded-full bg-vibe-primary mr-3"></div>
+                <div>
+                  <h4 className="font-semibold">Michael T.</h4>
+                  <p className="text-sm text-gray-500">Fitness Instructor</p>
                 </div>
-                <h3 className="text-xl font-bold mb-3 text-center">Get Recommendations</h3>
-                <p className="text-gray-600 text-center">
-                  Our AI analyzes your mood and provides personalized recommendations for food, activities, and mindfulness.
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="w-16 h-16 rounded-full bg-vibe-light flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl text-vibe-primary">3</span>
+              </div>
+              <p className="text-gray-600">
+                "I recommend VibeFlow to all my clients. The personalized activity suggestions perfectly complement their fitness routines."
+              </p>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <div className="flex items-center mb-4">
+                <div className="h-10 w-10 rounded-full bg-vibe-primary mr-3"></div>
+                <div>
+                  <h4 className="font-semibold">Elena R.</h4>
+                  <p className="text-sm text-gray-500">Working Parent</p>
                 </div>
-                <h3 className="text-xl font-bold mb-3 text-center">Improve Well-being</h3>
-                <p className="text-gray-600 text-center">
-                  Follow recommendations, provide feedback, and watch your wellness journey evolve over time.
-                </p>
-              </CardContent>
-            </Card>
+              </div>
+              <p className="text-gray-600">
+                "As a busy parent, I often neglect self-care. VibeFlow reminds me to check in with myself and suggests quick wellness activities."
+              </p>
+            </div>
           </div>
         </div>
       </section>
