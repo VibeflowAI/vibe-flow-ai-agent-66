@@ -33,8 +33,10 @@ export const RecommendationsList = () => {
         data?.forEach(rating => {
           ratingsMap[rating.recommendation_id] = {
             liked: !!rating.rating,
-            completed: !!rating.completed
+            // Ensure we correctly capture the completed state regardless of rating
+            completed: rating.completed === true
           };
+          console.log(`Loaded recommendation ${rating.recommendation_id}: liked=${!!rating.rating}, completed=${rating.completed}`);
         });
         
         setUserRatings(ratingsMap);
@@ -108,14 +110,6 @@ export const RecommendationsList = () => {
     }));
     
     // Save to database handled by RecommendationCard
-    
-    // Optionally show a toast notification
-    toast({
-      title: completed ? "Activity Completed" : "Activity Marked Incomplete",
-      description: completed 
-        ? "Great job completing this activity!" 
-        : "Activity has been marked as incomplete",
-    });
   };
 
   return (

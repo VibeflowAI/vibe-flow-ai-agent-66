@@ -59,6 +59,7 @@ export const RecommendationCard = ({
     });
 
     // Track like status in database if user is logged in
+    // Pass the current completed state, not modifying it
     saveRatingToDatabase(newLikedState, completed);
   };
 
@@ -79,6 +80,7 @@ export const RecommendationCard = ({
     });
 
     // Track completion status in database if user is logged in
+    // Pass the current liked state, not modifying it
     saveRatingToDatabase(liked, newCompletedState);
   };
 
@@ -86,14 +88,20 @@ export const RecommendationCard = ({
     // Save like and completion status to database if user is logged in
     if (user) {
       try {
-        await supabase
+        const { error } = await supabase
           .from('recommendation_ratings')
           .upsert({
             user_id: user.id,
             recommendation_id: recommendation.id,
             rating: isLiked ? 5 : null,
-            completed: isCompleted
+            completed: isCompleted // Ensure completed status is saved correctly
           });
+          
+        if (error) {
+          console.error('Error saving recommendation rating:', error);
+        } else {
+          console.log(`Recommendation ${recommendation.id} ${isLiked ? 'liked' : 'unliked'} and ${isCompleted ? 'completed' : 'marked incomplete'}`);
+        }
       } catch (error) {
         console.error('Error saving recommendation rating:', error);
       }
