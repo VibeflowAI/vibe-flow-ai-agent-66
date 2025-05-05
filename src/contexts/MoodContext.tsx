@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 // Types
 export type MoodType = 'happy' | 'calm' | 'tired' | 'stressed' | 'sad';
@@ -32,7 +33,7 @@ type MoodContextType = {
   recommendations: Recommendation[];
   isLoading: boolean;
   logMood: (mood: MoodType, energy: EnergyLevel, note?: string) => Promise<void>;
-  getRecommendations: () => void;
+  getRecommendations: () => Promise<void>;
   moodEmojis: Record<MoodType, string>;
   moodDescriptions: Record<MoodType, string>;
   energyDescriptions: Record<EnergyLevel, string>;
@@ -165,6 +166,22 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Function to ensure we have default recommendations if none exist
+  const ensureDefaultRecommendations = useCallback(async () => {
+    try {
+      // Call the edge function to add default recommendations if none exist
+      const { error } = await supabase.functions.invoke('add-default-recommendations');
+      
+      if (error) {
+        console.error('Error adding default recommendations:', error);
+      } else {
+        console.log('Default recommendations checked/added successfully');
+      }
+    } catch (error) {
+      console.error('Error in ensureDefaultRecommendations:', error);
+    }
+  }, []);
+
   // Get personalized recommendations based on current mood
   const getRecommendations = useCallback(async () => {
     if (!user) {
@@ -186,6 +203,16 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('Fetching recommendations for mood:', moodToUse.mood, 'and energy:', moodToUse.energy);
       
+      // First check if we have any recommendations at all
+      const { data: countCheck, error: countError } = await supabase
+        .from('recommendations')
+        .select('id', { count: 'exact', head: true });
+        
+      if (countError || (countCheck && countCheck.length === 0)) {
+        console.log('No recommendations found, adding defaults');
+        await ensureDefaultRecommendations();
+      }
+      
       // First try to get recommendations specific to the mood and energy
       let { data, error } = await supabase
         .from('recommendations')
@@ -200,16 +227,36 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
         const { data: fallbackData, error: fallbackError } = await supabase
           .from('recommendations')
           .select('*')
-          .limit(5);
+          .limit(10);
           
         if (!fallbackError && fallbackData && fallbackData.length > 0) {
           console.log('Using fallback recommendations');
           data = fallbackData;
         } else {
           console.error('Error fetching fallback recommendations:', fallbackError);
-          setRecommendations([]);
-          setIsLoading(false);
-          return;
+          
+          // Try one more time after ensuring defaults are added
+          await ensureDefaultRecommendations();
+          
+          const { data: secondAttemptData, error: secondAttemptError } = await supabase
+            .from('recommendations')
+            .select('*')
+            .limit(10);
+            
+          if (!secondAttemptError && secondAttemptData && secondAttemptData.length > 0) {
+            console.log('Retrieved recommendations after adding defaults');
+            data = secondAttemptData;
+          } else {
+            console.error('Unable to retrieve any recommendations:', secondAttemptError);
+            setRecommendations([]);
+            toast({
+              title: "Recommendation Error",
+              description: "Unable to load recommendations. Please try again later.",
+              variant: "destructive"
+            });
+            setIsLoading(false);
+            return;
+          }
         }
       }
       
@@ -228,77 +275,85 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
         
         setRecommendations(formattedRecommendations);
       } else {
-        console.log('No recommendations found, adding defaults');
+        console.log('No specific recommendations found, using fallbacks');
         
-        // Try to add default recommendations
-        const { error: rpcError } = await supabase.rpc('add_default_recommendations');
-        
-        if (rpcError) {
-          console.error('Error adding default recommendations:', rpcError);
+        // Try to get any recommendations without mood/energy filters
+        const { data: generalData, error: generalError } = await supabase
+          .from('recommendations')
+          .select('*')
+          .limit(10);
+          
+        if (!generalError && generalData && generalData.length > 0) {
+          const formattedRecommendations: Recommendation[] = generalData.map(rec => ({
+            id: rec.id,
+            title: rec.title,
+            description: rec.description,
+            category: rec.category,
+            moodTypes: rec.mood_types as MoodType[],
+            energyLevels: rec.energy_levels as EnergyLevel[],
+            imageUrl: rec.image_url
+          }));
+          
+          setRecommendations(formattedRecommendations);
         } else {
-          // Try fetching recommendations again after adding defaults
-          const { data: newData, error: newError } = await supabase
-            .from('recommendations')
-            .select('*')
-            .limit(5);
-            
-          if (!newError && newData && newData.length > 0) {
-            const formattedRecommendations: Recommendation[] = newData.map(rec => ({
-              id: rec.id,
-              title: rec.title,
-              description: rec.description,
-              category: rec.category,
-              moodTypes: rec.mood_types as MoodType[],
-              energyLevels: rec.energy_levels as EnergyLevel[],
-              imageUrl: rec.image_url
-            }));
-            
-            setRecommendations(formattedRecommendations);
-          } else {
-            // Use hardcoded defaults as last resort
-            setRecommendations([
-              {
-                id: 'default-1',
-                title: 'Take a short walk',
-                description: 'Even a 10-minute walk can boost your mood and energy levels.',
-                category: 'activity',
-                moodTypes: ['tired', 'stressed', 'sad'],
-                energyLevels: ['low', 'medium']
-              },
-              {
-                id: 'default-2',
-                title: 'Drink water',
-                description: 'Staying hydrated is essential for maintaining energy levels.',
-                category: 'food',
-                moodTypes: ['tired'],
-                energyLevels: ['low', 'medium', 'high']
-              },
-              {
-                id: 'default-3',
-                title: 'Deep breathing exercise',
-                description: 'Take 5 deep breaths, inhaling for 4 counts and exhaling for 6.',
-                category: 'mindfulness',
-                moodTypes: ['stressed', 'sad'],
-                energyLevels: ['low', 'medium', 'high']
-              }
-            ]);
-          }
+          // If still no recommendations, use hardcoded defaults as last resort
+          setRecommendations([
+            {
+              id: 'default-1',
+              title: 'Take a short walk',
+              description: 'Even a 10-minute walk can boost your mood and energy levels.',
+              category: 'activity',
+              moodTypes: ['tired', 'stressed', 'sad'],
+              energyLevels: ['low', 'medium']
+            },
+            {
+              id: 'default-2',
+              title: 'Drink water',
+              description: 'Staying hydrated is essential for maintaining energy levels.',
+              category: 'food',
+              moodTypes: ['tired'],
+              energyLevels: ['low', 'medium', 'high']
+            },
+            {
+              id: 'default-3',
+              title: 'Deep breathing exercise',
+              description: 'Take 5 deep breaths, inhaling for 4 counts and exhaling for 6.',
+              category: 'mindfulness',
+              moodTypes: ['stressed', 'sad'],
+              energyLevels: ['low', 'medium', 'high']
+            }
+          ]);
+          
+          // Also try to add default recommendations to the database for next time
+          await ensureDefaultRecommendations();
         }
       }
     } catch (error) {
       console.error('Error getting recommendations:', error);
       setRecommendations([]);
+      toast({
+        title: "Error",
+        description: "Failed to load recommendations. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
-  }, [currentMood, moodHistory, user]);
+  }, [currentMood, moodHistory, user, ensureDefaultRecommendations]);
   
   // Get recommendations when current mood changes or when user changes
   useEffect(() => {
     if (user) {
       getRecommendations();
     }
-  }, [user, currentMood, getRecommendations]);
+  }, [user, getRecommendations]);
+
+  // Ensure default recommendations exist on initial load
+  useEffect(() => {
+    if (user) {
+      ensureDefaultRecommendations();
+    }
+  }, [user, ensureDefaultRecommendations]);
 
   const value = {
     currentMood,

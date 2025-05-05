@@ -1,20 +1,28 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMood } from '@/contexts/MoodContext';
 import { RecommendationCard } from './RecommendationCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Filter, ArrowUpDown, LayoutGrid, LayoutList } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { toast } from '@/hooks/use-toast';
 
 export const RecommendationsList = () => {
-  const { recommendations, isLoading } = useMood();
+  const { recommendations, isLoading, getRecommendations } = useMood();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'default' | 'rating' | 'alphabetical'>('default');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   
   const foodRecommendations = recommendations.filter(rec => rec.category === 'food');
   const activityRecommendations = recommendations.filter(rec => rec.category === 'activity');
   const mindfulnessRecommendations = recommendations.filter(rec => rec.category === 'mindfulness');
+
+  // Force refresh recommendations on component mount
+  useEffect(() => {
+    getRecommendations();
+    // This ensures the recommendations are fresh when the component mounts
+  }, [getRecommendations]);
 
   const sortRecommendations = (recs: any[]) => {
     if (sortBy === 'rating') {
@@ -36,6 +44,14 @@ export const RecommendationsList = () => {
     }
   };
 
+  const handleRefresh = () => {
+    getRecommendations();
+    toast({
+      title: "Refreshing recommendations",
+      description: "Getting the latest personalized suggestions for you."
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="py-10 text-center">
@@ -50,9 +66,12 @@ export const RecommendationsList = () => {
   if (recommendations.length === 0) {
     return (
       <div className="py-10 text-center">
-        <p className="text-lg text-gray-600">
+        <p className="text-lg text-gray-600 mb-4">
           No recommendations available. Log your mood to get personalized suggestions.
         </p>
+        <Button onClick={handleRefresh} variant="outline">
+          Refresh Recommendations
+        </Button>
       </div>
     );
   }
@@ -87,31 +106,42 @@ export const RecommendationsList = () => {
               variant="outline"
               size="sm"
               className="gap-1 border-gray-200 text-gray-700"
+              onClick={() => setDropdownOpen(!dropdownOpen)}
             >
               <ArrowUpDown className="h-4 w-4" />
               <span>Sort: {sortBy === 'default' ? 'Recommended' : sortBy === 'rating' ? 'Highest Rated' : 'A-Z'}</span>
             </Button>
-            <div className="dropdown-menu absolute hidden right-0 mt-1 w-40 bg-white rounded-md overflow-hidden shadow-lg border border-gray-200 z-10">
+            <div className={`dropdown-menu absolute ${dropdownOpen ? 'block' : 'hidden'} right-0 mt-1 w-40 bg-white rounded-md overflow-hidden shadow-lg border border-gray-200 z-10`}>
               <button 
                 className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${sortBy === 'default' ? 'bg-vibe-primary/10 text-vibe-primary' : 'text-gray-700'}`}
-                onClick={() => setSortBy('default')}
+                onClick={() => {setSortBy('default'); setDropdownOpen(false);}}
               >
                 Recommended
               </button>
               <button 
                 className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${sortBy === 'rating' ? 'bg-vibe-primary/10 text-vibe-primary' : 'text-gray-700'}`}
-                onClick={() => setSortBy('rating')}
+                onClick={() => {setSortBy('rating'); setDropdownOpen(false);}}
               >
                 Highest Rated
               </button>
               <button 
                 className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${sortBy === 'alphabetical' ? 'bg-vibe-primary/10 text-vibe-primary' : 'text-gray-700'}`}
-                onClick={() => setSortBy('alphabetical')}
+                onClick={() => {setSortBy('alphabetical'); setDropdownOpen(false);}}
               >
                 Alphabetical (A-Z)
               </button>
             </div>
           </div>
+
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-1 border-gray-200 text-gray-700"
+            onClick={handleRefresh}
+          >
+            <Filter className="h-4 w-4" />
+            <span>Refresh</span>
+          </Button>
         </div>
       </div>
       
