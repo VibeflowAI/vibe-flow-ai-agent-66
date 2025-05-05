@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ThumbsUp, ThumbsDown, Heart, Image, ImageOff, CheckCircle } from 'lucide-react';
@@ -12,17 +11,27 @@ import { Checkbox } from '@/components/ui/checkbox';
 export const RecommendationCard = ({ 
   recommendation,
   onLikeChange,
-  onCompletionChange
+  onCompletionChange,
+  initialLiked = false,
+  initialCompleted = false
 }: { 
   recommendation: Recommendation,
   onLikeChange?: (liked: boolean) => void,
-  onCompletionChange?: (completed: boolean) => void
+  onCompletionChange?: (completed: boolean) => void,
+  initialLiked?: boolean,
+  initialCompleted?: boolean
 }) => {
-  const [liked, setLiked] = useState(false);
-  const [completed, setCompleted] = useState(false);
+  const [liked, setLiked] = useState(initialLiked);
+  const [completed, setCompleted] = useState(initialCompleted);
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
   const { user } = useAuth();
+
+  // Update state if props change
+  useEffect(() => {
+    setLiked(initialLiked);
+    setCompleted(initialCompleted);
+  }, [initialLiked, initialCompleted]);
 
   const handleFeedback = (isPositive: boolean) => {
     toast({
@@ -88,35 +97,6 @@ export const RecommendationCard = ({
       }
     }
   };
-
-  // Check if this recommendation is already liked when component mounts
-  useEffect(() => {
-    if (user && recommendation.id) {
-      const checkRatingStatus = async () => {
-        try {
-          const { data } = await supabase
-            .from('recommendation_ratings')
-            .select('rating, completed')
-            .eq('user_id', user.id)
-            .eq('recommendation_id', recommendation.id)
-            .maybeSingle();
-            
-          if (data) {
-            if (data.rating) {
-              setLiked(true);
-            }
-            if (data.completed) {
-              setCompleted(true);
-            }
-          }
-        } catch (error) {
-          console.error('Error checking rating status:', error);
-        }
-      };
-      
-      checkRatingStatus();
-    }
-  }, [user, recommendation.id]);
 
   // Category-specific placeholder images when no image is available or on error
   const getCategoryPlaceholder = () => {
