@@ -23,10 +23,16 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
         <SidebarInset className="px-4 py-6">
           <div className="container mx-auto">
             <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-bold text-vibe-primary flex items-center">
-                <SidebarTrigger className="mr-3 inline-flex md:hidden h-10 w-10 p-2 rounded-full bg-vibe-primary/10 hover:bg-vibe-primary/20 transition-colors" />
-              </h1>
+              <div className="text-2xl font-bold text-vibe-primary">
+                {/* Empty div to maintain spacing in header */}
+              </div>
             </div>
+            
+            {/* Repositioned sidebar trigger button */}
+            <div className="fixed top-20 left-4 z-20">
+              <SidebarTrigger className="inline-flex md:hidden h-10 w-10 p-2 rounded-full bg-vibe-primary/10 hover:bg-vibe-primary/20 transition-colors shadow-md" />
+            </div>
+            
             {children}
           </div>
         </SidebarInset>
