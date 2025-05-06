@@ -54,8 +54,8 @@ const Chat = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <Card className="h-[80vh] flex flex-col shadow-lg border-vibe-primary/20">
+    <div className="w-full max-w-3xl mx-auto px-4">
+      <Card className="h-[75vh] flex flex-col shadow-lg border-vibe-primary/20">
         <div className="p-4 border-b flex items-center gap-2 bg-gradient-to-r from-vibe-primary/10 to-vibe-light/10">
           <Bot className="w-6 h-6 text-vibe-primary" />
           <div className="flex-1">

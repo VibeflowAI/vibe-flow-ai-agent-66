@@ -43,7 +43,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader>
+      <SidebarHeader className="sticky top-0 z-20 bg-sidebar">
         <div className="flex items-center p-2">
           <div className="h-8 w-8 rounded-full bg-vibe-primary flex items-center justify-center mr-2">
             <span className="text-white font-bold text-xl">V</span>
@@ -52,7 +52,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
       
-      <SidebarContent>
+      <SidebarContent className="flex-grow overflow-auto">
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -77,7 +77,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="sticky bottom-0 z-20 bg-sidebar">
         <div className="p-2">
           <Button 
             variant="outline" 
