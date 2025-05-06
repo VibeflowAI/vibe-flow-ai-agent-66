@@ -24,7 +24,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
           <div className="container mx-auto">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-2xl font-bold text-vibe-primary flex items-center">
-                <SidebarTrigger className="mr-2 inline-flex md:hidden" />
+                <SidebarTrigger className="mr-3 inline-flex md:hidden h-10 w-10 p-2 rounded-full bg-vibe-primary/10 hover:bg-vibe-primary/20 transition-colors" />
               </h1>
             </div>
             {children}
