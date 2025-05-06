@@ -13,13 +13,17 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { LogOut, Home, BarChart, MessageSquare, User, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export function AppSidebar() {
   const location = useLocation();
   const { signOut } = useAuth();
+  const { open, openMobile, setOpenMobile } = useSidebar();
+  const isMobile = useIsMobile();
 
   // Define our navigation items
   const navigationItems = [
@@ -29,6 +33,13 @@ export function AppSidebar() {
     { title: 'Profile', icon: User, path: '/profile' },
     { title: 'Settings', icon: Settings, path: '/settings' },
   ];
+
+  // Handle clicks to close the menu in mobile portrait mode after selection
+  const handleMenuItemClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   return (
     <Sidebar>
@@ -52,6 +63,7 @@ export function AppSidebar() {
                     asChild 
                     isActive={location.pathname === item.path}
                     tooltip={item.title}
+                    onClick={handleMenuItemClick}
                   >
                     <Link to={item.path}>
                       <item.icon />

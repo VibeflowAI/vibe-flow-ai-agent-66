@@ -4,6 +4,8 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
+import { Menu } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 type AppLayoutProps = {
   children: React.ReactNode;
@@ -11,6 +13,7 @@ type AppLayoutProps = {
 
 export const AppLayout = ({ children }: AppLayoutProps) => {
   const { user } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   if (!user) {
     return <Navigate to="/signin" replace />;
@@ -23,8 +26,17 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
         <SidebarInset className="px-4 py-6">
           <div className="container mx-auto">
             <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-bold text-vibe-primary">
+              <h1 className="text-2xl font-bold text-vibe-primary flex items-center">
                 <SidebarTrigger className="mr-2 inline-flex md:hidden" />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="md:hidden" 
+                  onClick={() => setMobileMenuOpen(true)}
+                >
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Open mobile menu</span>
+                </Button>
               </h1>
             </div>
             {children}

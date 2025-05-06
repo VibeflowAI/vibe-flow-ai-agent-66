@@ -157,13 +157,15 @@ const Settings = () => {
         </header>
 
         <Tabs defaultValue="account" className="w-full">
-          <TabsList className="grid grid-cols-5 mb-8">
-            <TabsTrigger value="account">Account</TabsTrigger>
-            <TabsTrigger value="email">Email</TabsTrigger>
-            <TabsTrigger value="password">Password</TabsTrigger>
-            <TabsTrigger value="language">Language</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto pb-2 -mx-4 px-4">
+            <TabsList className="grid grid-cols-5 mb-8 min-w-[500px] md:min-w-0">
+              <TabsTrigger value="account">Account</TabsTrigger>
+              <TabsTrigger value="email">Email</TabsTrigger>
+              <TabsTrigger value="password">Password</TabsTrigger>
+              <TabsTrigger value="language">Language</TabsTrigger>
+              <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            </TabsList>
+          </div>
           
           <TabsContent value="account" className="space-y-4">
             <Card>
