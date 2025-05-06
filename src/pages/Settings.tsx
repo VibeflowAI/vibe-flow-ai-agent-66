@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
@@ -147,8 +146,8 @@ const Settings = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-3xl mx-auto space-y-8">
+    <div className="w-full max-w-3xl mx-auto px-4">
+      <div className="space-y-8">
         <header className="mb-8">
           <h1 className="text-3xl font-bold">Settings</h1>
           <p className="text-gray-600 mt-1">
