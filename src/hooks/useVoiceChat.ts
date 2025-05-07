@@ -1,3 +1,4 @@
+
 import { useState, useRef } from 'react';
 import { useMood } from '@/contexts/MoodContext';
 import { useToast } from '@/hooks/use-toast';
@@ -28,14 +29,13 @@ interface UserPreferences {
 // ElevenLabs API key - In production, this should be in an environment variable
 const ELEVENLABS_API_KEY = 'sk_ac5a8f880ba45f9f6e18b1621e1ae55fb9c8841babe5613e';
 const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; // Sarah's voice ID
-const OPENROUTER_API_KEY = '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';
+const HUGGING_FACE_TOKEN = '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'; // Original token restored
 
 export const useVoiceChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [aiProvider, setAiProvider] = useState<'gemini' | 'openai' | 'huggingface'>('gemini');
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { currentMood, moodEmojis } = useMood();
   const { user } = useAuth();
@@ -120,13 +120,15 @@ export const useVoiceChat = () => {
     }
   };
 
-  // Update to use Supabase edge function for Gemini API
-  const processWithGemini = async (prompt: string, userContextData: any): Promise<{ response: string, alternatives: string[], provider: string }> => {
+  // Update to use Supabase edge function for Hugging Face API
+  const processWithHuggingFace = async (prompt: string, userContextData: any): Promise<{ response: string, alternatives: string[], provider: string }> => {
     try {
+      // Use the Supabase edge function but always request the Hugging Face option
       const response = await supabase.functions.invoke('chat', {
         body: {
           message: prompt,
-          userContext: userContextData
+          userContext: userContextData,
+          forceProvider: 'huggingface'
         }
       });
 
@@ -137,54 +139,11 @@ export const useVoiceChat = () => {
       return {
         response: response.data.response || "I'm sorry, I couldn't process your request at the moment.",
         alternatives: response.data.alternatives || [],
-        provider: response.data.provider || 'unknown'
+        provider: 'huggingface'
       };
     } catch (error) {
       console.error('AI API Error:', error);
       throw new Error('Failed to get response from AI: ' + error.message);
-    }
-  };
-
-  const processWithOpenAI = async (prompt: string): Promise<string> => {
-    try {
-      // Using OpenRouter.ai API with the format you provided
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'VibeFlow AI Assistant'
-        },
-        body: JSON.stringify({
-          model: 'openai/gpt-4o',
-          messages: [
-            {
-              role: 'system',
-              content: `You are VibeFlow AI, a friendly wellness assistant. You are helpful, empathetic, 
-                        and focused on providing practical wellness advice. Keep responses concise 
-                        (under 150 words) and focused on wellness, mental health, or lifestyle improvements.`
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 300,
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`OpenRouter API error: ${response.status}${errorData.error ? ' - ' + errorData.error.message : ''}`);
-      }
-
-      const data = await response.json();
-      return data.choices[0].message.content;
-    } catch (error) {
-      console.error('OpenRouter API Error:', error);
-      throw new Error('Failed to get response from OpenRouter: ' + error.message);
     }
   };
 
@@ -217,58 +176,12 @@ export const useVoiceChat = () => {
         dietaryRestrictions: userPreferences.dietaryRestrictions || []
       };
       
-      // Create user profile text for non-Gemini providers
-      const userProfile = `
-        User's message: ${text}
-        Current mood: ${userContext.mood}
-        Mood emoji: ${currentMood ? moodEmojis[currentMood.mood] : '😐'}
-        Energy level: ${userContext.energy}
-        Sleep hours: ${userContext.sleepHours}
-        Activity level: ${userContext.activityLevel}
-        Health goals: ${userContext.healthGoals.join(', ') || 'general wellness'}
-        Health conditions: ${userContext.conditions.join(', ') || 'none reported'}
-        Dietary restrictions: ${userContext.dietaryRestrictions.join(', ') || 'none reported'}
-      `;
+      console.log('Sending message to AI:', { text, userContext });
       
-      console.log('Sending message to AI:', { text, userContext, aiProvider });
-      
-      // Get response from selected AI provider
-      let aiResponse;
-      let alternativeResponses = [];
-      let responseProvider = '';
-      
-      if (aiProvider === 'gemini' || aiProvider === 'huggingface') {
-        // We'll use the edge function for both Gemini and Hugging Face
-        const geminiResponse = await processWithGemini(text, userContext);
-        aiResponse = geminiResponse.response;
-        alternativeResponses = geminiResponse.alternatives;
-        responseProvider = geminiResponse.provider;
-      } else {
-        // For OpenRouter, we'll build the prompt manually
-        const aiPrompt = `
-          You are VibeFlow AI, a friendly wellness assistant. 
-          You are helpful, empathetic, and focused on providing practical wellness advice.
-          
-          User context:
-          ${userProfile}
-          
-          Please provide a thoughtful, personalized response addressing the user's message.
-          Keep your response concise (under 150 words) and focused on wellness, mental health,
-          or lifestyle improvements based on their current mood and context.
-          
-          Your response should be encouraging and provide actionable suggestions.
-        `;
-        
-        aiResponse = await processWithOpenAI(aiPrompt);
-        responseProvider = 'openai';
-        
-        // Generate alternative responses manually for OpenRouter
-        alternativeResponses = [
-          aiResponse.replace(/I recommend/i, "Based on your profile, I suggest"),
-          aiResponse.replace(/I recommend/i, "You might consider"),
-          aiResponse.replace(/try/i, "consider trying")
-        ].filter(r => r !== aiResponse).slice(0, 2);
-      }
+      // Get response from Hugging Face only
+      const huggingFaceResponse = await processWithHuggingFace(text, userContext);
+      const aiResponse = huggingFaceResponse.response;
+      const alternativeResponses = huggingFaceResponse.alternatives;
       
       if (!aiResponse) {
         throw new Error("Received empty response from the AI");
@@ -280,7 +193,7 @@ export const useVoiceChat = () => {
         isUser: false,
         timestamp: new Date(),
         alternativeResponses: alternativeResponses,
-        provider: responseProvider
+        provider: 'huggingface'
       };
       
       setMessages(prev => [...prev, botMessage]);
@@ -363,55 +276,10 @@ export const useVoiceChat = () => {
         dietaryRestrictions: userPreferences.dietaryRestrictions || []
       };
 
-      // Create user profile text for non-Gemini providers
-      const userProfile = `
-        User's message: ${prompt}
-        Current mood: ${userContext.mood}
-        Mood emoji: ${currentMood ? moodEmojis[currentMood.mood] : '😐'}
-        Energy level: ${userContext.energy}
-        Sleep hours: ${userContext.sleepHours}
-        Activity level: ${userContext.activityLevel}
-        Health goals: ${Array.isArray(userContext.healthGoals) ? userContext.healthGoals.join(', ') : 'general wellness'}
-        Health conditions: ${Array.isArray(userContext.conditions) ? userContext.conditions.join(', ') : 'none reported'}
-        Dietary restrictions: ${Array.isArray(userContext.dietaryRestrictions) ? userContext.dietaryRestrictions.join(', ') : 'none reported'}
-      `;
-      
-      // Get response from selected AI provider
-      let aiResponse;
-      let alternativeResponses = [];
-      let responseProvider = '';
-      
-      if (aiProvider === 'gemini' || aiProvider === 'huggingface') {
-        const geminiResponse = await processWithGemini(prompt, userContext);
-        aiResponse = geminiResponse.response;
-        alternativeResponses = geminiResponse.alternatives;
-        responseProvider = geminiResponse.provider;
-      } else {
-        // For OpenRouter, we'll build the prompt manually
-        const aiPrompt = `
-          You are VibeFlow AI, a friendly wellness assistant. 
-          You are helpful, empathetic, and focused on providing practical wellness advice.
-          
-          User context:
-          ${userProfile}
-          
-          Please provide a thoughtful, personalized response addressing the user's message.
-          Keep your response concise (under 150 words) and focused on wellness, mental health,
-          or lifestyle improvements based on their current mood and context.
-          
-          Your response should be encouraging and provide actionable suggestions.
-        `;
-        
-        aiResponse = await processWithOpenAI(aiPrompt);
-        responseProvider = 'openai';
-        
-        // Generate alternative responses manually for OpenRouter
-        alternativeResponses = [
-          aiResponse.replace(/I recommend/i, "Based on your profile, I suggest"),
-          aiResponse.replace(/I recommend/i, "You might consider"),
-          aiResponse.replace(/try/i, "consider trying")
-        ].filter(r => r !== aiResponse).slice(0, 2);
-      }
+      // Get response from Hugging Face only
+      const huggingFaceResponse = await processWithHuggingFace(prompt, userContext);
+      const aiResponse = huggingFaceResponse.response;
+      const alternativeResponses = huggingFaceResponse.alternatives;
       
       setMessages(prev => {
         return prev.map(message => {
@@ -420,7 +288,7 @@ export const useVoiceChat = () => {
               ...message,
               text: aiResponse,
               alternativeResponses: alternativeResponses,
-              provider: responseProvider
+              provider: 'huggingface'
             };
           }
           return message;
@@ -463,8 +331,6 @@ export const useVoiceChat = () => {
     stopAudio,
     audioRef,
     selectAlternativeResponse,
-    regenerateResponse,
-    aiProvider,
-    setAiProvider
+    regenerateResponse
   };
 };

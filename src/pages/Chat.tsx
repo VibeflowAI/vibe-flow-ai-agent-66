@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +9,6 @@ import { Bot, Send, Volume2, VolumeX, RotateCcw, AlertCircle, Info } from 'lucid
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { useVoiceChat } from '@/hooks/useVoiceChat';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const Chat = () => {
@@ -23,8 +23,6 @@ const Chat = () => {
     audioRef,
     selectAlternativeResponse,
     regenerateResponse,
-    aiProvider,
-    setAiProvider
   } = useVoiceChat();
   
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -39,20 +37,6 @@ const Chat = () => {
     handleSendMessage(inputText);
   };
 
-  // Helper function to get a display name for the AI provider
-  const getAIProviderDisplayName = (providerId: string | undefined) => {
-    switch (providerId) {
-      case 'gemini':
-        return 'Google Gemini';
-      case 'huggingface':
-        return 'Hugging Face';
-      case 'openai':
-        return 'OpenRouter GPT';
-      default:
-        return 'AI';
-    }
-  };
-
   return (
     <div className="w-full max-w-3xl mx-auto px-4">
       <Card className="h-[75vh] flex flex-col shadow-lg border-vibe-primary/20">
@@ -61,20 +45,8 @@ const Chat = () => {
           <div className="flex-1">
             <h1 className="text-xl font-semibold">VibeFlow AI Assistant</h1>
             <p className="text-sm text-gray-600">
-              Your personal wellness companion powered by AI
+              Your personal wellness companion powered by Hugging Face AI
             </p>
-          </div>
-          <div className="w-48">
-            <Select value={aiProvider} onValueChange={(value) => setAiProvider(value as 'gemini' | 'openai' | 'huggingface')}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select AI Model" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="gemini">Google Gemini</SelectItem>
-                <SelectItem value="openai">OpenRouter GPT-4o</SelectItem>
-                <SelectItem value="huggingface">Hugging Face</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </div>
         
@@ -103,10 +75,6 @@ const Chat = () => {
                     Sleep improvement tips
                   </li>
                 </ul>
-                <div className="mt-4 text-sm">
-                  <p>Currently using: <span className="font-medium">{aiProvider === 'gemini' ? 'Google Gemini AI' : 'OpenRouter GPT'}</span></p>
-                  <p className="mt-1">Change the AI model using the selector above</p>
-                </div>
               </div>
             ) : (
               messages.map((msg) => (
@@ -169,11 +137,11 @@ const Chat = () => {
                                       className="h-6 px-2 text-xs flex items-center gap-1"
                                     >
                                       <Info className="h-3 w-3" />
-                                      {getAIProviderDisplayName(msg.provider)}
+                                      Hugging Face AI
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>This response was generated using {getAIProviderDisplayName(msg.provider)}</p>
+                                    <p>This response was generated using Hugging Face AI</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -213,7 +181,7 @@ const Chat = () => {
                 <div className="bg-gray-100 rounded-lg rounded-bl-none p-3 max-w-[80%]">
                   <div className="flex gap-2 items-center text-sm text-gray-500">
                     <Bot className="w-4 h-4 animate-pulse" />
-                    Thinking using {aiProvider === 'gemini' ? 'Google Gemini' : 'OpenRouter GPT'}...
+                    Thinking using Hugging Face AI...
                   </div>
                 </div>
               </div>
