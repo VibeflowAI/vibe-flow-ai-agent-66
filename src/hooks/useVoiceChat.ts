@@ -259,7 +259,7 @@ export const useVoiceChat = () => {
       toast({
         title: "API Limit Reached",
         description: "Cannot regenerate response while API limit is reached.",
-        variant: "warning"
+        variant: "destructive" // Changed from "warning" to "destructive"
       });
       return;
     }

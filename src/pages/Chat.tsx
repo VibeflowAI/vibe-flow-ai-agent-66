@@ -50,7 +50,7 @@ const Chat = () => {
         </div>
         
         {apiLimitReached && (
-          <Alert variant="warning" className="m-2 bg-amber-50">
+          <Alert variant="destructive" className="m-2 bg-amber-50"> {/* Changed from "warning" to "destructive" */}
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
               The AI service is currently at capacity. Using fallback responses which may be less personalized.
