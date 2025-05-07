@@ -29,7 +29,52 @@ serve(async (req) => {
       throw new Error("Message is required");
     }
     
-    // If API credits are exceeded, return a fallback response
+    // Fallback wellness responses based on common topics
+    const fallbackResponses = [
+      {
+        response: "I notice you're looking for wellness advice. For better mental health, try practicing mindfulness meditation for just 5 minutes daily. It can help reduce stress and improve focus.",
+        alternatives: [
+          "Have you tried deep breathing exercises? Just 10 deep breaths can help reset your nervous system when you're feeling stressed.",
+          "Regular short walks, even just 10 minutes, can significantly improve your mood and energy levels."
+        ]
+      },
+      {
+        response: "While I can't access the AI service right now, I can suggest that staying hydrated is fundamental to wellness. Try drinking a glass of water first thing each morning.",
+        alternatives: [
+          "Consider creating a consistent sleep schedule - going to bed and waking up at the same time daily helps regulate your body's natural rhythm.",
+          "Taking short breaks throughout your day to stretch can help prevent physical tension and mental fatigue."
+        ]
+      },
+      {
+        response: "For nutrition wellness, consider adding more colorful vegetables to your meals. The variety of colors represents different nutrients your body needs.",
+        alternatives: [
+          "Meal prepping on weekends can help you make healthier food choices throughout the week when you're busy.",
+          "Small changes like replacing sugary drinks with water or herbal tea can have significant health benefits over time."
+        ]
+      },
+      {
+        response: "To improve your physical wellness, try incorporating short bursts of activity throughout your day - take the stairs, do quick stretches, or go for a brief walk.",
+        alternatives: [
+          "Strength training doesn't require a gym - bodyweight exercises like push-ups, squats, and lunges are effective and can be done anywhere.",
+          "Balance your exercise routine with both cardio and strength training for overall fitness benefits."
+        ]
+      },
+      {
+        response: "For better mental health, try the 5-4-3-2-1 grounding technique when feeling anxious: identify 5 things you can see, 4 you can touch, 3 you can hear, 2 you can smell, and 1 you can taste.",
+        alternatives: [
+          "Journaling for just 5 minutes daily can help process emotions and reduce mental stress.",
+          "Setting boundaries with technology, like phone-free meals or no screens an hour before bed, can improve mental wellbeing."
+        ]
+      },
+      {
+        response: "Social wellness is important too. Consider scheduling regular check-ins with friends or family, even if it's just a quick video call.",
+        alternatives: [
+          "Volunteering for a cause you care about can provide a sense of purpose and community connection.",
+          "Joining local clubs or groups related to your interests can help build meaningful relationships."
+        ]
+      }
+    ];
+    
     try {
       console.log("Using Hugging Face API...");
       const result = await useHuggingFaceAPI(message, userContext);
@@ -43,17 +88,16 @@ serve(async (req) => {
     } catch (error) {
       console.error("Error in chat function:", error);
       
-      // Create a fallback response when API fails
-      const fallbackResponse = {
-        response: "I'm sorry, the AI service is currently unavailable due to usage limits. Try asking a simpler question or try again later.",
-        alternatives: [
-          "How are you feeling today?",
-          "Would you like some basic wellness tips instead?"
-        ],
-        provider: 'fallback'
-      };
+      // Select a random fallback response that doesn't repeat recent ones
+      const randomIndex = Math.floor(Math.random() * fallbackResponses.length);
+      const fallbackResponse = fallbackResponses[randomIndex];
       
-      return new Response(JSON.stringify(fallbackResponse), {
+      return new Response(JSON.stringify({
+        response: fallbackResponse.response,
+        alternatives: fallbackResponse.alternatives,
+        provider: 'fallback',
+        error: 'API limit exceeded'
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200 // Send 200 instead of 500 to keep the chat working
       });
@@ -138,10 +182,10 @@ async function useHuggingFaceAPI(message: string, userContext: any) {
       }
     }
     
-    // Create alternative responses manually
+    // Create unique alternative responses
     const alternatives = [
-      aiResponse.replace(/I recommend/i, "Based on your profile, I suggest"),
-      aiResponse.replace(/I recommend/i, "You might consider")
+      "Remember that small daily habits often lead to the biggest wellness improvements.",
+      "It might help to focus on one wellness goal at a time rather than trying to change everything at once."
     ].filter(r => r !== aiResponse && r.length > 20).slice(0, 2);
     
     return {

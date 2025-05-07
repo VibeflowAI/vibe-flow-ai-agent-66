@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
-import { Bot, Send, Volume2, VolumeX, RotateCcw, Info } from 'lucide-react';
+import { Bot, Send, Volume2, VolumeX, RotateCcw, Info, AlertTriangle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useVoiceChat } from '@/hooks/useVoiceChat';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Chat = () => {
   const {
@@ -20,6 +21,7 @@ const Chat = () => {
     audioRef,
     selectAlternativeResponse,
     regenerateResponse,
+    apiLimitReached,
   } = useVoiceChat();
   
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -46,6 +48,15 @@ const Chat = () => {
             </p>
           </div>
         </div>
+        
+        {apiLimitReached && (
+          <Alert variant="warning" className="m-2 bg-amber-50">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              The AI service is currently at capacity. Using fallback responses which may be less personalized.
+            </AlertDescription>
+          </Alert>
+        )}
         
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-4">
@@ -113,7 +124,7 @@ const Chat = () => {
                                 const userPrompt = msgIndex > 0 ? messages[msgIndex-1].text : '';
                                 regenerateResponse(msg.id, userPrompt);
                               }}
-                              disabled={isProcessing}
+                              disabled={isProcessing || apiLimitReached}
                             >
                               <RotateCcw className="h-4 w-4" />
                             </Button>
@@ -128,11 +139,13 @@ const Chat = () => {
                                       className="h-6 px-2 text-xs flex items-center gap-1"
                                     >
                                       <Info className="h-3 w-3" />
-                                      AI Assistant
+                                      {msg.provider === 'fallback' ? 'Fallback Response' : 'AI Assistant'}
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>This response was generated using AI</p>
+                                    {msg.provider === 'fallback' 
+                                      ? 'This is a fallback response due to AI service limitations' 
+                                      : 'This response was generated using AI'}
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>

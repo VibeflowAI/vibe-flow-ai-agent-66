@@ -35,6 +35,7 @@ export const useVoiceChat = () => {
   const [inputText, setInputText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [apiLimitReached, setApiLimitReached] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { currentMood } = useMood();
   const { user } = useAuth();
@@ -106,7 +107,7 @@ export const useVoiceChat = () => {
   };
 
   // Update to use Supabase edge function for AI chat
-  const processWithAI = async (prompt: string, userContextData: any): Promise<{ response: string, alternatives: string[], provider: string }> => {
+  const processWithAI = async (prompt: string, userContextData: any): Promise<{ response: string, alternatives: string[], provider: string, error?: string }> => {
     try {
       // Use the Supabase edge function
       const response = await supabase.functions.invoke('chat', {
@@ -121,19 +122,27 @@ export const useVoiceChat = () => {
         throw new Error(`AI API error via edge function: ${response.error.message}`);
       }
 
+      // Check if we're using fallback due to API limits
+      if (response.data.error === 'API limit exceeded') {
+        setApiLimitReached(true);
+      }
+
       return {
         response: response.data.response || "I'm sorry, I couldn't process your request at the moment.",
         alternatives: response.data.alternatives || [],
-        provider: response.data.provider || 'huggingface'
+        provider: response.data.provider || 'huggingface',
+        error: response.data.error
       };
     } catch (error) {
       console.error('AI API Error:', error);
+      setApiLimitReached(true);
       
       // Provide a fallback response when the API fails
       return {
         response: "I'm sorry, the AI service is currently unavailable. Please try again later.",
         alternatives: [],
-        provider: 'fallback'
+        provider: 'fallback',
+        error: 'connection_error'
       };
     }
   };
@@ -188,8 +197,8 @@ export const useVoiceChat = () => {
         saveToHistory(text, aiResult.response);
       }
       
-      // Generate and play audio response if needed
-      if (audioRef.current && aiResult.response) {
+      // Generate and play audio response if needed and not using fallback
+      if (audioRef.current && aiResult.response && !apiLimitReached) {
         try {
           const audioUrl = await generateSpeech(aiResult.response);
           playAudio(audioUrl);
@@ -246,6 +255,15 @@ export const useVoiceChat = () => {
       return;
     }
     
+    if (apiLimitReached) {
+      toast({
+        title: "API Limit Reached",
+        description: "Cannot regenerate response while API limit is reached.",
+        variant: "warning"
+      });
+      return;
+    }
+    
     setIsProcessing(true);
 
     try {
@@ -286,7 +304,7 @@ export const useVoiceChat = () => {
       }
       
       // Generate and play audio response if needed
-      if (audioRef.current && aiResult.response) {
+      if (audioRef.current && aiResult.response && !apiLimitReached) {
         try {
           const audioUrl = await generateSpeech(aiResult.response);
           playAudio(audioUrl);
@@ -316,6 +334,7 @@ export const useVoiceChat = () => {
     stopAudio,
     audioRef,
     selectAlternativeResponse,
-    regenerateResponse
+    regenerateResponse,
+    apiLimitReached
   };
 };
