@@ -29,7 +29,6 @@ interface UserPreferences {
 // ElevenLabs API key - In production, this should be in an environment variable
 const ELEVENLABS_API_KEY = 'sk_ac5a8f880ba45f9f6e18b1621e1ae55fb9c8841babe5613e';
 const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; // Sarah's voice ID
-const HUGGING_FACE_TOKEN = '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'; // Original token restored
 
 export const useVoiceChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -37,7 +36,7 @@ export const useVoiceChat = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const { currentMood, moodEmojis } = useMood();
+  const { currentMood } = useMood();
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -100,50 +99,42 @@ export const useVoiceChat = () => {
     
     try {
       // For now, we'll just log to console instead of saving to Supabase
-      // This avoids TypeScript errors while you set up proper database types
       console.log('Would save chat history:', { user_id: user.id, message, response });
-      
-      // Uncomment when database is properly set up
-      // const { error } = await supabase
-      //   .from('chat_history')
-      //   .insert({
-      //     user_id: user.id,
-      //     message,
-      //     response
-      //   });
-        
-      // if (error) {
-      //   console.error('Error saving chat history:', error);
-      // }
     } catch (error) {
       console.error('Failed to save chat history:', error);
     }
   };
 
-  // Update to use Supabase edge function for Hugging Face API
-  const processWithHuggingFace = async (prompt: string, userContextData: any): Promise<{ response: string, alternatives: string[], provider: string }> => {
+  // Update to use Supabase edge function for AI chat
+  const processWithAI = async (prompt: string, userContextData: any): Promise<{ response: string, alternatives: string[], provider: string }> => {
     try {
-      // Use the Supabase edge function but always request the Hugging Face option
+      // Use the Supabase edge function
       const response = await supabase.functions.invoke('chat', {
         body: {
           message: prompt,
-          userContext: userContextData,
-          forceProvider: 'huggingface'
+          userContext: userContextData
         }
       });
 
       if (response.error) {
+        console.error("AI API error via edge function:", response.error);
         throw new Error(`AI API error via edge function: ${response.error.message}`);
       }
 
       return {
         response: response.data.response || "I'm sorry, I couldn't process your request at the moment.",
         alternatives: response.data.alternatives || [],
-        provider: 'huggingface'
+        provider: response.data.provider || 'huggingface'
       };
     } catch (error) {
       console.error('AI API Error:', error);
-      throw new Error('Failed to get response from AI: ' + error.message);
+      
+      // Provide a fallback response when the API fails
+      return {
+        response: "I'm sorry, the AI service is currently unavailable. Please try again later.",
+        alternatives: [],
+        provider: 'fallback'
+      };
     }
   };
 
@@ -178,35 +169,29 @@ export const useVoiceChat = () => {
       
       console.log('Sending message to AI:', { text, userContext });
       
-      // Get response from Hugging Face only
-      const huggingFaceResponse = await processWithHuggingFace(text, userContext);
-      const aiResponse = huggingFaceResponse.response;
-      const alternativeResponses = huggingFaceResponse.alternatives;
-      
-      if (!aiResponse) {
-        throw new Error("Received empty response from the AI");
-      }
+      // Get response from AI
+      const aiResult = await processWithAI(text, userContext);
       
       const botMessage = {
         id: Date.now().toString(),
-        text: aiResponse,
+        text: aiResult.response,
         isUser: false,
         timestamp: new Date(),
-        alternativeResponses: alternativeResponses,
-        provider: 'huggingface'
+        alternativeResponses: aiResult.alternatives,
+        provider: aiResult.provider
       };
       
       setMessages(prev => [...prev, botMessage]);
       
       // Save chat history to Supabase
       if (user) {
-        saveToHistory(text, aiResponse);
+        saveToHistory(text, aiResult.response);
       }
       
       // Generate and play audio response if needed
-      if (audioRef.current) {
+      if (audioRef.current && aiResult.response) {
         try {
-          const audioUrl = await generateSpeech(aiResponse);
+          const audioUrl = await generateSpeech(aiResult.response);
           playAudio(audioUrl);
         } catch (error) {
           console.error('Error generating speech:', error);
@@ -216,7 +201,7 @@ export const useVoiceChat = () => {
       console.error('Error processing message:', error);
       toast({
         title: "Error",
-        description: `Failed to get a response. ${error.message}`,
+        description: "Our AI service is temporarily unavailable. Please try again later.",
         variant: "destructive"
       });
       
@@ -252,20 +237,22 @@ export const useVoiceChat = () => {
   };
 
   const regenerateResponse = async (messageId: string, prompt: string) => {
+    if (!prompt) {
+      toast({
+        title: "Error",
+        description: "Unable to regenerate response. Missing original message.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setIsProcessing(true);
 
     try {
-      // Find the message that needs regeneration
-      const messageIndex = messages.findIndex(m => m.id === messageId);
-      if (messageIndex < 0) {
-        throw new Error("Message not found");
-      }
-      
-      // Safely access user health profile and preferences with default empty objects
+      // Prepare user context for AI with safe property access
       const userHealthProfile = (user?.healthProfile as HealthProfile) || {};
       const userPreferences = (user?.preferences as UserPreferences) || {};
       
-      // Prepare user context for AI with safe property access
       const userContext = {
         mood: currentMood?.mood || 'unknown',
         energy: currentMood?.energy || 'medium',
@@ -276,19 +263,17 @@ export const useVoiceChat = () => {
         dietaryRestrictions: userPreferences.dietaryRestrictions || []
       };
 
-      // Get response from Hugging Face only
-      const huggingFaceResponse = await processWithHuggingFace(prompt, userContext);
-      const aiResponse = huggingFaceResponse.response;
-      const alternativeResponses = huggingFaceResponse.alternatives;
+      // Get response from AI
+      const aiResult = await processWithAI(prompt, userContext);
       
       setMessages(prev => {
         return prev.map(message => {
           if (message.id === messageId) {
             return {
               ...message,
-              text: aiResponse,
-              alternativeResponses: alternativeResponses,
-              provider: 'huggingface'
+              text: aiResult.response,
+              alternativeResponses: aiResult.alternatives,
+              provider: aiResult.provider
             };
           }
           return message;
@@ -297,13 +282,13 @@ export const useVoiceChat = () => {
       
       // Save chat history to Supabase
       if (user) {
-        saveToHistory(prompt, aiResponse);
+        saveToHistory(prompt, aiResult.response);
       }
       
       // Generate and play audio response if needed
-      if (audioRef.current) {
+      if (audioRef.current && aiResult.response) {
         try {
-          const audioUrl = await generateSpeech(aiResponse);
+          const audioUrl = await generateSpeech(aiResult.response);
           playAudio(audioUrl);
         } catch (error) {
           console.error('Error generating speech:', error);
@@ -313,7 +298,7 @@ export const useVoiceChat = () => {
       console.error('Error processing message:', error);
       toast({
         title: "Error",
-        description: "Failed to get a response. Please try again.",
+        description: "Failed to regenerate response. Please try again.",
         variant: "destructive"
       });
     } finally {

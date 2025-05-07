@@ -4,12 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
-import { useMood } from '@/contexts/MoodContext';
-import { Bot, Send, Volume2, VolumeX, RotateCcw, AlertCircle, Info } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/hooks/use-toast';
-import { useVoiceChat } from '@/hooks/useVoiceChat';
+import { Bot, Send, Volume2, VolumeX, RotateCcw, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useVoiceChat } from '@/hooks/useVoiceChat';
 
 const Chat = () => {
   const {
@@ -45,7 +42,7 @@ const Chat = () => {
           <div className="flex-1">
             <h1 className="text-xl font-semibold">VibeFlow AI Assistant</h1>
             <p className="text-sm text-gray-600">
-              Your personal wellness companion powered by Hugging Face AI
+              Your personal wellness companion
             </p>
           </div>
         </div>
@@ -89,14 +86,8 @@ const Chat = () => {
                           : 'bg-gray-100 rounded-bl-none'
                       }`}
                     >
-                      {msg.text.startsWith("I'm sorry") && !msg.isUser ? (
-                        <div className="flex items-start gap-2">
-                          <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                          <span>{msg.text}</span>
-                        </div>
-                      ) : (
-                        msg.text
-                      )}
+                      {msg.text}
+                      
                       {!msg.isUser && (
                         <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
                           <div className="flex gap-2 items-center">
@@ -137,11 +128,11 @@ const Chat = () => {
                                       className="h-6 px-2 text-xs flex items-center gap-1"
                                     >
                                       <Info className="h-3 w-3" />
-                                      Hugging Face AI
+                                      AI Assistant
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>This response was generated using Hugging Face AI</p>
+                                    <p>This response was generated using AI</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -181,7 +172,7 @@ const Chat = () => {
                 <div className="bg-gray-100 rounded-lg rounded-bl-none p-3 max-w-[80%]">
                   <div className="flex gap-2 items-center text-sm text-gray-500">
                     <Bot className="w-4 h-4 animate-pulse" />
-                    Thinking using Hugging Face AI...
+                    Thinking...
                   </div>
                 </div>
               </div>
