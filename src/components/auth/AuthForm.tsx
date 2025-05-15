@@ -17,6 +17,7 @@ export const AuthForm = ({ type, onSuccess, onError }: AuthFormProps) => {
   const { signIn, signUp, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showHealthSurvey, setShowHealthSurvey] = useState(false);
@@ -31,8 +32,14 @@ export const AuthForm = ({ type, onSuccess, onError }: AuthFormProps) => {
     if (!password) newErrors.password = 'Password is required';
     else if (password.length < 6) newErrors.password = 'Password must be at least 6 characters';
     
-    if (type === 'signup' && !displayName) {
-      newErrors.displayName = 'Name is required';
+    if (type === 'signup') {
+      if (!displayName) {
+        newErrors.displayName = 'Name is required';
+      }
+      
+      if (password !== confirmPassword) {
+        newErrors.confirmPassword = 'Passwords do not match';
+      }
     }
     
     setErrors(newErrors);
@@ -164,6 +171,25 @@ export const AuthForm = ({ type, onSuccess, onError }: AuthFormProps) => {
               <p className="text-sm text-red-500">{errors.password}</p>
             )}
           </div>
+          
+          {type === 'signup' && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="confirmPassword">
+                Confirm Password
+              </label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className={errors.confirmPassword ? 'border-red-500' : ''}
+                placeholder="Confirm your password"
+              />
+              {errors.confirmPassword && (
+                <p className="text-sm text-red-500">{errors.confirmPassword}</p>
+              )}
+            </div>
+          )}
 
           {type === 'signin' && (
             <div className="text-right">
