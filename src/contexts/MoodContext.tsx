@@ -183,7 +183,33 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  // Get personalized recommendations based on current mood with multiple deduplication checks
+  // Function to deduplicate recommendations
+  const deduplicateRecommendations = (data: any[]): Recommendation[] => {
+    if (!data || data.length === 0) return [];
+    
+    // Use a Map for O(1) lookup and to preserve insertion order
+    const uniqueMap = new Map();
+    
+    // First pass - use Map to track unique IDs
+    data.forEach(rec => {
+      if (!uniqueMap.has(rec.id)) {
+        uniqueMap.set(rec.id, rec);
+      }
+    });
+    
+    // Convert to array and map to our app's format
+    return Array.from(uniqueMap.values()).map(rec => ({
+      id: rec.id,
+      title: rec.title,
+      description: rec.description,
+      category: rec.category,
+      moodTypes: rec.mood_types as MoodType[],
+      energyLevels: rec.energy_levels as EnergyLevel[],
+      imageUrl: rec.image_url
+    }));
+  };
+
+  // Get personalized recommendations based on current mood
   const getRecommendations = useCallback(async () => {
     if (!user) {
       console.log('No user available for recommendations');
@@ -214,7 +240,7 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
         await ensureDefaultRecommendations();
       }
       
-      // First try to get recommendations specific to the mood and energy
+      // Try to get recommendations specific to the mood and energy
       let { data, error } = await supabase
         .from('recommendations')
         .select('*')
@@ -264,46 +290,12 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
       if (data && data.length > 0) {
         console.log('Found recommendations:', data.length);
         
-        // NEW - TRIPLE DEDUPLICATION STRATEGY
-        
-        // 1. First deduplication pass - use object literals for fastest lookup
-        const idTracker: Record<string, boolean> = {};
-        const uniqueData = data.filter(rec => {
-          if (idTracker[rec.id]) {
-            return false; // Skip this duplicate
-          }
-          idTracker[rec.id] = true;
-          return true;
-        });
-        
-        console.log(`After first deduplication pass: ${uniqueData.length} recommendations`);
-        
-        // 2. Map the snake_case fields from Supabase to camelCase for our app
-        const formattedRecommendations: Recommendation[] = uniqueData.map(rec => ({
-          id: rec.id,
-          title: rec.title,
-          description: rec.description,
-          category: rec.category,
-          moodTypes: rec.mood_types as MoodType[],
-          energyLevels: rec.energy_levels as EnergyLevel[],
-          imageUrl: rec.image_url
-        }));
-        
-        // 3. Final integrity check - one last deduplication to be totally sure
-        const finalIdTracker: Record<string, boolean> = {};
-        const finalUniqueRecs = formattedRecommendations.filter(rec => {
-          if (finalIdTracker[rec.id]) {
-            console.log(`Caught duplicate ID in final check: ${rec.id}`);
-            return false;
-          }
-          finalIdTracker[rec.id] = true;
-          return true;
-        });
-        
-        console.log(`Final recommendations count after all deduplication: ${finalUniqueRecs.length}`);
+        // Process and deduplicate the recommendations
+        const deduplicated = deduplicateRecommendations(data);
+        console.log(`After deduplication: ${deduplicated.length} of ${data.length} remain`);
         
         // Set the fully deduplicated recommendations
-        setRecommendations(finalUniqueRecs);
+        setRecommendations(deduplicated);
       } else {
         console.log('No specific recommendations found, using fallbacks');
         
@@ -314,25 +306,9 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
           .limit(20);
           
         if (!generalError && generalData && generalData.length > 0) {
-          // Create an object to track ids we've seen
-          const seenIds: Record<string, boolean> = {};
-          const uniqueGeneralData = generalData.filter(rec => {
-            if (seenIds[rec.id]) return false;
-            seenIds[rec.id] = true;
-            return true;
-          });
-          
-          const formattedRecommendations: Recommendation[] = uniqueGeneralData.map(rec => ({
-            id: rec.id,
-            title: rec.title,
-            description: rec.description,
-            category: rec.category,
-            moodTypes: rec.mood_types as MoodType[],
-            energyLevels: rec.energy_levels as EnergyLevel[],
-            imageUrl: rec.image_url
-          }));
-          
-          setRecommendations(formattedRecommendations);
+          // Deduplicate general recommendations
+          const deduplicated = deduplicateRecommendations(generalData);
+          setRecommendations(deduplicated);
         } else {
           // If still no recommendations, use hardcoded defaults as last resort
           setRecommendations([

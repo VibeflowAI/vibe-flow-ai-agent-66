@@ -6,42 +6,50 @@ import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { Recommendation } from '@/contexts/MoodContext';
 
 export const RecommendationsList = () => {
   const { recommendations, isLoading } = useMood();
   const [userRatings, setUserRatings] = useState<Record<string, { liked: boolean, completed: boolean }>>({});
   const { user } = useAuth();
-  const [deduplicatedRecommendations, setDeduplicatedRecommendations] = useState([]);
+  const [uniqueRecommendations, setUniqueRecommendations] = useState<Recommendation[]>([]);
   
-  // Move deduplication into useEffect to ensure it only happens when recommendations change
+  // Dedicated deduplication function using ES6 Set for uniqueness
   useEffect(() => {
-    console.log('Running deduplication effect');
-    console.log(`Raw recommendations count: ${recommendations.length}`);
+    if (!recommendations || recommendations.length === 0) {
+      setUniqueRecommendations([]);
+      return;
+    }
     
-    // Perform stringent deduplication process
-    const seenIds = new Set();
-    const uniqueRecs = [];
+    console.log(`Starting deduplication process on ${recommendations.length} recommendations`);
     
-    // First pass - only add recommendations with unique IDs
+    // Use a Map to ensure uniqueness by ID and preserve insertion order
+    const uniqueMap = new Map();
+    
+    // First pass - add to map with ID as key
     recommendations.forEach(rec => {
-      if (!seenIds.has(rec.id)) {
-        uniqueRecs.push(rec);
-        seenIds.add(rec.id);
+      if (!uniqueMap.has(rec.id)) {
+        uniqueMap.set(rec.id, rec);
       } else {
-        console.log(`Found duplicate ID: ${rec.id} - filtering out`);
+        console.log(`Detected duplicate ID: ${rec.id} - keeping only first instance`);
       }
     });
     
-    console.log(`After deduplication: ${uniqueRecs.length} of ${recommendations.length} recommendations remain`);
+    // Convert map values back to array
+    const deduplicated = Array.from(uniqueMap.values());
     
-    // Set the state with deduplicated recommendations
-    setDeduplicatedRecommendations(uniqueRecs);
+    console.log(`Deduplication complete: ${deduplicated.length} unique items from ${recommendations.length} total items`);
+    if (deduplicated.length < recommendations.length) {
+      console.log(`Removed ${recommendations.length - deduplicated.length} duplicates`);
+    }
+    
+    setUniqueRecommendations(deduplicated);
   }, [recommendations]);
   
   // Fetch user ratings for all recommendations
   useEffect(() => {
     const fetchUserRatings = async () => {
-      if (!user || deduplicatedRecommendations.length === 0) return;
+      if (!user || uniqueRecommendations.length === 0) return;
       
       try {
         const { data, error } = await supabase
@@ -70,7 +78,7 @@ export const RecommendationsList = () => {
     };
     
     fetchUserRatings();
-  }, [user, deduplicatedRecommendations]);
+  }, [user, uniqueRecommendations]);
   
   // Handle empty or loading states
   if (isLoading) {
@@ -83,7 +91,7 @@ export const RecommendationsList = () => {
     );
   }
 
-  if (deduplicatedRecommendations.length === 0) {
+  if (uniqueRecommendations.length === 0) {
     return (
       <div className="text-center py-8">
         <p className="text-lg text-gray-600">
@@ -135,7 +143,7 @@ export const RecommendationsList = () => {
       initial="hidden"
       animate="show"
     >
-      {deduplicatedRecommendations.map((recommendation) => (
+      {uniqueRecommendations.map((recommendation) => (
         <RecommendationCard 
           key={recommendation.id} 
           recommendation={recommendation}
