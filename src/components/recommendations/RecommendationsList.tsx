@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RecommendationCard } from './RecommendationCard';
 import { useMood } from '@/contexts/MoodContext';
 import { motion } from 'framer-motion';
@@ -12,45 +12,44 @@ export const RecommendationsList = () => {
   const [userRatings, setUserRatings] = useState<Record<string, { liked: boolean, completed: boolean }>>({});
   const { user } = useAuth();
   
-  // Completely revised deduplication logic
-  const uniqueRecommendations = useMemo(() => {
-    // Create an object to track unique recommendations by ID
-    const uniqueRecsObject: Record<string, any> = {};
+  // Completely rewritten deduplication with guaranteed uniqueness via Map
+  const uniqueRecommendations = React.useMemo(() => {
+    // Using Map for guaranteed order preservation and O(1) lookups
+    const uniqueRecsMap = new Map();
     
-    // Process the raw recommendations array
+    // Process recommendations to ensure uniqueness by ID
     recommendations.forEach(rec => {
-      // Only add if this ID hasn't been seen yet
-      if (!uniqueRecsObject[rec.id]) {
-        uniqueRecsObject[rec.id] = rec;
+      if (!uniqueRecsMap.has(rec.id)) {
+        uniqueRecsMap.set(rec.id, rec);
       }
     });
     
-    // Convert back to array
-    const uniqueRecs = Object.values(uniqueRecsObject);
+    // Convert Map back to array for rendering
+    const uniqueRecs = Array.from(uniqueRecsMap.values());
     
-    console.log('DEDUPLICATION REPORT:');
+    // Detailed logging for debugging
+    console.log('FINAL DEDUPLICATION REPORT:');
     console.log(`Raw recommendations count: ${recommendations.length}`);
     console.log(`Unique recommendations count: ${uniqueRecs.length}`);
     
     if (recommendations.length !== uniqueRecs.length) {
-      console.log('--------- DUPLICATE DETECTION ---------');
-      console.log(`Found and removed ${recommendations.length - uniqueRecs.length} duplicates`);
+      console.log(`Removed ${recommendations.length - uniqueRecs.length} duplicates`);
       
-      // Count occurrences of each ID to identify duplicates
-      const idCounts: Record<string, number> = {};
+      // Count and report duplicates for debugging
+      const idCounts = {};
       recommendations.forEach(rec => {
         idCounts[rec.id] = (idCounts[rec.id] || 0) + 1;
       });
       
-      // Log the IDs that had duplicates
       Object.entries(idCounts)
-        .filter(([_, count]) => count > 1)
+        .filter(([_, count]) => (count as number) > 1)
         .forEach(([id, count]) => {
-          console.log(`ID ${id} appeared ${count} times`);
+          console.log(`ID ${id} appeared ${count} times and was deduplicated`);
         });
-      console.log('--------------------------------------');
     }
     
+    // Log final unique recommendation IDs for verification
+    console.log('Final unique recommendation IDs:', uniqueRecs.map(rec => rec.id));
     return uniqueRecs;
   }, [recommendations]);
   
@@ -77,7 +76,6 @@ export const RecommendationsList = () => {
             liked: !!rating.rating,
             completed: rating.completed === true
           };
-          console.log(`Loaded recommendation ${rating.recommendation_id}: liked=${!!rating.rating}, completed=${rating.completed}`);
         });
         
         setUserRatings(ratingsMap);
@@ -124,8 +122,6 @@ export const RecommendationsList = () => {
   };
 
   const handleLikeChange = async (recommendationId: string, liked: boolean) => {
-    console.log(`Recommendation ${recommendationId} ${liked ? 'liked' : 'unliked'}`);
-    
     // Update local state
     setUserRatings(prev => ({
       ...prev,
@@ -134,13 +130,9 @@ export const RecommendationsList = () => {
         liked,
       }
     }));
-    
-    // Save to database handled by RecommendationCard
   };
 
   const handleCompletionChange = async (recommendationId: string, completed: boolean) => {
-    console.log(`Recommendation ${recommendationId} marked as ${completed ? 'completed' : 'incomplete'}`);
-    
     // Update local state
     setUserRatings(prev => ({
       ...prev,
@@ -149,8 +141,6 @@ export const RecommendationsList = () => {
         completed,
       }
     }));
-    
-    // Save to database handled by RecommendationCard
   };
 
   return (
