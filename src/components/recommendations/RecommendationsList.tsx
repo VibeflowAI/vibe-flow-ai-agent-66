@@ -11,12 +11,12 @@ export const RecommendationsList = () => {
   const [userRatings, setUserRatings] = useState<Record<string, { liked: boolean, completed: boolean }>>({});
   const { user } = useAuth();
   
-  // Remove duplicate recommendations by ID - stronger implementation
+  // Strong deduplication using a Map with ID as key
   const uniqueRecommendations = React.useMemo(() => {
-    // Create a Map to store recommendations by ID
-    // This will automatically keep only the last occurrence of each ID
+    // Create a map with ids as keys to ensure uniqueness
     const uniqueMap = new Map();
     
+    // Only keep one recommendation per unique ID (last one)
     recommendations.forEach(recommendation => {
       uniqueMap.set(recommendation.id, recommendation);
     });
@@ -25,24 +25,29 @@ export const RecommendationsList = () => {
     return Array.from(uniqueMap.values());
   }, [recommendations]);
   
-  // Log the original and filtered lists to compare
+  // Debug logging
   useEffect(() => {
-    console.log(`Original recommendations: ${recommendations.length}`);
-    console.log(`Unique recommendations: ${uniqueRecommendations.length}`);
+    console.log(`Original recommendations count: ${recommendations.length}`);
+    console.log(`After deduplication: ${uniqueRecommendations.length}`);
     
-    // Check for duplicates in the original list
+    // Check for duplicates in the original list and log details
     const idCounts = new Map();
     recommendations.forEach(rec => {
       const count = idCounts.get(rec.id) || 0;
       idCounts.set(rec.id, count + 1);
     });
     
-    // Log any duplicates found
+    let duplicateCount = 0;
     idCounts.forEach((count, id) => {
       if (count > 1) {
+        duplicateCount++;
         console.log(`Found duplicate recommendation with ID ${id} (${count} occurrences)`);
       }
     });
+    
+    if (duplicateCount > 0) {
+      console.log(`Total duplicate IDs found: ${duplicateCount}`);
+    }
   }, [recommendations, uniqueRecommendations]);
   
   // Fetch user ratings for all recommendations
