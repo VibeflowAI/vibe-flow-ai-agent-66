@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useMemo } from 'react';
 import { RecommendationCard } from './RecommendationCard';
 import { useMood } from '@/contexts/MoodContext';
 import { motion } from 'framer-motion';
@@ -11,42 +12,43 @@ export const RecommendationsList = () => {
   const [userRatings, setUserRatings] = useState<Record<string, { liked: boolean, completed: boolean }>>({});
   const { user } = useAuth();
   
-  // Strong deduplication using a Map with ID as key
-  const uniqueRecommendations = React.useMemo(() => {
-    // Create a map with ids as keys to ensure uniqueness
-    const uniqueMap = new Map();
+  // Enhanced deduplication with Set for tracking seen IDs
+  const uniqueRecommendations = useMemo(() => {
+    const seenIds = new Set<string>();
+    const uniqueRecs = [];
     
-    // Only keep one recommendation per unique ID (last one)
-    recommendations.forEach(recommendation => {
-      uniqueMap.set(recommendation.id, recommendation);
-    });
+    for (const rec of recommendations) {
+      if (!seenIds.has(rec.id)) {
+        seenIds.add(rec.id);
+        uniqueRecs.push(rec);
+      }
+    }
     
-    // Convert map values back to array
-    return Array.from(uniqueMap.values());
+    return uniqueRecs;
   }, [recommendations]);
   
-  // Debug logging
+  // Enhanced debugging information
   useEffect(() => {
     console.log(`Original recommendations count: ${recommendations.length}`);
     console.log(`After deduplication: ${uniqueRecommendations.length}`);
     
-    // Check for duplicates in the original list and log details
-    const idCounts = new Map();
-    recommendations.forEach(rec => {
-      const count = idCounts.get(rec.id) || 0;
-      idCounts.set(rec.id, count + 1);
-    });
-    
-    let duplicateCount = 0;
-    idCounts.forEach((count, id) => {
-      if (count > 1) {
-        duplicateCount++;
-        console.log(`Found duplicate recommendation with ID ${id} (${count} occurrences)`);
-      }
-    });
-    
-    if (duplicateCount > 0) {
-      console.log(`Total duplicate IDs found: ${duplicateCount}`);
+    if (recommendations.length !== uniqueRecommendations.length) {
+      console.log('Duplicate recommendations detected and removed:');
+      const idCounts = new Map();
+      recommendations.forEach(rec => {
+        const count = idCounts.get(rec.id) || 0;
+        idCounts.set(rec.id, count + 1);
+      });
+      
+      let duplicateCount = 0;
+      idCounts.forEach((count, id) => {
+        if (count > 1) {
+          duplicateCount++;
+          console.log(`- ID ${id} appeared ${count} times`);
+        }
+      });
+      
+      console.log(`Total unique IDs with duplicates: ${duplicateCount}`);
     }
   }, [recommendations, uniqueRecommendations]);
   

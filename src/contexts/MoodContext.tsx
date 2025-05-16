@@ -73,7 +73,7 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
     medium: 'You have moderate energy, able to function but not at peak.',
     high: 'You have abundant energy, feeling vibrant and ready to go.'
   };
-
+  
   // Fetch mood history from Supabase
   const fetchMoodHistory = useCallback(async () => {
     if (!user) return;
@@ -182,7 +182,7 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  // Get personalized recommendations based on current mood
+  // Get personalized recommendations based on current mood with enhanced deduplication
   const getRecommendations = useCallback(async () => {
     if (!user) {
       console.log('No user available for recommendations');
@@ -263,7 +263,7 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
       if (data && data.length > 0) {
         console.log('Found recommendations:', data.length);
         
-        // Create a Map to ensure unique recommendations by ID
+        // Create a Map to ensure unique recommendations by ID - CRITICAL FOR DEDUPLICATION
         const uniqueRecsMap = new Map();
         data.forEach(rec => uniqueRecsMap.set(rec.id, rec));
         data = Array.from(uniqueRecsMap.values());
@@ -281,7 +281,11 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
           imageUrl: rec.image_url
         }));
         
-        setRecommendations(formattedRecommendations);
+        // Final deduplication check before setting state
+        const finalUniqueMap = new Map<string, Recommendation>();
+        formattedRecommendations.forEach(rec => finalUniqueMap.set(rec.id, rec));
+        
+        setRecommendations(Array.from(finalUniqueMap.values()));
       } else {
         console.log('No specific recommendations found, using fallbacks');
         
