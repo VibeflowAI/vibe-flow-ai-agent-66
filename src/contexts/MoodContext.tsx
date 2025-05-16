@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -182,7 +183,7 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  // Get personalized recommendations based on current mood with enhanced deduplication
+  // Get personalized recommendations based on current mood with multiple deduplication checks
   const getRecommendations = useCallback(async () => {
     if (!user) {
       console.log('No user available for recommendations');
@@ -263,15 +264,22 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
       if (data && data.length > 0) {
         console.log('Found recommendations:', data.length);
         
-        // Create a Map to ensure unique recommendations by ID - CRITICAL FOR DEDUPLICATION
-        const uniqueRecsMap = new Map();
-        data.forEach(rec => uniqueRecsMap.set(rec.id, rec));
-        data = Array.from(uniqueRecsMap.values());
+        // NEW - TRIPLE DEDUPLICATION STRATEGY
         
-        console.log('After deduplication:', data.length);
+        // 1. First deduplication pass - use object literals for fastest lookup
+        const idTracker: Record<string, boolean> = {};
+        const uniqueData = data.filter(rec => {
+          if (idTracker[rec.id]) {
+            return false; // Skip this duplicate
+          }
+          idTracker[rec.id] = true;
+          return true;
+        });
         
-        // Map the snake_case fields from Supabase to camelCase for our app
-        const formattedRecommendations: Recommendation[] = data.map(rec => ({
+        console.log(`After first deduplication pass: ${uniqueData.length} recommendations`);
+        
+        // 2. Map the snake_case fields from Supabase to camelCase for our app
+        const formattedRecommendations: Recommendation[] = uniqueData.map(rec => ({
           id: rec.id,
           title: rec.title,
           description: rec.description,
@@ -281,11 +289,21 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
           imageUrl: rec.image_url
         }));
         
-        // Final deduplication check before setting state
-        const finalUniqueMap = new Map<string, Recommendation>();
-        formattedRecommendations.forEach(rec => finalUniqueMap.set(rec.id, rec));
+        // 3. Final integrity check - one last deduplication to be totally sure
+        const finalIdTracker: Record<string, boolean> = {};
+        const finalUniqueRecs = formattedRecommendations.filter(rec => {
+          if (finalIdTracker[rec.id]) {
+            console.log(`Caught duplicate ID in final check: ${rec.id}`);
+            return false;
+          }
+          finalIdTracker[rec.id] = true;
+          return true;
+        });
         
-        setRecommendations(Array.from(finalUniqueMap.values()));
+        console.log(`Final recommendations count after all deduplication: ${finalUniqueRecs.length}`);
+        
+        // Set the fully deduplicated recommendations
+        setRecommendations(finalUniqueRecs);
       } else {
         console.log('No specific recommendations found, using fallbacks');
         
@@ -296,10 +314,13 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
           .limit(20);
           
         if (!generalError && generalData && generalData.length > 0) {
-          // Create a Map to ensure unique recommendations by ID
-          const uniqueRecsMap = new Map();
-          generalData.forEach(rec => uniqueRecsMap.set(rec.id, rec));
-          const uniqueGeneralData = Array.from(uniqueRecsMap.values());
+          // Create an object to track ids we've seen
+          const seenIds: Record<string, boolean> = {};
+          const uniqueGeneralData = generalData.filter(rec => {
+            if (seenIds[rec.id]) return false;
+            seenIds[rec.id] = true;
+            return true;
+          });
           
           const formattedRecommendations: Recommendation[] = uniqueGeneralData.map(rec => ({
             id: rec.id,

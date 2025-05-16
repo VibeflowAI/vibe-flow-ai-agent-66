@@ -12,45 +12,47 @@ export const RecommendationsList = () => {
   const [userRatings, setUserRatings] = useState<Record<string, { liked: boolean, completed: boolean }>>({});
   const { user } = useAuth();
   
-  // Enhanced deduplication with Set for tracking seen IDs
+  // Completely revised deduplication logic
   const uniqueRecommendations = useMemo(() => {
-    const seenIds = new Set<string>();
-    const uniqueRecs = [];
+    // Create an object to track unique recommendations by ID
+    const uniqueRecsObject: Record<string, any> = {};
     
-    for (const rec of recommendations) {
-      if (!seenIds.has(rec.id)) {
-        seenIds.add(rec.id);
-        uniqueRecs.push(rec);
+    // Process the raw recommendations array
+    recommendations.forEach(rec => {
+      // Only add if this ID hasn't been seen yet
+      if (!uniqueRecsObject[rec.id]) {
+        uniqueRecsObject[rec.id] = rec;
       }
+    });
+    
+    // Convert back to array
+    const uniqueRecs = Object.values(uniqueRecsObject);
+    
+    console.log('DEDUPLICATION REPORT:');
+    console.log(`Raw recommendations count: ${recommendations.length}`);
+    console.log(`Unique recommendations count: ${uniqueRecs.length}`);
+    
+    if (recommendations.length !== uniqueRecs.length) {
+      console.log('--------- DUPLICATE DETECTION ---------');
+      console.log(`Found and removed ${recommendations.length - uniqueRecs.length} duplicates`);
+      
+      // Count occurrences of each ID to identify duplicates
+      const idCounts: Record<string, number> = {};
+      recommendations.forEach(rec => {
+        idCounts[rec.id] = (idCounts[rec.id] || 0) + 1;
+      });
+      
+      // Log the IDs that had duplicates
+      Object.entries(idCounts)
+        .filter(([_, count]) => count > 1)
+        .forEach(([id, count]) => {
+          console.log(`ID ${id} appeared ${count} times`);
+        });
+      console.log('--------------------------------------');
     }
     
     return uniqueRecs;
   }, [recommendations]);
-  
-  // Enhanced debugging information
-  useEffect(() => {
-    console.log(`Original recommendations count: ${recommendations.length}`);
-    console.log(`After deduplication: ${uniqueRecommendations.length}`);
-    
-    if (recommendations.length !== uniqueRecommendations.length) {
-      console.log('Duplicate recommendations detected and removed:');
-      const idCounts = new Map();
-      recommendations.forEach(rec => {
-        const count = idCounts.get(rec.id) || 0;
-        idCounts.set(rec.id, count + 1);
-      });
-      
-      let duplicateCount = 0;
-      idCounts.forEach((count, id) => {
-        if (count > 1) {
-          duplicateCount++;
-          console.log(`- ID ${id} appeared ${count} times`);
-        }
-      });
-      
-      console.log(`Total unique IDs with duplicates: ${duplicateCount}`);
-    }
-  }, [recommendations, uniqueRecommendations]);
   
   // Fetch user ratings for all recommendations
   useEffect(() => {
@@ -73,7 +75,6 @@ export const RecommendationsList = () => {
         data?.forEach(rating => {
           ratingsMap[rating.recommendation_id] = {
             liked: !!rating.rating,
-            // Ensure we correctly capture the completed state regardless of rating
             completed: rating.completed === true
           };
           console.log(`Loaded recommendation ${rating.recommendation_id}: liked=${!!rating.rating}, completed=${rating.completed}`);
