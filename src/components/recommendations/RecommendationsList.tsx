@@ -5,7 +5,6 @@ import { useMood } from '@/contexts/MoodContext';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/hooks/use-toast';
 import { Recommendation } from '@/contexts/MoodContext';
 
 export const RecommendationsList = () => {
@@ -14,7 +13,7 @@ export const RecommendationsList = () => {
   const { user } = useAuth();
   const [uniqueRecommendations, setUniqueRecommendations] = useState<Recommendation[]>([]);
   
-  // Dedicated deduplication function using ES6 Set for uniqueness
+  // Dedicated deduplication function using ES6 Map for uniqueness
   useEffect(() => {
     if (!recommendations || recommendations.length === 0) {
       setUniqueRecommendations([]);
