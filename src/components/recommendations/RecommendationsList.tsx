@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { RecommendationCard } from './RecommendationCard';
 import { useMood } from '@/contexts/MoodContext';
@@ -5,7 +6,7 @@ import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Recommendation } from '@/contexts/MoodContext';
-import { createUniqueIdFromRecommendation } from './utils/imageUtils';
+import { createUniqueIdFromRecommendation, getRecommendationFingerprint } from './utils/imageUtils';
 
 export const RecommendationsList = () => {
   const { recommendations, isLoading, currentMood } = useMood();
@@ -22,77 +23,65 @@ export const RecommendationsList = () => {
     
     console.log(`Starting deduplication process on ${recommendations.length} recommendations`);
     
-    // Use a Map with composite key for stronger uniqueness guarantee
-    const uniqueMap = new Map();
-    const idSet = new Set<string>();
-    
-    // First pass - log all IDs to see if we have genuine duplicates
-    recommendations.forEach(rec => {
-      if (idSet.has(rec.id)) {
-        console.log(`Found duplicate ID: ${rec.id} - Title: ${rec.title}`);
-      } else {
-        idSet.add(rec.id);
-      }
-    });
-
-    // Second pass - improve variety by prioritizing matches for current mood and energy
-    // and ensuring diversity across categories
+    // Use fingerprinting for better duplicate detection
+    const uniqueRecsMap = new Map<string, Recommendation>();
+    const seenFingerprints = new Set<string>();
     const categoryCounter: Record<string, number> = {};
     
-    // First prioritize exact mood and energy matches
-    if (currentMood) {
-      recommendations.forEach(rec => {
-        if (
-          rec.moodTypes.includes(currentMood.mood) && 
-          rec.energyLevels.includes(currentMood.energy)
-        ) {
-          const uniqueKey = createUniqueIdFromRecommendation(rec);
+    // Process recommendations in order of relevance to current mood
+    const sortedRecs = currentMood 
+      ? [...recommendations].sort((a, b) => {
+          // Calculate relevance score - exact mood and energy match gets highest priority
+          const aMatchesMood = a.moodTypes.includes(currentMood.mood) ? 2 : 0;
+          const aMatchesEnergy = a.energyLevels.includes(currentMood.energy) ? 1 : 0;
+          const aScore = aMatchesMood + aMatchesEnergy;
           
-          // Ensure category diversity by limiting number per category
-          const category = rec.category.toLowerCase();
-          categoryCounter[category] = (categoryCounter[category] || 0) + 1;
+          const bMatchesMood = b.moodTypes.includes(currentMood.mood) ? 2 : 0;
+          const bMatchesEnergy = b.energyLevels.includes(currentMood.energy) ? 1 : 0;
+          const bScore = bMatchesMood + bMatchesEnergy;
           
-          // Only add if we don't have too many of this category already
-          if (categoryCounter[category] <= 3 && !uniqueMap.has(uniqueKey)) {
-            uniqueMap.set(uniqueKey, rec);
-          }
+          return bScore - aScore; // Higher score comes first
+        })
+      : recommendations;
+    
+    // First pass - identify and log duplicates
+    const duplicateIds = new Set<string>();
+    sortedRecs.forEach((rec, index) => {
+      sortedRecs.slice(index + 1).forEach(otherRec => {
+        if (rec.id === otherRec.id) {
+          duplicateIds.add(rec.id);
         }
       });
+    });
+    
+    if (duplicateIds.size > 0) {
+      console.log(`Found ${duplicateIds.size} recommendations with duplicate IDs`);
     }
     
-    // Then add other recommendations to fill in if needed
-    recommendations.forEach(rec => {
+    // Second pass - build unique recommendations list
+    sortedRecs.forEach(rec => {
+      const fingerprint = getRecommendationFingerprint(rec);
       const uniqueKey = createUniqueIdFromRecommendation(rec);
       
-      if (!uniqueMap.has(uniqueKey)) {
-        const category = rec.category.toLowerCase();
-        categoryCounter[category] = (categoryCounter[category] || 0) + 1;
-        
-        // Limit number per category to ensure diversity
-        if (categoryCounter[category] <= 3) {
-          uniqueMap.set(uniqueKey, rec);
-        }
+      // Skip if we've already seen this recommendation
+      if (seenFingerprints.has(fingerprint)) {
+        return;
+      }
+      
+      const category = rec.category.toLowerCase();
+      
+      // Ensure category diversity by limiting number per category
+      // Increase the limit slightly (from 3 to 4) to allow more diversity
+      categoryCounter[category] = (categoryCounter[category] || 0) + 1;
+      
+      if (categoryCounter[category] <= 4) {
+        uniqueRecsMap.set(uniqueKey, rec);
+        seenFingerprints.add(fingerprint);
       }
     });
     
-    // Convert map values back to array and sort by relevance to current mood
-    let deduplicated = Array.from(uniqueMap.values());
-    
-    // If we have current mood, sort recommendations by relevance
-    if (currentMood) {
-      deduplicated = deduplicated.sort((a, b) => {
-        // Calculate relevance score - exact mood and energy match gets highest priority
-        const aMatchesMood = a.moodTypes.includes(currentMood.mood) ? 2 : 0;
-        const aMatchesEnergy = a.energyLevels.includes(currentMood.energy) ? 1 : 0;
-        const aScore = aMatchesMood + aMatchesEnergy;
-        
-        const bMatchesMood = b.moodTypes.includes(currentMood.mood) ? 2 : 0;
-        const bMatchesEnergy = b.energyLevels.includes(currentMood.energy) ? 1 : 0;
-        const bScore = bMatchesMood + bMatchesEnergy;
-        
-        return bScore - aScore; // Higher score comes first
-      });
-    }
+    // Convert map values back to array
+    let deduplicated = Array.from(uniqueRecsMap.values());
     
     console.log(`Deduplication complete: ${deduplicated.length} unique items from ${recommendations.length} total items`);
     if (deduplicated.length < recommendations.length) {
