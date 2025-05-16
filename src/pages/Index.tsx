@@ -104,9 +104,9 @@ const Index = () => {
               <div className="w-16 h-16 rounded-full bg-vibe-light flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl text-vibe-primary">2</span>
               </div>
-              <h3 className="text-xl font-bold mb-3">Get Recommendations</h3>
+              <h3 className="text-xl font-bold mb-3">Get AI-Powered Insights</h3>
               <p className="text-gray-600">
-                Our AI analyzes your mood and provides personalized recommendations for food, activities, and mindfulness.
+                Our AI analyzes your mood patterns over time and provides personalized insights that evolve with your emotional journey.
               </p>
             </div>
             <div className="text-center">
@@ -147,7 +147,7 @@ const Index = () => {
               </div>
               <h3 className="text-xl font-bold mb-2">Smart Recommendations</h3>
               <p className="text-gray-600">
-                Get activities, food suggestions, and mindfulness practices tailored to your current mood.
+                View actionable suggestions for food, activities, and mindfulness practices—each tailored to your current emotional state.
               </p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
