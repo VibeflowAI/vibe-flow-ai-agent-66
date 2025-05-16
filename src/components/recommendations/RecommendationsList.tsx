@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Recommendation } from '@/contexts/MoodContext';
+import { createUniqueIdFromRecommendation } from './utils/imageUtils';
 
 export const RecommendationsList = () => {
   const { recommendations, isLoading } = useMood();
@@ -13,7 +14,7 @@ export const RecommendationsList = () => {
   const { user } = useAuth();
   const [uniqueRecommendations, setUniqueRecommendations] = useState<Recommendation[]>([]);
   
-  // Dedicated deduplication function using ES6 Map for uniqueness
+  // Enhanced deduplication with detailed logging
   useEffect(() => {
     if (!recommendations || recommendations.length === 0) {
       setUniqueRecommendations([]);
@@ -22,15 +23,27 @@ export const RecommendationsList = () => {
     
     console.log(`Starting deduplication process on ${recommendations.length} recommendations`);
     
-    // Use a Map to ensure uniqueness by ID and preserve insertion order
+    // Use a Map with composite key for stronger uniqueness guarantee
     const uniqueMap = new Map();
+    const idSet = new Set<string>();
     
-    // First pass - add to map with ID as key
+    // First pass - log all IDs to see if we have genuine duplicates
     recommendations.forEach(rec => {
-      if (!uniqueMap.has(rec.id)) {
-        uniqueMap.set(rec.id, rec);
+      if (idSet.has(rec.id)) {
+        console.log(`Found duplicate ID: ${rec.id} - Title: ${rec.title}`);
       } else {
-        console.log(`Detected duplicate ID: ${rec.id} - keeping only first instance`);
+        idSet.add(rec.id);
+      }
+    });
+    
+    // Second pass - add to map with composite key for stronger guarantee
+    recommendations.forEach(rec => {
+      const uniqueKey = createUniqueIdFromRecommendation(rec);
+      
+      if (!uniqueMap.has(uniqueKey)) {
+        uniqueMap.set(uniqueKey, rec);
+      } else {
+        console.log(`Filtered duplicate: ID=${rec.id}, Title=${rec.title}`);
       }
     });
     
@@ -144,7 +157,7 @@ export const RecommendationsList = () => {
     >
       {uniqueRecommendations.map((recommendation) => (
         <RecommendationCard 
-          key={recommendation.id} 
+          key={createUniqueIdFromRecommendation(recommendation)} 
           recommendation={recommendation}
           onLikeChange={(liked) => handleLikeChange(recommendation.id, liked)}
           onCompletionChange={(completed) => handleCompletionChange(recommendation.id, completed)}

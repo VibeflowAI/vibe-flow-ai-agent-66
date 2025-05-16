@@ -1,6 +1,6 @@
 
 export const getCategoryPlaceholder = (category: string): string => {
-  switch (category) {
+  switch (category.toLowerCase()) {
     case 'food':
       return 'https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?auto=format&fit=crop&w=600&h=400';
     case 'activity':
@@ -10,4 +10,10 @@ export const getCategoryPlaceholder = (category: string): string => {
     default:
       return '/placeholder.svg';
   }
+};
+
+// Create a unique ID from a recommendation object to help with deduplication
+export const createUniqueIdFromRecommendation = (rec: {id: string, title: string}): string => {
+  // Use both ID and title to ensure uniqueness in case of data inconsistencies
+  return `${rec.id}-${rec.title.replace(/\s+/g, '-').toLowerCase()}`;
 };

@@ -183,22 +183,42 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  // Function to deduplicate recommendations
+  // Enhanced function to deduplicate recommendations with stricter checks
   const deduplicateRecommendations = (data: any[]): Recommendation[] => {
     if (!data || data.length === 0) return [];
     
+    console.log(`MoodContext deduplication: Starting with ${data.length} recommendations`);
+    
     // Use a Map for O(1) lookup and to preserve insertion order
     const uniqueMap = new Map();
+    const seenIds = new Set<string>();
+    const duplicates: string[] = [];
     
-    // First pass - use Map to track unique IDs
+    // First pass - identify duplicates for logging
     data.forEach(rec => {
-      if (!uniqueMap.has(rec.id)) {
-        uniqueMap.set(rec.id, rec);
+      if (seenIds.has(rec.id)) {
+        duplicates.push(rec.id);
+      } else {
+        seenIds.add(rec.id);
+      }
+    });
+    
+    if (duplicates.length > 0) {
+      console.log(`Found ${duplicates.length} duplicate IDs: ${duplicates.join(', ')}`);
+    }
+    
+    // Second pass - use Map for better uniqueness guarantee
+    data.forEach(rec => {
+      // Create a composite key using id and title
+      const uniqueKey = `${rec.id}-${rec.title.replace(/\s+/g, '-').toLowerCase()}`;
+      
+      if (!uniqueMap.has(uniqueKey)) {
+        uniqueMap.set(uniqueKey, rec);
       }
     });
     
     // Convert to array and map to our app's format
-    return Array.from(uniqueMap.values()).map(rec => ({
+    const deduplicated = Array.from(uniqueMap.values()).map(rec => ({
       id: rec.id,
       title: rec.title,
       description: rec.description,
@@ -207,6 +227,10 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
       energyLevels: rec.energy_levels as EnergyLevel[],
       imageUrl: rec.image_url
     }));
+    
+    console.log(`MoodContext deduplication: Finished with ${deduplicated.length} unique recommendations (removed ${data.length - deduplicated.length} duplicates)`);
+    
+    return deduplicated;
   };
 
   // Get personalized recommendations based on current mood
