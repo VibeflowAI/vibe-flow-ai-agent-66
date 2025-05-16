@@ -12,40 +12,33 @@ export const RecommendationsList = () => {
   const [userRatings, setUserRatings] = useState<Record<string, { liked: boolean, completed: boolean }>>({});
   const { user } = useAuth();
   
-  // Completely rewritten deduplication with guaranteed uniqueness via Map
+  // Complete rewrite of deduplication using Set for guaranteed uniqueness
   const uniqueRecommendations = React.useMemo(() => {
-    // Using Map for guaranteed order preservation and O(1) lookups
-    const uniqueRecsMap = new Map();
+    console.log('STARTING FINAL DEDUPLICATION');
+    console.log(`Raw recommendations count: ${recommendations.length}`);
     
-    // Process recommendations to ensure uniqueness by ID
-    recommendations.forEach(rec => {
-      if (!uniqueRecsMap.has(rec.id)) {
-        uniqueRecsMap.set(rec.id, rec);
+    // Create a Set of IDs to track what we've seen
+    const seenIds = new Set();
+    
+    // Create a new array with only unique recommendations
+    const uniqueRecs = [];
+    
+    for (const rec of recommendations) {
+      // Only add if we haven't seen this ID before
+      if (!seenIds.has(rec.id)) {
+        uniqueRecs.push(rec);
+        seenIds.add(rec.id);
+      } else {
+        console.log(`Skipping duplicate ID: ${rec.id}`);
       }
-    });
+    }
     
-    // Convert Map back to array for rendering
-    const uniqueRecs = Array.from(uniqueRecsMap.values());
-    
-    // Detailed logging for debugging
-    console.log('FINAL DEDUPLICATION REPORT:');
+    console.log(`FINAL DEDUPLICATION REPORT:`);
     console.log(`Raw recommendations count: ${recommendations.length}`);
     console.log(`Unique recommendations count: ${uniqueRecs.length}`);
     
     if (recommendations.length !== uniqueRecs.length) {
       console.log(`Removed ${recommendations.length - uniqueRecs.length} duplicates`);
-      
-      // Count and report duplicates for debugging
-      const idCounts = {};
-      recommendations.forEach(rec => {
-        idCounts[rec.id] = (idCounts[rec.id] || 0) + 1;
-      });
-      
-      Object.entries(idCounts)
-        .filter(([_, count]) => (count as number) > 1)
-        .forEach(([id, count]) => {
-          console.log(`ID ${id} appeared ${count} times and was deduplicated`);
-        });
     }
     
     // Log final unique recommendation IDs for verification
