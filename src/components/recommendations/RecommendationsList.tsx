@@ -12,10 +12,22 @@ export const RecommendationsList = () => {
   const [userRatings, setUserRatings] = useState<Record<string, { liked: boolean, completed: boolean }>>({});
   const { user } = useAuth();
   
+  // Remove duplicate recommendations by ID
+  const uniqueRecommendations = React.useMemo(() => {
+    const seen = new Set();
+    return recommendations.filter(recommendation => {
+      if (seen.has(recommendation.id)) {
+        return false;
+      }
+      seen.add(recommendation.id);
+      return true;
+    });
+  }, [recommendations]);
+  
   // Fetch user ratings for all recommendations
   useEffect(() => {
     const fetchUserRatings = async () => {
-      if (!user || recommendations.length === 0) return;
+      if (!user || uniqueRecommendations.length === 0) return;
       
       try {
         const { data, error } = await supabase
@@ -46,7 +58,7 @@ export const RecommendationsList = () => {
     };
     
     fetchUserRatings();
-  }, [user, recommendations]);
+  }, [user, uniqueRecommendations]);
   
   // Handle empty or loading states
   if (isLoading) {
@@ -59,7 +71,7 @@ export const RecommendationsList = () => {
     );
   }
 
-  if (recommendations.length === 0) {
+  if (uniqueRecommendations.length === 0) {
     return (
       <div className="text-center py-8">
         <p className="text-lg text-gray-600">
@@ -119,7 +131,7 @@ export const RecommendationsList = () => {
       initial="hidden"
       animate="show"
     >
-      {recommendations.map((recommendation) => (
+      {uniqueRecommendations.map((recommendation) => (
         <RecommendationCard 
           key={recommendation.id} 
           recommendation={recommendation}
