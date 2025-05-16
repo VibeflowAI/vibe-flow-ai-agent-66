@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { RecommendationCard } from './RecommendationCard';
 import { useMood } from '@/contexts/MoodContext';
@@ -12,17 +11,39 @@ export const RecommendationsList = () => {
   const [userRatings, setUserRatings] = useState<Record<string, { liked: boolean, completed: boolean }>>({});
   const { user } = useAuth();
   
-  // Remove duplicate recommendations by ID
+  // Remove duplicate recommendations by ID - stronger implementation
   const uniqueRecommendations = React.useMemo(() => {
-    const seen = new Set();
-    return recommendations.filter(recommendation => {
-      if (seen.has(recommendation.id)) {
-        return false;
-      }
-      seen.add(recommendation.id);
-      return true;
+    // Create a Map to store recommendations by ID
+    // This will automatically keep only the last occurrence of each ID
+    const uniqueMap = new Map();
+    
+    recommendations.forEach(recommendation => {
+      uniqueMap.set(recommendation.id, recommendation);
     });
+    
+    // Convert map values back to array
+    return Array.from(uniqueMap.values());
   }, [recommendations]);
+  
+  // Log the original and filtered lists to compare
+  useEffect(() => {
+    console.log(`Original recommendations: ${recommendations.length}`);
+    console.log(`Unique recommendations: ${uniqueRecommendations.length}`);
+    
+    // Check for duplicates in the original list
+    const idCounts = new Map();
+    recommendations.forEach(rec => {
+      const count = idCounts.get(rec.id) || 0;
+      idCounts.set(rec.id, count + 1);
+    });
+    
+    // Log any duplicates found
+    idCounts.forEach((count, id) => {
+      if (count > 1) {
+        console.log(`Found duplicate recommendation with ID ${id} (${count} occurrences)`);
+      }
+    });
+  }, [recommendations, uniqueRecommendations]);
   
   // Fetch user ratings for all recommendations
   useEffect(() => {

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -263,6 +262,14 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
       
       if (data && data.length > 0) {
         console.log('Found recommendations:', data.length);
+        
+        // Create a Map to ensure unique recommendations by ID
+        const uniqueRecsMap = new Map();
+        data.forEach(rec => uniqueRecsMap.set(rec.id, rec));
+        data = Array.from(uniqueRecsMap.values());
+        
+        console.log('After deduplication:', data.length);
+        
         // Map the snake_case fields from Supabase to camelCase for our app
         const formattedRecommendations: Recommendation[] = data.map(rec => ({
           id: rec.id,
@@ -285,7 +292,12 @@ export const MoodProvider = ({ children }: { children: ReactNode }) => {
           .limit(20);
           
         if (!generalError && generalData && generalData.length > 0) {
-          const formattedRecommendations: Recommendation[] = generalData.map(rec => ({
+          // Create a Map to ensure unique recommendations by ID
+          const uniqueRecsMap = new Map();
+          generalData.forEach(rec => uniqueRecsMap.set(rec.id, rec));
+          const uniqueGeneralData = Array.from(uniqueRecsMap.values());
+          
+          const formattedRecommendations: Recommendation[] = uniqueGeneralData.map(rec => ({
             id: rec.id,
             title: rec.title,
             description: rec.description,
