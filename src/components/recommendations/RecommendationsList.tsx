@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { RecommendationCard } from './RecommendationCard';
 import { useMood } from '@/contexts/MoodContext';
@@ -9,12 +8,12 @@ import { Recommendation } from '@/contexts/MoodContext';
 import { createUniqueIdFromRecommendation } from './utils/imageUtils';
 
 export const RecommendationsList = () => {
-  const { recommendations, isLoading } = useMood();
+  const { recommendations, isLoading, currentMood } = useMood();
   const [userRatings, setUserRatings] = useState<Record<string, { liked: boolean, completed: boolean }>>({});
   const { user } = useAuth();
   const [uniqueRecommendations, setUniqueRecommendations] = useState<Recommendation[]>([]);
   
-  // Enhanced deduplication with detailed logging
+  // Enhanced deduplication with category diversity logic
   useEffect(() => {
     if (!recommendations || recommendations.length === 0) {
       setUniqueRecommendations([]);
@@ -35,28 +34,81 @@ export const RecommendationsList = () => {
         idSet.add(rec.id);
       }
     });
+
+    // Second pass - improve variety by prioritizing matches for current mood and energy
+    // and ensuring diversity across categories
+    const categoryCounter: Record<string, number> = {};
     
-    // Second pass - add to map with composite key for stronger guarantee
+    // First prioritize exact mood and energy matches
+    if (currentMood) {
+      recommendations.forEach(rec => {
+        if (
+          rec.moodTypes.includes(currentMood.mood) && 
+          rec.energyLevels.includes(currentMood.energy)
+        ) {
+          const uniqueKey = createUniqueIdFromRecommendation(rec);
+          
+          // Ensure category diversity by limiting number per category
+          const category = rec.category.toLowerCase();
+          categoryCounter[category] = (categoryCounter[category] || 0) + 1;
+          
+          // Only add if we don't have too many of this category already
+          if (categoryCounter[category] <= 3 && !uniqueMap.has(uniqueKey)) {
+            uniqueMap.set(uniqueKey, rec);
+          }
+        }
+      });
+    }
+    
+    // Then add other recommendations to fill in if needed
     recommendations.forEach(rec => {
       const uniqueKey = createUniqueIdFromRecommendation(rec);
       
       if (!uniqueMap.has(uniqueKey)) {
-        uniqueMap.set(uniqueKey, rec);
-      } else {
-        console.log(`Filtered duplicate: ID=${rec.id}, Title=${rec.title}`);
+        const category = rec.category.toLowerCase();
+        categoryCounter[category] = (categoryCounter[category] || 0) + 1;
+        
+        // Limit number per category to ensure diversity
+        if (categoryCounter[category] <= 3) {
+          uniqueMap.set(uniqueKey, rec);
+        }
       }
     });
     
-    // Convert map values back to array
-    const deduplicated = Array.from(uniqueMap.values());
+    // Convert map values back to array and sort by relevance to current mood
+    let deduplicated = Array.from(uniqueMap.values());
+    
+    // If we have current mood, sort recommendations by relevance
+    if (currentMood) {
+      deduplicated = deduplicated.sort((a, b) => {
+        // Calculate relevance score - exact mood and energy match gets highest priority
+        const aMatchesMood = a.moodTypes.includes(currentMood.mood) ? 2 : 0;
+        const aMatchesEnergy = a.energyLevels.includes(currentMood.energy) ? 1 : 0;
+        const aScore = aMatchesMood + aMatchesEnergy;
+        
+        const bMatchesMood = b.moodTypes.includes(currentMood.mood) ? 2 : 0;
+        const bMatchesEnergy = b.energyLevels.includes(currentMood.energy) ? 1 : 0;
+        const bScore = bMatchesMood + bMatchesEnergy;
+        
+        return bScore - aScore; // Higher score comes first
+      });
+    }
     
     console.log(`Deduplication complete: ${deduplicated.length} unique items from ${recommendations.length} total items`);
     if (deduplicated.length < recommendations.length) {
       console.log(`Removed ${recommendations.length - deduplicated.length} duplicates`);
     }
     
+    // Log category distribution for debugging
+    const finalCategoryCounts: Record<string, number> = {};
+    deduplicated.forEach(rec => {
+      const category = rec.category.toLowerCase();
+      finalCategoryCounts[category] = (finalCategoryCounts[category] || 0) + 1;
+    });
+    console.log('Category distribution:', finalCategoryCounts);
+    
     setUniqueRecommendations(deduplicated);
-  }, [recommendations]);
+  }, [recommendations, currentMood]);
   
   // Fetch user ratings for all recommendations
   useEffect(() => {
